@@ -264,11 +264,20 @@ class Legend:
         return f', {shown} {where}'
 
     def _signature(self, name: str, lk: Relation) -> str:
-        """A relation in the legend: a function from its key sets to its value sets, or a relation inside the product."""
+        """A relation in the legend: a function from its key sets to its value sets, or a relation inside the product.
+
+        A property is named after itself and maps from its subject: the set of
+        a dimension, or a set by its own name, since a property of a sparse set
+        is defined only on the rows the set lists.
+        """
 
         def product(roles: Iterable[str]) -> str:
             return self.format.joined([self.symbols.set[lk.dim(r)] for r in roles], self._op('times'))
 
+        if lk.subject is not None:
+            (value,) = lk.values
+            domain = product(lk.key) if lk.subject in self.program.dimensions else self.format.upright(lk.subject)
+            return f'{self.format.upright(value)}: {domain} {self._op("maps_to")} {product(lk.values)}'
         if lk.values:
             return f'{self.format.upright(name)}: {product(lk.key)} {self._op("maps_to")} {product(lk.values)}'
         return f'{self.format.upright(name)} {self._op("subset_of")} {product(lk.roles)}'
@@ -288,7 +297,7 @@ class Legend:
             maps = self.format.joined([self._signature(c, lk) for c, lk in carried.items()], '')
             clauses.append(f' with {self.format.math(maps)}')
             clauses.extend(
-                f', {self.format.mono(c)} is {self.format.mono("absent")} {_NO_ROW}'
+                f', {self.format.mono(_spelled(c, lk))} is {self.format.mono("absent")} {_NO_ROW}'
                 for c, lk in carried.items()
                 if lk.missing == 'absent'
             )
@@ -342,3 +351,8 @@ class Legend:
                 LegendItem(size, f'the size of {fmt.math(fmt.script("T"))}; {fmt.math(last)} is the last position')
             )
         return items
+
+
+def _spelled(name: str, lk: Relation) -> str:
+    """A table as the file reads it: ``line[bus1]`` for a property, and the name for a relation or a set."""
+    return f'{lk.subject}[{lk.values[0]}]' if lk.subject is not None else name

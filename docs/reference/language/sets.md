@@ -143,6 +143,12 @@ every one of those rows has a `zone`. For `connection`, only the listed pairs
 are rows, and a property of `connection` with `missing: refused` needs a value
 at each listed pair, not at every pair of a generator and a bus.
 
+The typeset legend prints each set and each property beside the dimensions it
+reads: `connection ⊆ G × B`, `bus: G → B`, and `zone: generator_period → Z` for
+a property of a set. Beside them it prints
+`` `line[bus1]` is `absent` where the data has no row `` for each one that
+declares `missing: absent`, and prints nothing for `refused`.
+
 ## How a set or a property is read
 
 A call names a subject and what it reads of it as `subject[name, …]`. Each name
@@ -181,9 +187,9 @@ constraints:
     expression: sum(p, over=generator, by=generator[bus, carrier]) <= limit
 ```
 
-$$p_{g,t} \ge 0 \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T} \,:\, \mathrm{generator.carrier}(g) \text{ is defined}$$
+$$p_{g,t} \ge 0 \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T} \,:\, \mathrm{carrier}(g) \text{ is defined}$$
 
-$$\sum_{g \in \mathcal{G} \,:\, \mathrm{generator.bus}(g) = b \wedge \mathrm{generator.carrier}(g) = c} p_{g,t} \le \mathrm{limit}_{b,c} \qquad \forall\, b \in \mathcal{B},\ c \in \mathcal{C},\ t \in \mathcal{T}$$
+$$\sum_{g \in \mathcal{G} \,:\, \mathrm{bus}(g) = b \wedge \mathrm{carrier}(g) = c} p_{g,t} \le \mathrm{limit}_{b,c} \qquad \forall\, b \in \mathcal{B},\ c \in \mathcal{C},\ t \in \mathcal{T}$$
 
 - A call that names several properties reads their **inner join**. A generator
   with no `carrier` has no row in it, so `carrier_limit` adds up only the

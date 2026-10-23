@@ -31,6 +31,15 @@ relations:
   connection: { key: [generator, bus], missing: absent } # a bare relation, with no value columns: many-to-many, read only by sum with both ends named
   gen_bt: { key: generator, values: [bus, technology] } # one table with two value columns, read to both at once
 
+sets:
+  dispatch_pair: { dims: [generator, bus], missing: absent } # a set: the pairs that exist, and the subject of a property below
+
+properties:
+  generator:
+    fuel: { into: technology, missing: absent } # a property of a dimension: the legend names it after itself, and says a generator may have none
+  dispatch_pair:
+    area: zone # a property of a set: the legend maps it from the set by name
+
 parameters:
   p_max: { dims: [generator], missing: .inf } # a value: the legend says what a missing row reads as
   p_min: { dims: [generator] }
@@ -244,6 +253,16 @@ constraints:
   representative: # a map into its own dimension, read both ways: the frame is unchanged and the index is primed
     dims: [snapshot]
     expression: sum(spill, over=snapshot, by=rep_of[rep]) <= at(spill, by=rep_of[rep])
+  by_fuel: # a sum through a property of a dimension, read as the property's own name
+    dims: [snapshot, technology]
+    expression: sum(p, over=generator, by=generator[fuel]) <= budget
+  by_area: # a sum through a property of a set, over both of its members
+    dims: [snapshot, zone]
+    expression: sum(p * link_eff, over=[generator, bus], by=dispatch_pair[area]) <= zone_cap
+  fuelled: # a property alone as a where: the row has it
+    dims: [snapshot, generator]
+    where: "generator[fuel]"
+    expression: p <= budget
   zonal: # a grouping through a two-key map, summing one key away: the condition reads the other, and the row keeps it
     dims: [snapshot, zone]
     expression: sum(p, over=generator, by=gen_zone[zone]) <= zone_cap
