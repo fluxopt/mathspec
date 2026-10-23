@@ -35,11 +35,11 @@ A set is a table whose rows are combinations of labels. `connection` holds the
 pairs of a generator and a bus that are wired, and every other pair is not in
 the set.
 
-| Field         |                                                                          |                   |
-| ------------- | ------------------------------------------------------------------------ | ----------------- |
-| `dims`        | required. The dimensions a row combines, as a list or as a mapping       |                   |
-| `missing`     | `refused` or `absent`: whether every combination of `dims` is a row      | default `refused` |
-| `description` | free text                                                                | default `null`    |
+| Field         |                                                                     |                   |
+| ------------- | ------------------------------------------------------------------- | ----------------- |
+| `dims`        | required. The dimensions a row combines, as a list or as a mapping  |                   |
+| `missing`     | `refused` or `absent`: whether every combination of `dims` is a row | default `refused` |
+| `description` | free text                                                           | default `null`    |
 
 A set has at least two dimensions. For a subset of one dimension, declare a
 `bool` parameter. Where two members of a set are over one dimension, the
@@ -100,11 +100,11 @@ subject is a dimension or a set, and `properties:` lists the properties of each
 subject under the subject's name. `generator: {bus: bus}` gives each generator
 one bus.
 
-| Field         |                                                                      |                   |
-| ------------- | -------------------------------------------------------------------- | ----------------- |
-| `into`        | required. The dimension the value is a label of                      |                   |
-| `missing`     | `refused` or `absent`: whether every row of the subject has it       | default `refused` |
-| `description` | free text                                                            | default `null`    |
+| Field         |                                                                |                   |
+| ------------- | -------------------------------------------------------------- | ----------------- |
+| `into`        | required. The dimension the value is a label of                |                   |
+| `missing`     | `refused` or `absent`: whether every row of the subject has it | default `refused` |
+| `description` | free text                                                      | default `null`    |
 
 `bus: bus` is the short form of `bus: {into: bus}`. Two properties of one
 subject may map into one dimension, as `bus0` and `bus1` do. A property of a
@@ -132,10 +132,10 @@ can both have a property `bus`.
 label of its dimension is refused when the data is attached, so no value fills
 a gap.
 
-| On a       | `missing:` asks                                      | `absent` means                                     |
-| ---------- | ---------------------------------------------------- | -------------------------------------------------- |
-| set        | is every combination of `dims` a row?                | a combination with no row is not in the set        |
-| property   | does every row of the subject have the property?     | a row of the subject with no value lacks it        |
+| On a     | `missing:` asks                                  | `absent` means                              |
+| -------- | ------------------------------------------------ | ------------------------------------------- |
+| set      | is every combination of `dims` a row?            | a combination with no row is not in the set |
+| property | does every row of the subject have the property? | a row of the subject with no value lacks it |
 
 The default `refused` refuses data that leaves a row out. For
 `generator_period` above, every pair of a generator and a period is a row, and

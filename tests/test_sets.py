@@ -140,7 +140,7 @@ def test_the_normal_form_sorts_the_properties_of_a_subject():
 
 
 def test_an_error_lists_no_property_as_a_name_to_write():
-    message = _refusal(**{'variables.inj.where': 'conection'})
+    message = _refusal(**{'variables.inj.where': 'wired'})
     assert "Relations: ['connection', 'cover', 'generator_period']" in message, (
         'a property has no name a file can write, so the listing leaves it out'
     )
