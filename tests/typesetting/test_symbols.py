@@ -101,7 +101,7 @@ DEFAULTED = varied(
     DISPATCH_MODEL,
     **{
         'dimensions.bus': {'dtype': 'str'},
-        'relations.gen_bus': {'key': 'generator', 'values': 'bus', 'missing': 'absent'},
+        'properties.generator.bus': {'into': 'bus', 'missing': 'absent'},
         'parameters.p_max.missing': 'inf',
         'parameters.cost.missing': 1,
         'parameters.load.missing': 0,
@@ -124,7 +124,7 @@ def test_the_legend_prints_what_a_missing_row_means(name: FormatName, fmt: Forma
         fmt.mono('true'),
         fmt.math(number(0, fmt)),
         fmt.mono('absent'),
-        f'{fmt.mono("gen_bus")} is {fmt.mono("absent")}',
+        f'{fmt.mono("generator[bus]")} is {fmt.mono("absent")}',
     ):
         assert f'{shown} where the data has no row' in out
     assert out.count('where the data has no row') == 8, (

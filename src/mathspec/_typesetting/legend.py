@@ -264,7 +264,7 @@ class Legend:
         return f', {shown} {where}'
 
     def _signature(self, name: str, lk: Relation) -> str:
-        """A relation in the legend: a function from its key sets to its value sets, or a relation inside the product.
+        """A table in the legend: a property as a function from its subject, or a set inside the product.
 
         A property is named after itself and maps from its subject: the set of
         a dimension, or a set by its own name, since a property of a sparse set
@@ -278,8 +278,6 @@ class Legend:
             (value,) = lk.values
             domain = product(lk.key) if lk.subject in self.program.dimensions else self.format.upright(lk.subject)
             return f'{self.format.upright(value)}: {domain} {self._op("maps_to")} {product(lk.values)}'
-        if lk.values:
-            return f'{self.format.upright(name)}: {product(lk.key)} {self._op("maps_to")} {product(lk.values)}'
         return f'{self.format.upright(name)} {self._op("subset_of")} {product(lk.roles)}'
 
     def _coords(self, dim: str, noticed: Noticed) -> str:
@@ -310,7 +308,7 @@ class Legend:
         holds no claim the language reference does not already make.
         """
         fmt, dash = self.format, self.format.dash
-        relation = fmt.apply(fmt.upright('relation'), 't')
+        group = fmt.apply(fmt.upright('property'), 't')
         shifted, t = fmt.math('t-k'), fmt.math('t')
         items = []
         if 'wrap' in noticed.policies:
@@ -326,8 +324,8 @@ class Legend:
         if noticed.grouped:
             items.append(
                 LegendItem(
-                    f't {fmt.superscript(self._op("cyclic_minus"), relation)} k',
-                    f'{fmt.mono("within=relation[...]")} {dash} {shifted} inside the group of {t}',
+                    f't {fmt.superscript(self._op("cyclic_minus"), group)} k',
+                    f'{fmt.mono("within=subject[...]")} {dash} {shifted} inside the group of {t}',
                 )
             )
         if noticed.positions:
@@ -340,8 +338,8 @@ class Legend:
         if 'grouped' in noticed.positions:
             items.append(
                 LegendItem(
-                    fmt.apply(fmt.subscript(self._op('position'), [relation]), 't'),
-                    f'{fmt.mono("position(within=relation[...])")} {dash} the position of {t} inside its group',
+                    fmt.apply(fmt.subscript(self._op('position'), [group]), 't'),
+                    f'{fmt.mono("position(within=subject[...])")} {dash} the position of {t} inside its group',
                 )
             )
         if 'from_end' in noticed.positions:

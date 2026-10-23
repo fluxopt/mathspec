@@ -31,8 +31,8 @@ python -m mathspec check dispatch.yaml
 The check accepts the file, but advises that nothing uses the dimensions yet:
 
 ```text
-dimension 'snapshot' is never used: nothing is indexed by it, nothing sums into it, and no relation has a column over it. Remove it, or keep it if the entries that use it are still to be written.
-dimension 'generator' is never used: nothing is indexed by it, nothing sums into it, and no relation has a column over it. Remove it, or keep it if the entries that use it are still to be written.
+dimension 'snapshot' is never used: nothing is indexed by it, nothing sums into it, and no set or property has a column over it. Remove it, or keep it if the entries that use it are still to be written.
+dimension 'generator' is never used: nothing is indexed by it, nothing sums into it, and no set or property has a column over it. Remove it, or keep it if the entries that use it are still to be written.
 ```
 
 ## Parameters and a variable

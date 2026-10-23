@@ -99,7 +99,7 @@ objective: { sense: minimize, expression: sum(p) }
 
 $`\sum_{t \in \mathcal{T},\ g \in \mathcal{G}} p_{t,g,c} \le \mathrm{limit}_{c} \qquad \forall\, c \in \mathcal{C}`$
 
-### `sum(array, over=dim, by=relation[c])`
+### `sum(array, over=dim, by=subject[p])`
 
 `examples/operators/sum_by.yaml`
 
@@ -114,8 +114,9 @@ dimensions:
   generator: { dtype: str }
   bus: { dtype: str }
 
-relations:
-  gen_bus: { key: generator, values: bus }
+properties:
+  generator:
+    bus: bus
 
 parameters:
   limit: { dims: [snapshot, bus] }
@@ -128,14 +129,14 @@ variables:
 constraints:
   bus_total:
     dims: [snapshot, bus]
-    expression: sum(p, over=generator, by=gen_bus[bus]) <= limit
+    expression: sum(p, over=generator, by=generator[bus]) <= limit
 
 objective: { sense: minimize, expression: sum(p) }
 ```
 
-$`\sum_{g \in \mathcal{G} \,:\, \mathrm{gen\_bus}(g) = b} p_{t,g} \le \mathrm{limit}_{t,b} \qquad \forall\, t \in \mathcal{T},\ b \in \mathcal{B}`$
+$`\sum_{g \in \mathcal{G} \,:\, \mathrm{bus}(g) = b} p_{t,g} \le \mathrm{limit}_{t,b} \qquad \forall\, t \in \mathcal{T},\ b \in \mathcal{B}`$
 
-### `sum(array, over=dim, by=relation[c]), joining on the rest of the key`
+### `sum(array, over=dim, by=subject[p]), joining on the other members`
 
 `examples/operators/sum_by_columns.yaml`
 
@@ -151,8 +152,12 @@ dimensions:
   period: { dtype: int }
   zone: { dtype: str }
 
-relations:
-  zone_of: { key: [generator, period], values: zone }
+sets:
+  generator_period: { dims: [generator, period] }
+
+properties:
+  generator_period:
+    zone: zone
 
 parameters:
   demand: { dims: [zone, period] }
@@ -165,14 +170,14 @@ variables:
 constraints:
   zone_balance:
     dims: [zone, period]
-    expression: sum(p, over=generator, by=zone_of[zone]) >= demand
+    expression: sum(p, over=generator, by=generator_period[zone]) >= demand
 
 objective: { sense: minimize, expression: sum(p) }
 ```
 
-$`\sum_{g \in \mathcal{G} \,:\, \mathrm{zone\_of}(g,\ e) = z} p_{g,e} \ge \mathrm{demand}_{z,e} \qquad \forall\, z \in \mathcal{Z},\ e \in \mathcal{E}`$
+$`\sum_{g \in \mathcal{G} \,:\, \mathrm{zone}(g,\ e) = z} p_{g,e} \ge \mathrm{demand}_{z,e} \qquad \forall\, z \in \mathcal{Z},\ e \in \mathcal{E}`$
 
-### `sum(array, over=[dim, …], by=relation[c, …])`
+### `sum(array, over=[dim, …], by=subject[p, …])`
 
 `examples/operators/sum_by_column_lists.yaml`
 
@@ -187,8 +192,13 @@ dimensions:
   bus: { dtype: str }
   technology: { dtype: str }
 
-relations:
-  slot_of: { key: [generator, period], values: [bus, technology] }
+sets:
+  generator_period: { dims: [generator, period] }
+
+properties:
+  generator_period:
+    bus: bus
+    technology: technology
 
 parameters:
   cap: { dims: [bus, technology] }
@@ -201,14 +211,14 @@ variables:
 constraints:
   slot_cap:
     dims: [bus, technology]
-    expression: sum(p, over=[generator, period], by=slot_of[bus, technology]) <= cap
+    expression: sum(p, over=[generator, period], by=generator_period[bus, technology]) <= cap
 
 objective: { sense: minimize, expression: sum(p) }
 ```
 
-$`\sum_{g \in \mathcal{G},\ e \in \mathcal{E} \,:\, \mathrm{slot\_of.bus}(g,\ e) = b \wedge \mathrm{slot\_of.technology}(g,\ e) = t} p_{g,e} \le \mathrm{cap}_{b,t} \qquad \forall\, b \in \mathcal{B},\ t \in \mathcal{T}`$
+$`\sum_{g \in \mathcal{G},\ e \in \mathcal{E} \,:\, \mathrm{bus}(g,\ e) = b \wedge \mathrm{technology}(g,\ e) = t} p_{g,e} \le \mathrm{cap}_{b,t} \qquad \forall\, b \in \mathcal{B},\ t \in \mathcal{T}`$
 
-### `at(array, by=relation[c])`
+### `at(array, by=subject[p])`
 
 `examples/operators/at.yaml`
 
@@ -221,8 +231,9 @@ dimensions:
   snapshot: { dtype: int }
   period: { dtype: int }
 
-relations:
-  period_of: { key: snapshot, values: period }
+properties:
+  snapshot:
+    period: period
 
 parameters:
   cap: { dims: [period] }
@@ -235,14 +246,14 @@ variables:
 constraints:
   within_cap:
     dims: [snapshot]
-    expression: p <= at(cap, by=period_of[period])
+    expression: p <= at(cap, by=snapshot[period])
 
 objective: { sense: minimize, expression: sum(p) }
 ```
 
-$`p_{t} \le \mathrm{cap}_{\mathrm{period\_of}(t)} \qquad \forall\, t \in \mathcal{T}`$
+$`p_{t} \le \mathrm{cap}_{\mathrm{period}(t)} \qquad \forall\, t \in \mathcal{T}`$
 
-### `at(array, by=relation[c]), two columns over one dimension`
+### `at(array, by=subject[p]), two properties into one dimension`
 
 `examples/operators/at_columns.yaml`
 
@@ -255,8 +266,10 @@ dimensions:
   line: { dtype: str }
   bus: { dtype: str }
 
-relations:
-  ends: { key: line, values: { bus0: bus, bus1: bus } }
+properties:
+  line:
+    bus0: bus
+    bus1: bus
 
 parameters:
   cap: { dims: [bus] }
@@ -269,12 +282,12 @@ variables:
 constraints:
   sending_cap:
     dims: [line]
-    expression: f <= at(cap, by=ends[bus0])
+    expression: f <= at(cap, by=line[bus0])
 
 objective: { sense: minimize, expression: sum(f) }
 ```
 
-$`f_{l} \le \mathrm{cap}_{\mathrm{ends.bus0}(l)} \qquad \forall\, l \in \mathcal{L}`$
+$`f_{l} \le \mathrm{cap}_{\mathrm{bus0}(l)} \qquad \forall\, l \in \mathcal{L}`$
 
 ### `shift(array, along=dim, offset=n)`
 
@@ -390,7 +403,7 @@ objective: { sense: minimize, expression: sum(order) }
 
 $`\mathit{order}_{t,m \boxminus_{0} \mathrm{lead}} \ge \mathrm{demand}_{t,m} \qquad \forall\, t \in \mathcal{T},\ m \in \mathcal{M}`$
 
-### `shift(array, along=dim, offset=n, within=relation[c])`
+### `shift(array, along=dim, offset=n, within=subject[p])`
 
 `examples/operators/shift_partitioned.yaml`
 
@@ -403,8 +416,9 @@ dimensions:
   snapshot: { dtype: int, ordered: true }
   season: { dtype: str }
 
-relations:
-  season_of: { key: snapshot, values: season }
+properties:
+  snapshot:
+    season: season
 
 variables:
   p:
@@ -414,12 +428,12 @@ variables:
 constraints:
   no_faster_than_before_in_season:
     dims: [snapshot]
-    expression: p <= shift(p, along=snapshot, offset=1, edge='wrap', within=season_of[season])
+    expression: p <= shift(p, along=snapshot, offset=1, edge='wrap', within=snapshot[season])
 
 objective: { sense: minimize, expression: sum(p) }
 ```
 
-$`p_{t} \le p_{t \ominus^{\mathrm{season\_of}(t)} 1} \qquad \forall\, t \in \mathcal{T}`$
+$`p_{t} \le p_{t \ominus^{\mathrm{season}(t)} 1} \qquad \forall\, t \in \mathcal{T}`$
 
 ### `sum_back(array, along=dim, window=n)`
 
@@ -523,7 +537,7 @@ objective: { sense: minimize, expression: sum(on) }
 
 $`\sum_{h' \in \mathcal{H} \,:\, 0 \le h \ominus h' < \mathrm{min\_up}} \mathit{started}_{u,h'} \le \mathit{on}_{u,h} \qquad \forall\, u \in \mathcal{U},\ h \in \mathcal{H}`$
 
-### `sum_back(array, along=dim, window=n, within=relation[c])`
+### `sum_back(array, along=dim, window=n, within=subject[p])`
 
 `examples/operators/sum_back_partitioned.yaml`
 
@@ -538,8 +552,9 @@ dimensions:
   hour: { dtype: int, ordered: true }
   day: { dtype: str }
 
-relations:
-  day_of: { key: hour, values: day }
+properties:
+  hour:
+    day: day
 
 variables:
   started:
@@ -552,12 +567,12 @@ variables:
 constraints:
   stays_up_inside_its_day:
     dims: [unit, hour]
-    expression: sum_back(started, along=hour, window=3, within=day_of[day]) <= on
+    expression: sum_back(started, along=hour, window=3, within=hour[day]) <= on
 
 objective: { sense: minimize, expression: sum(on) }
 ```
 
-$`\sum_{h' \in \mathcal{H} \,:\, 0 \le h -^{\mathrm{day\_of}(h)} h' < 3} \mathit{started}_{u,h'} \le \mathit{on}_{u,h} \qquad \forall\, u \in \mathcal{U},\ h \in \mathcal{H}`$
+$`\sum_{h' \in \mathcal{H} \,:\, 0 \le h -^{\mathrm{day}(h)} h' < 3} \mathit{started}_{u,h'} \le \mathit{on}_{u,h} \qquad \forall\, u \in \mathcal{U},\ h \in \mathcal{H}`$
 
 ### `dual(constraint)`
 

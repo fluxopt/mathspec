@@ -403,15 +403,15 @@ def _parameter_masks(spec: Spec, ns: Namespace, errors: list[str]) -> dict[str, 
             continue
         errors.extend(
             f"{context}: its `where:` reads variable '{v}', and a parameter's mask is evaluated from the data "
-            f'alone, before any variable has a value. Test a parameter or a relation instead.'
+            f'alone, before any variable has a value. Test a parameter, a set or a property instead.'
             for v in sorted(mask.names_read & {*spec.variables, *spec.given.variables})
         )
         errors.extend(
             f"{context}: its `where:` reads '{pname}' itself, and whether a row is there is what the mask "
-            f'decides. Test a relation or another parameter.'
+            f'decides. Test a set, a property or another parameter.'
             if read == pname
             else f"{context}: its `where:` reads '{read}', which has a mask of its own. Test what the mask of "
-            f"'{read}' tests, or a relation."
+            f"'{read}' tests, or a set or a property."
             for read in sorted(mask.names_read & masked)
         )
     return masks

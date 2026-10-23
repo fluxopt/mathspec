@@ -46,19 +46,18 @@ dimensions:
     dtype: int
     ordered: true
 
-relations:
-  snapshot_period:
-    description: the investment period a snapshot falls in
-    key: snapshot
-    values: period
-  Transformer_bus0:
-    description: the bus a transformer's flow is measured at
-    key: transformer
-    values: bus
-  Transformer_bus1:
-    description: the bus at a transformer's other end
-    key: transformer
-    values: bus
+properties:
+  snapshot:
+    period:
+      description: the investment period a snapshot falls in
+      into: period
+  transformer:
+    bus0:
+      description: the bus a transformer's flow is measured at
+      into: bus
+    bus1:
+      description: the bus at a transformer's other end
+      into: bus
 
 parameters:
   Transformer_active:
@@ -249,16 +248,16 @@ expressions:
     otherwise: 0
   Transformer_injection:
     expression: >-
-      -sum(Transformer_s, over=transformer, by=Transformer_bus0[bus])
-      + sum(Transformer_s, over=transformer, by=Transformer_bus1[bus])
-      - (0.5 * sum(Transformer_loss, over=transformer, by=Transformer_bus0[bus]))
-      - (0.5 * sum(Transformer_loss, over=transformer, by=Transformer_bus1[bus]))
+      -sum(Transformer_s, over=transformer, by=transformer[bus0])
+      + sum(Transformer_s, over=transformer, by=transformer[bus1])
+      - (0.5 * sum(Transformer_loss, over=transformer, by=transformer[bus0]))
+      - (0.5 * sum(Transformer_loss, over=transformer, by=transformer[bus1]))
     adds_to: Bus_injection
   Transformer_angle_sum:
     expression: >-
-      sum(Transformer_s * at(Transformer_cycle_weight, by=snapshot_period[period]), over=transformer)
+      sum(Transformer_s * at(Transformer_cycle_weight, by=snapshot[period]), over=transformer)
       + sum(Transformer_phase_shift_weight, over=transformer)
-      + sum(Transformer_phase_shift * at(Transformer_phase_shift_cycle_weight, by=snapshot_period[period]), over=transformer)
+      + sum(Transformer_phase_shift * at(Transformer_phase_shift_cycle_weight, by=snapshot[period]), over=transformer)
     adds_to: Cycle_angle_sum
 
 conditions:
@@ -383,12 +382,12 @@ constraints:
 | Symbol | Meaning |
 |---|---|
 | $`\Xi`$ | index $`\xi`$ — `scenario` — the futures dispatch is chosen in, each with a weight |
-| $`\mathcal{T}`$ | index $`t`$ — `snapshot` with $`\mathrm{snapshot\_period}: \mathcal{T} \to \mathcal{Y}`$ — dispatch periods |
-| $`\mathcal{N}`$ | index $`n`$ — `bus` with $`\mathrm{Transformer\_bus0}: \mathcal{M} \to \mathcal{N},\ \mathrm{Transformer\_bus1}: \mathcal{M} \to \mathcal{N}`$ — network nodes |
-| $`\mathcal{M}`$ | index $`m`$ — `transformer` with $`\mathrm{Transformer\_bus0}: \mathcal{M} \to \mathcal{N},\ \mathrm{Transformer\_bus1}: \mathcal{M} \to \mathcal{N}`$ — passive branches between two buses, their flow set by impedance and tap ratio, with a phase shift fixed or optimised |
+| $`\mathcal{T}`$ | index $`t`$ — `snapshot` with $`\mathrm{period}: \mathcal{T} \to \mathcal{Y}`$ — dispatch periods |
+| $`\mathcal{N}`$ | index $`n`$ — `bus` with $`\mathrm{bus0}: \mathcal{M} \to \mathcal{N},\ \mathrm{bus1}: \mathcal{M} \to \mathcal{N}`$ — network nodes |
+| $`\mathcal{M}`$ | index $`m`$ — `transformer` with $`\mathrm{bus0}: \mathcal{M} \to \mathcal{N},\ \mathrm{bus1}: \mathcal{M} \to \mathcal{N}`$ — passive branches between two buses, their flow set by impedance and tap ratio, with a phase shift fixed or optimised |
 | $`\mathcal{C}`$ | index $`c`$ — `cycle` — independent cycles of the passive network graph — the cycle basis, data prep. Each period has its own basis, of the branches that stand in it; a label is a position in that period's basis, so one label names a different cycle in another period |
 | $`\mathcal{S}`$ | index $`s`$ — `segment` — the cuts a passive branch's loss curve is held above — PyPSA's tangents, as many as its `segments` count, or its secants, as many as its tolerance loop places; none in a lossless run |
-| $`\mathcal{Y}`$ | index $`y`$ — `period` with $`\mathrm{snapshot\_period}: \mathcal{T} \to \mathcal{Y}`$ — investment periods — PyPSA's `investment_periods` |
+| $`\mathcal{Y}`$ | index $`y`$ — `period` with $`\mathrm{period}: \mathcal{T} \to \mathcal{Y}`$ — investment periods — PyPSA's `investment_periods` |
 
 #### Parameters
 
@@ -501,13 +500,13 @@ N^{\sigma}_{m} \ge 0, N^{\sigma}_{m} \in \mathbb{Z} \qquad \forall\, m \in \math
 **`Transformer_injection`**
 
 ```math
-\mathit{Transformer\_injection}_{n,\xi,t} = -\left( \sum_{m \in \mathcal{M} \,:\, \mathrm{Transformer\_bus0}(m) = n} \sigma_{\xi,t,m} \right) + \sum_{m \in \mathcal{M} \,:\, \mathrm{Transformer\_bus1}(m) = n} \sigma_{\xi,t,m} - 0.5 \cdot \left( \sum_{m \in \mathcal{M} \,:\, \mathrm{Transformer\_bus0}(m) = n} \ell^{\sigma}_{\xi,t,m} \right) - 0.5 \cdot \left( \sum_{m \in \mathcal{M} \,:\, \mathrm{Transformer\_bus1}(m) = n} \ell^{\sigma}_{\xi,t,m} \right) \qquad \forall\, n \in \mathcal{N},\ \xi \in \Xi,\ t \in \mathcal{T}
+\mathit{Transformer\_injection}_{n,\xi,t} = -\left( \sum_{m \in \mathcal{M} \,:\, \mathrm{bus0}(m) = n} \sigma_{\xi,t,m} \right) + \sum_{m \in \mathcal{M} \,:\, \mathrm{bus1}(m) = n} \sigma_{\xi,t,m} - 0.5 \cdot \left( \sum_{m \in \mathcal{M} \,:\, \mathrm{bus0}(m) = n} \ell^{\sigma}_{\xi,t,m} \right) - 0.5 \cdot \left( \sum_{m \in \mathcal{M} \,:\, \mathrm{bus1}(m) = n} \ell^{\sigma}_{\xi,t,m} \right) \qquad \forall\, n \in \mathcal{N},\ \xi \in \Xi,\ t \in \mathcal{T}
 ```
 
 **`Transformer_angle_sum`**
 
 ```math
-\mathit{Transformer\_angle\_sum}_{c,\xi,t} = \sum_{m \in \mathcal{M}} \sigma_{\xi,t,m} \cdot \mathrm{x}^{\sigma}_{\mathrm{snapshot\_period}(t),m,c} + \sum_{m \in \mathcal{M}} \vartheta_{t,m,c} + \sum_{m \in \mathcal{M}} \mathit{Transformer\_phase\_shift}_{\xi,t,m} \cdot \mathrm{Transformer\_phase\_shift\_cycle\_weight}_{\mathrm{snapshot\_period}(t),m,c} \qquad \forall\, c \in \mathcal{C},\ \xi \in \Xi,\ t \in \mathcal{T}
+\mathit{Transformer\_angle\_sum}_{c,\xi,t} = \sum_{m \in \mathcal{M}} \sigma_{\xi,t,m} \cdot \mathrm{x}^{\sigma}_{\mathrm{period}(t),m,c} + \sum_{m \in \mathcal{M}} \vartheta_{t,m,c} + \sum_{m \in \mathcal{M}} \mathit{Transformer\_phase\_shift}_{\xi,t,m} \cdot \mathrm{Transformer\_phase\_shift\_cycle\_weight}_{\mathrm{period}(t),m,c} \qquad \forall\, c \in \mathcal{C},\ \xi \in \Xi,\ t \in \mathcal{T}
 ```
 
 #### Subject to

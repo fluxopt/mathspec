@@ -28,7 +28,7 @@ from mathspec._sos import Emitted as EmittedSet
 from mathspec._sos import coefficients
 from mathspec._yaml import read_spec
 from mathspec.errors import SchemaError, did_you_mean, unordered
-from mathspec.spec import NUMERIC_DTYPES, Spec, side_columns
+from mathspec.spec import NUMERIC_DTYPES, Spec
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
@@ -83,7 +83,6 @@ def reference_errors(spec: Spec) -> list[str]:
     return [
         *_name_collisions(spec),
         *_frame_dimensions(spec),
-        *_relation_targets(spec),
         *_set_members(spec),
         *_property_targets(spec),
         *_bound_names(spec),
@@ -103,7 +102,6 @@ def _flat_namespace(spec: Spec) -> list[tuple[str, Iterable[str]]]:
     """Each kind of entry whose names share the one namespace an expression reads, in file order."""
     return [
         ('dimension', spec.dimensions),
-        ('relation', spec.relations),
         ('set', spec.sets),
         ('parameter', spec.parameters),
         ('given parameter', spec.given.parameters),
@@ -167,48 +165,6 @@ def _frame_dimensions(spec: Spec) -> Iterator[str]:
             for d, count in Counter(dims).items()
             if count > 1
         )
-
-
-def _relation_targets(spec: Spec) -> Iterator[str]:
-    """A relation has at least two columns over declared dimensions, each named once, and a key naming some of them."""
-    for lname, lk in spec.relations.items():
-        if len(lk.pairs) < 2:
-            yield (
-                f"Relation '{lname}' has {len(lk.pairs)} column(s), and needs at least two under 'key:' and "
-                f"'values:'. For a label on one dimension, declare a parameter instead."
-            )
-        if not lk.key_roles:
-            yield f"Relation '{lname}' names no key column. Name the columns that identify a row under 'key:'."
-        for side, written in (('key', lk.key), ('values', lk.values)):
-            yield from (
-                f"Relation '{lname}' names dimension '{d}' twice under '{side}:'. Give the two columns roles: "
-                f'{side}: {{{d}0: {d}, {d}1: {d}}}.'
-                for d, count in Counter(dim for _, dim in side_columns(written)).items()
-                if count > 1 and not isinstance(written, dict)
-            )
-        yield from (
-            f"Relation '{lname}' names column '{role}' under both 'key:' and 'values:'. Rename the value column: "
-            f'values: {{<name>: {dict(lk.pairs)[role]}}}.'
-            for role in dict.fromkeys(lk.key_roles)
-            if role in lk.value_roles
-        )
-        yield from (
-            undeclared_dimension('Relation', lname, d) for d in dict.fromkeys(lk.dims) if d not in spec.dimensions
-        )
-        yield from (
-            f"Relation '{lname}' names column '{role}' after dimension '{role}', but the column is over "
-            f"'{dim}'. Rename the column after what it holds."
-            for role, dim in lk.pairs
-            if role in spec.dimensions and role != dim
-        )
-        if lk.value_roles:
-            yield from (
-                f"Relation '{lname}' has two key columns over '{d}' "
-                f'({[k for k in lk.key_roles if dict(lk.pairs)[k] == d]}). Key the table by one column over '
-                f"each dimension, or move one of them to 'values:'."
-                for d, count in Counter(dict(lk.pairs)[k] for k in lk.key_roles).items()
-                if count > 1
-            )
 
 
 def _over_a_set(kind: str, name: str, dims: Iterable[str], set_name: str, spec: Spec) -> str:

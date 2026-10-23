@@ -263,30 +263,26 @@ class Walk:
             return operator
         return self.format.superscript(operator, step.within)
 
-    def _relation_read(self, name: str, lk: Relation, at: Mapping[str, str], read: str) -> str:
-        """Relation *name*'s column *read* as a function at the columns *at* fixes: ``bus(g)``, ``zone_of(g, p)`` or ``ends.bus0(l)``.
+    def _relation_read(self, lk: Relation, at: Mapping[str, str], read: str) -> str:
+        """Property *read* as a function at the members *at* fixes: ``bus(g)`` or ``zone(g, t)``.
 
-        *lk* is the relation's shape, which a call carries, since an inner join
-        of several properties is no table of the program. *at* maps each key
-        role to the index it is read at. A property is named after itself, as
-        the file writes it in ``subject[property]``. A relation is named after
-        itself where the key determines one column, and after the column read
-        otherwise.
+        *lk* is the shape a call carries, since an inner join of several
+        properties is no table of the program. *at* maps each member to the
+        index it is read at. A property is named after itself, as the file
+        writes it in ``subject[property]``.
         """
-        function = _function(name, lk, read)
-        return self.format.apply(self.format.upright(function), self.format.joined([at[k] for k in lk.key], ''))
+        return self.format.apply(self.format.upright(read), self.format.joined([at[k] for k in lk.key], ''))
 
     def _relation_row(self, name: str, lk: Relation, at: Mapping[str, str]) -> str:
-        """That relation *name* has a row at the key *at* fixes.
+        """That table *name* has a row at the members *at* fixes.
 
-        A keyed table is a function, so the claim is that it is defined there:
-        ``gen_zone(g, t) is defined``. A bare one is a set of rows, and every
-        column of it is a key column, so the row is written out:
-        ``(g, b) ∈ connection``.
+        A property is a function, so the claim is that it is defined there:
+        ``bus1(l) is defined``. A set is a set of rows, and every column of it
+        is a member, so the row is written out: ``(g, b) ∈ connection``.
         """
         key = self.format.joined([at[k] for k in lk.key], '')
         if lk.values:
-            reads = [self.format.apply(self.format.upright(_function(name, lk, v)), key) for v in lk.values]
+            reads = [self.format.apply(self.format.upright(v), key) for v in lk.values]
             return f'{self.format.joined(reads, ", ")} {self.format.prose(" is defined")}'
         return f'{self.format.parenthesise(key)} {self._op("in")} {self.format.upright(name)}'
 
@@ -294,9 +290,9 @@ class Walk:
         """The key roles of *lk* at the frame's own indices of their dimensions."""
         return {k: ctx.subscript(lk.dim(k)) for k in lk.key}
 
-    def _value_read(self, name: str, lk: Relation, column: str, ctx: _Context) -> str:
-        """A keyed relation's value *column* read at the frame's own indices of its key: ``period_of(t)``."""
-        return self._relation_read(name, lk, self._frame_key(lk, ctx), column)
+    def _value_read(self, lk: Relation, column: str, ctx: _Context) -> str:
+        """Property *column* read at the frame's own indices of its subject's members: ``period(t)``."""
+        return self._relation_read(lk, self._frame_key(lk, ctx), column)
 
     def _tuple(self, reads: list[str]) -> str:
         """Several reads as one group label: the read alone where there is one, a bracketed tuple otherwise."""
@@ -469,7 +465,7 @@ class Walk:
         """*ctx* with each dimension *columns* drops read at the relation, as ``at`` re-indexes a leaf."""
         at = {r: ctx.subscript(columns.dim(r)) for r in columns.grouped}
         for read in columns.dropped:
-            ctx = ctx.looked_up(columns.dim(read), self._relation_read(columns.name, columns.relation, at, read))
+            ctx = ctx.looked_up(columns.dim(read), self._relation_read(columns.relation, at, read))
         return ctx
 
     def _grouping(self, join: JoinColumns, dummies: Mapping[str, str], ctx: _Context) -> list[str]:
@@ -488,7 +484,7 @@ class Walk:
         fixed = [r for r in join.relation.values if r in at]
         if not fixed:
             return [self._relation_row(join.name, join.relation, at)]
-        return [f'{self._relation_read(join.name, join.relation, at, r)} {self._op("equal")} {at[r]}' for r in fixed]
+        return [f'{self._relation_read(join.relation, at, r)} {self._op("equal")} {at[r]}' for r in fixed]
 
     def _group(self, partition: Partition | None) -> str:
         """A ``within=`` as the superscript its translation operator carries.
@@ -500,7 +496,7 @@ class Walk:
         if partition is None:
             return ''
         at = {r: self.symbols.index[partition.dim(r)] for r in (partition.along, *partition.joined)}
-        return self._tuple([self._relation_read(partition.name, partition.relation, at, r) for r in partition.grouped])
+        return self._tuple([self._relation_read(partition.relation, at, r) for r in partition.grouped])
 
     def _width(self, width: int | str) -> str:
         """``sum_back``'s ``window=``: a number, or a parameter's own symbol.
@@ -603,21 +599,16 @@ class Walk:
             grouping = (
                 None
                 if node.partition is None
-                else self._tuple(
-                    [
-                        self._value_read(node.partition.name, node.partition.relation, c, ctx)
-                        for c in node.partition.grouped
-                    ]
-                )
+                else self._tuple([self._value_read(node.partition.relation, c, ctx) for c in node.partition.grouped])
             )
             left = self._position(ctx.subscript(node.name), grouping)
             right = self._ordinal(node.name, node.position, grouping)
         elif isinstance(node, RelationComparison):
             lk = self.program.relations[node.name]
-            left, right = self._value_read(node.name, lk, node.column, ctx), self._literal(node.value)
+            left, right = self._value_read(lk, node.column, ctx), self._literal(node.value)
         elif isinstance(node, RelationPairComparison):
-            left = self._value_read(node.name, self.program.relations[node.name], node.column, ctx)
-            right = self._value_read(node.other, self.program.relations[node.other], node.other_column, ctx)
+            left = self._value_read(self.program.relations[node.name], node.column, ctx)
+            right = self._value_read(self.program.relations[node.other], node.other_column, ctx)
         elif isinstance(node, CountComparison):
             index, inner = ctx.reducing(node.over)
             counted = self.format.set_of(
@@ -987,10 +978,3 @@ class Walk:
     def _sorted(self, dims: frozenset[str]) -> list[str]:
         order = list(self.program.dimensions)
         return sorted(dims, key=order.index)
-
-
-def _function(name: str, lk: Relation, read: str) -> str:
-    """The function a read of column *read* of *name* prints as: the property, the relation, or ``relation.column``."""
-    if lk.subject is not None:
-        return read
-    return name if len(lk.values) == 1 else f'{name}.{read}'

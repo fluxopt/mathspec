@@ -1400,130 +1400,119 @@ parameters:
     dims: [global_constraint, process]
     missing: absent
 
-relations:
-  snapshot_period:
-    description: the investment period a snapshot falls in
-    key: snapshot
-    values: period
-  Generator_carrier:
-    description: the carrier a generator converts from
-    key: generator
-    values: carrier
-  Generator_bus:
-    description: the bus a generator sits on
-    key: generator
-    values: bus
-  Link_carrier:
-    description: the carrier a link converts from
-    key: link
-    values: carrier
-  Link_bus0:
-    description: the bus a link leaves
-    key: link
-    values: bus
-  Link_output_link:
-    description: the link an output port belongs to
-    key: link_output
-    values: link
-  Link_output_bus:
-    description: >-
-      the bus an output port delivers to — PyPSA's `bus1`, `bus2`, … columns.
-      A link of three output ports is three labels here rather than a third
-      relation, so the file states any number of them
-    key: link_output
-    values: bus
-  Process_carrier:
-    description: the carrier a process converts from
-    key: process
-    values: carrier
-  Process_output_process:
-    description: the process a port belongs to
-    key: process_output
-    values: process
-  Process_output_bus:
-    description: >-
-      the bus a port draws from or delivers to — PyPSA's `bus0`, `bus1`, …
-      columns. A process of three ports is three labels here rather than a
-      third relation, so the file states any number of them
-    key: process_output
-    values: bus
-  Load_bus:
-    description: the bus a load sits on
-    key: load
-    values: bus
-  StorageUnit_carrier:
-    description: the carrier a storage unit converts from
-    key: storage_unit
-    values: carrier
-  StorageUnit_bus:
-    description: the bus a storage unit sits on
-    key: storage_unit
-    values: bus
-  Line_carrier:
-    description: the carrier a line carries
-    key: line
-    values: carrier
-  Line_bus0:
-    description: the bus a line's flow is measured at
-    key: line
-    values: bus
-  Line_bus1:
-    description: the bus at a line's other end
-    key: line
-    values: bus
-  Store_carrier:
-    description: the carrier a store holds
-    key: store
-    values: carrier
-  Store_bus:
-    description: the bus a store sits on
-    key: store
-    values: bus
-  Transformer_bus0:
-    description: the bus a transformer's flow is measured at
-    key: transformer
-    values: bus
-  Transformer_bus1:
-    description: the bus at a transformer's other end
-    key: transformer
-    values: bus
-  Outage_line:
-    description: the line an outage takes out; an outage of a transformer has no row
-    key: outage
-    values: line
-    missing: absent
-  Outage_transformer:
-    description: the transformer an outage takes out; an outage of a line has no row
-    key: outage
-    values: transformer
-    missing: absent
+sets:
   Generator_maintenance_cover:
     description: >-
       the snapshots a maintenance event covers, by the snapshot it starts in —
-      in a scenario, the start and the snapshots after it, until their
-      generator weightings reach that scenario's `maintenance_duration`, data prep; no
-      rows for a generator that is
-      not maintainable
-    key: { scenario: scenario, generator: generator, start: snapshot, covered: snapshot }
+      in a scenario, the start and the snapshots after it, until their generator
+      weightings reach that scenario's `maintenance_duration`, data prep; no
+      rows for a generator that is not maintainable
+    dims: { scenario: scenario, generator: generator, start: snapshot, covered: snapshot }
     missing: absent
   Link_maintenance_cover:
     description: >-
       the snapshots a maintenance event covers, by the snapshot it starts in —
-      in a scenario, the start and the snapshots after it, until their
-      generator weightings reach that scenario's `maintenance_duration`, data prep; no
-      rows for a link that is
-      not maintainable
-    key: { scenario: scenario, link: link, start: snapshot, covered: snapshot }
+      in a scenario, the start and the snapshots after it, until their generator
+      weightings reach that scenario's `maintenance_duration`, data prep; no
+      rows for a link that is not maintainable
+    dims: { scenario: scenario, link: link, start: snapshot, covered: snapshot }
     missing: absent
   Process_maintenance_cover:
     description: >-
       the snapshots a maintenance event covers, by the snapshot it starts in —
-      in a scenario, the start and the snapshots after it, until their
-      generator weightings reach that scenario's `maintenance_duration`, data prep; no
-      rows for a process that is
-      not maintainable
-    key: { scenario: scenario, process: process, start: snapshot, covered: snapshot }
+      in a scenario, the start and the snapshots after it, until their generator
+      weightings reach that scenario's `maintenance_duration`, data prep; no
+      rows for a process that is not maintainable
+    dims: { scenario: scenario, process: process, start: snapshot, covered: snapshot }
     missing: absent
+
+properties:
+  snapshot:
+    period:
+      description: the investment period a snapshot falls in
+      into: period
+  generator:
+    carrier:
+      description: the carrier a generator converts from
+      into: carrier
+    bus:
+      description: the bus a generator sits on
+      into: bus
+  link:
+    carrier:
+      description: the carrier a link converts from
+      into: carrier
+    bus0:
+      description: the bus a link leaves
+      into: bus
+  link_output:
+    link:
+      description: the link an output port belongs to
+      into: link
+    bus:
+      description: >-
+        the bus an output port delivers to — PyPSA's `bus1`, `bus2`, … columns.
+        A link of three output ports is three labels here rather than a third
+        relation, so the file states any number of them
+      into: bus
+  process:
+    carrier:
+      description: the carrier a process converts from
+      into: carrier
+  process_output:
+    process:
+      description: the process a port belongs to
+      into: process
+    bus:
+      description: >-
+        the bus a port draws from or delivers to — PyPSA's `bus0`, `bus1`, …
+        columns. A process of three ports is three labels here rather than a
+        third relation, so the file states any number of them
+      into: bus
+  load:
+    bus:
+      description: the bus a load sits on
+      into: bus
+  storage_unit:
+    carrier:
+      description: the carrier a storage unit converts from
+      into: carrier
+    bus:
+      description: the bus a storage unit sits on
+      into: bus
+  line:
+    carrier:
+      description: the carrier a line carries
+      into: carrier
+    bus0:
+      description: the bus a line's flow is measured at
+      into: bus
+    bus1:
+      description: the bus at a line's other end
+      into: bus
+  store:
+    carrier:
+      description: the carrier a store holds
+      into: carrier
+    bus:
+      description: the bus a store sits on
+      into: bus
+  transformer:
+    bus0:
+      description: the bus a transformer's flow is measured at
+      into: bus
+    bus1:
+      description: the bus at a transformer's other end
+      into: bus
+  outage:
+    line:
+      description: the line an outage takes out; an outage of a transformer has no row
+      into: line
+      missing: absent
+    transformer:
+      description: the transformer an outage takes out; an outage of a line has no row
+      into: transformer
+      missing: absent
 
 variables:
   Generator_p:
@@ -2251,11 +2240,11 @@ expressions:
         when: StorageUnit_cyclic_state_of_charge_per_period
         expression: >-
           StorageUnit_retention
-          * shift(StorageUnit_state_of_charge, along=snapshot, offset=1, edge='wrap', within=snapshot_period[period])
+          * shift(StorageUnit_state_of_charge, along=snapshot, offset=1, edge='wrap', within=snapshot[period])
       period_opening:
         when: >-
           StorageUnit_state_of_charge_initial_per_period AND NOT StorageUnit_cyclic_state_of_charge_per_period
-          AND position(snapshot, within=snapshot_period[period]) == 0
+          AND position(snapshot, within=snapshot[period]) == 0
         expression: StorageUnit_state_of_charge_initial
     otherwise: StorageUnit_retention * shift(StorageUnit_state_of_charge, along=snapshot, offset=1)
   Store_energy_carried_in:
@@ -2283,9 +2272,9 @@ expressions:
         expression: Store_e_initial
       period_cyclic:
         when: Store_e_cyclic_per_period
-        expression: Store_retention * shift(Store_e, along=snapshot, offset=1, edge='wrap', within=snapshot_period[period])
+        expression: Store_retention * shift(Store_e, along=snapshot, offset=1, edge='wrap', within=snapshot[period])
       period_opening:
-        when: Store_e_initial_per_period AND NOT Store_e_cyclic_per_period AND position(snapshot, within=snapshot_period[period]) == 0
+        when: Store_e_initial_per_period AND NOT Store_e_cyclic_per_period AND position(snapshot, within=snapshot[period]) == 0
         expression: Store_e_initial
     otherwise: Store_retention * shift(Store_e, along=snapshot, offset=1)
   Link_output_arrival:
@@ -2301,8 +2290,8 @@ expressions:
     cases:
       wrapping:
         when: Link_output_cyclic_delay
-        expression: shift(at(Link_p, by=Link_output_link[link]), along=snapshot, offset=Link_output_delay, edge='wrap', within=snapshot_period[period]) * Link_efficiency
-    otherwise: shift(at(Link_p, by=Link_output_link[link]), along=snapshot, offset=Link_output_delay, edge=0, within=snapshot_period[period]) * Link_efficiency
+        expression: shift(at(Link_p, by=link_output[link]), along=snapshot, offset=Link_output_delay, edge='wrap', within=snapshot[period]) * Link_efficiency
+    otherwise: shift(at(Link_p, by=link_output[link]), along=snapshot, offset=Link_output_delay, edge=0, within=snapshot[period]) * Link_efficiency
   Process_output_arrival:
     description: >-
       what a process transfers at a port at a snapshot — its internal power
@@ -2316,8 +2305,8 @@ expressions:
     cases:
       wrapping:
         when: Process_output_cyclic_delay
-        expression: shift(at(Process_p, by=Process_output_process[process]), along=snapshot, offset=Process_output_delay, edge='wrap', within=snapshot_period[period]) * Process_rate
-    otherwise: shift(at(Process_p, by=Process_output_process[process]), along=snapshot, offset=Process_output_delay, edge=0, within=snapshot_period[period]) * Process_rate
+        expression: shift(at(Process_p, by=process_output[process]), along=snapshot, offset=Process_output_delay, edge='wrap', within=snapshot[period]) * Process_rate
+    otherwise: shift(at(Process_p, by=process_output[process]), along=snapshot, offset=Process_output_delay, edge=0, within=snapshot[period]) * Process_rate
   GlobalConstraint_energy_weight:
     description: >-
       what one unit of power at a snapshot counts for in a row — the
@@ -2327,7 +2316,7 @@ expressions:
     cases:
       counted:
         when: GlobalConstraint_counts_snapshot
-        expression: snapshot_weightings_generators * at(period_weight_years, by=snapshot_period[period])
+        expression: snapshot_weightings_generators * at(period_weight_years, by=snapshot[period])
     otherwise: 0
   StorageUnit_last_counted_active:
     description: >-
@@ -2352,8 +2341,8 @@ expressions:
     dims: [scenario, global_constraint, snapshot, storage_unit]
     cases:
       per_period:
-        when: StorageUnit_state_of_charge_initial_per_period AND GlobalConstraint_counts_snapshot AND position(snapshot, within=snapshot_period[period]) == -1
-        expression: at(period_weight_years, by=snapshot_period[period])
+        when: StorageUnit_state_of_charge_initial_per_period AND GlobalConstraint_counts_snapshot AND position(snapshot, within=snapshot[period]) == -1
+        expression: at(period_weight_years, by=snapshot[period])
       carried_over:
         when: NOT StorageUnit_state_of_charge_initial_per_period
         expression: StorageUnit_last_counted_active
@@ -2381,8 +2370,8 @@ expressions:
     dims: [scenario, global_constraint, snapshot, store]
     cases:
       per_period:
-        when: Store_e_initial_per_period AND GlobalConstraint_counts_snapshot AND position(snapshot, within=snapshot_period[period]) == -1
-        expression: at(period_weight_years, by=snapshot_period[period])
+        when: Store_e_initial_per_period AND GlobalConstraint_counts_snapshot AND position(snapshot, within=snapshot[period]) == -1
+        expression: at(period_weight_years, by=snapshot[period])
       carried_over:
         when: NOT Store_e_initial_per_period
         expression: Store_last_counted_active
@@ -2470,42 +2459,42 @@ expressions:
       the row's carrier-and-bus set
   Generator_opex:
     expression: >-
-      sum(sum(((Generator_p * Generator_marginal_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot_period[period]), over=generator), over=snapshot)
-      + sum(sum((((Generator_p * Generator_p) * Generator_marginal_cost_quadratic) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot_period[period]), over=generator), over=snapshot)
+      sum(sum(((Generator_p * Generator_marginal_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot[period]), over=generator), over=snapshot)
+      + sum(sum((((Generator_p * Generator_p) * Generator_marginal_cost_quadratic) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot[period]), over=generator), over=snapshot)
   Generator_commitment_opex:
     expression: >-
-      sum(sum(((Generator_status * Generator_stand_by_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot_period[period]), over=generator), over=snapshot)
+      sum(sum(((Generator_status * Generator_stand_by_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot[period]), over=generator), over=snapshot)
       + sum(sum(Generator_start_up * Generator_start_up_cost, over=generator), over=snapshot)
       + sum(sum(Generator_shut_down * Generator_shut_down_cost, over=generator), over=snapshot)
   Link_opex:
     expression: >-
-      sum(sum(((Link_p * Link_marginal_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot_period[period]), over=link), over=snapshot)
-      + sum(sum((((Link_p * Link_p) * Link_marginal_cost_quadratic) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot_period[period]), over=link), over=snapshot)
+      sum(sum(((Link_p * Link_marginal_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot[period]), over=link), over=snapshot)
+      + sum(sum((((Link_p * Link_p) * Link_marginal_cost_quadratic) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot[period]), over=link), over=snapshot)
   Link_commitment_opex:
     expression: >-
-      sum(sum(((Link_status * Link_stand_by_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot_period[period]), over=link), over=snapshot)
+      sum(sum(((Link_status * Link_stand_by_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot[period]), over=link), over=snapshot)
       + sum(sum(Link_start_up * Link_start_up_cost, over=link), over=snapshot)
       + sum(sum(Link_shut_down * Link_shut_down_cost, over=link), over=snapshot)
   Process_opex:
     expression: >-
-      sum(sum(((Process_p * Process_marginal_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot_period[period]), over=process), over=snapshot)
-      + sum(sum((((Process_p * Process_p) * Process_marginal_cost_quadratic) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot_period[period]), over=process), over=snapshot)
+      sum(sum(((Process_p * Process_marginal_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot[period]), over=process), over=snapshot)
+      + sum(sum((((Process_p * Process_p) * Process_marginal_cost_quadratic) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot[period]), over=process), over=snapshot)
   Process_commitment_opex:
     expression: >-
-      sum(sum(((Process_status * Process_stand_by_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot_period[period]), over=process), over=snapshot)
+      sum(sum(((Process_status * Process_stand_by_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot[period]), over=process), over=snapshot)
       + sum(sum(Process_start_up * Process_start_up_cost, over=process), over=snapshot)
       + sum(sum(Process_shut_down * Process_shut_down_cost, over=process), over=snapshot)
   StorageUnit_opex:
     expression: >-
-      sum(sum(((StorageUnit_p_dispatch * StorageUnit_marginal_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot_period[period]), over=storage_unit), over=snapshot)
-      + sum(sum((((StorageUnit_p_dispatch * StorageUnit_p_dispatch) * StorageUnit_marginal_cost_quadratic) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot_period[period]), over=storage_unit), over=snapshot)
-      + sum(sum(((StorageUnit_state_of_charge * StorageUnit_marginal_cost_storage) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot_period[period]), over=storage_unit), over=snapshot)
-      + sum(sum(((StorageUnit_spill * StorageUnit_spill_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot_period[period]), over=storage_unit), over=snapshot)
+      sum(sum(((StorageUnit_p_dispatch * StorageUnit_marginal_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot[period]), over=storage_unit), over=snapshot)
+      + sum(sum((((StorageUnit_p_dispatch * StorageUnit_p_dispatch) * StorageUnit_marginal_cost_quadratic) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot[period]), over=storage_unit), over=snapshot)
+      + sum(sum(((StorageUnit_state_of_charge * StorageUnit_marginal_cost_storage) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot[period]), over=storage_unit), over=snapshot)
+      + sum(sum(((StorageUnit_spill * StorageUnit_spill_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot[period]), over=storage_unit), over=snapshot)
   Store_opex:
     expression: >-
-      sum(sum(((Store_p * Store_marginal_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot_period[period]), over=store), over=snapshot)
-      + sum(sum((((Store_p * Store_p) * Store_marginal_cost_quadratic) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot_period[period]), over=store), over=snapshot)
-      + sum(sum(((Store_e * Store_marginal_cost_storage) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot_period[period]), over=store), over=snapshot)
+      sum(sum(((Store_p * Store_marginal_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot[period]), over=store), over=snapshot)
+      + sum(sum((((Store_p * Store_p) * Store_marginal_cost_quadratic) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot[period]), over=store), over=snapshot)
+      + sum(sum(((Store_e * Store_marginal_cost_storage) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot[period]), over=store), over=snapshot)
   scenario_opex:
     dims: [scenario]
     expression: >-
@@ -2555,22 +2544,22 @@ expressions:
       scenarios, and a share of it at the tail
   Generator_additions:
     expression: >-
-      sum(Generator_p_nom_ext * Generator_first_active, over=generator, by=Generator_carrier[carrier])
+      sum(Generator_p_nom_ext * Generator_first_active, over=generator, by=generator[carrier])
   Line_additions:
     expression: >-
-      sum(Line_s_nom_ext * Line_first_active, over=line, by=Line_carrier[carrier])
+      sum(Line_s_nom_ext * Line_first_active, over=line, by=line[carrier])
   Link_additions:
     expression: >-
-      sum(Link_p_nom_ext * Link_first_active, over=link, by=Link_carrier[carrier])
+      sum(Link_p_nom_ext * Link_first_active, over=link, by=link[carrier])
   Process_additions:
     expression: >-
-      sum(Process_p_nom_ext * Process_first_active, over=process, by=Process_carrier[carrier])
+      sum(Process_p_nom_ext * Process_first_active, over=process, by=process[carrier])
   StorageUnit_additions:
     expression: >-
-      sum(StorageUnit_p_nom_ext * StorageUnit_first_active, over=storage_unit, by=StorageUnit_carrier[carrier])
+      sum(StorageUnit_p_nom_ext * StorageUnit_first_active, over=storage_unit, by=storage_unit[carrier])
   Store_additions:
     expression: >-
-      sum(Store_e_nom_ext * Store_first_active, over=store, by=Store_carrier[carrier])
+      sum(Store_e_nom_ext * Store_first_active, over=store, by=store[carrier])
   Carrier_additions:
     dims: [period, carrier]
     expression: >-
@@ -2624,35 +2613,35 @@ expressions:
       transformer's flow before it goes out
     dims: [scenario, snapshot, outage]
     cases:
-      line: { when: Outage_line, expression: "at(Line_s_monitored, by=Outage_line[line])" }
-    otherwise: at(Transformer_s_monitored, by=Outage_transformer[transformer])
+      line: { when: "outage[line]", expression: "at(Line_s_monitored, by=outage[line])" }
+    otherwise: at(Transformer_s_monitored, by=outage[transformer])
 
   Generator_injection:
-    expression: sum(Generator_sign * Generator_p, over=generator, by=Generator_bus[bus])
+    expression: sum(Generator_sign * Generator_p, over=generator, by=generator[bus])
   Line_injection:
     expression: >-
-      -sum(Line_s, over=line, by=Line_bus0[bus])
-      + sum(Line_s, over=line, by=Line_bus1[bus])
-      - (0.5 * sum(Line_loss, over=line, by=Line_bus0[bus]))
-      - (0.5 * sum(Line_loss, over=line, by=Line_bus1[bus]))
+      -sum(Line_s, over=line, by=line[bus0])
+      + sum(Line_s, over=line, by=line[bus1])
+      - (0.5 * sum(Line_loss, over=line, by=line[bus0]))
+      - (0.5 * sum(Line_loss, over=line, by=line[bus1]))
   Link_injection:
     expression: >-
-      -sum(Link_p, over=link, by=Link_bus0[bus])
-      + sum(Link_output_arrival, over=link_output, by=Link_output_bus[bus])
-  Load_injection: sum(Load_demand, over=load, by=Load_bus[bus])
+      -sum(Link_p, over=link, by=link[bus0])
+      + sum(Link_output_arrival, over=link_output, by=link_output[bus])
+  Load_injection: sum(Load_demand, over=load, by=load[bus])
   Process_injection:
     expression: >-
-      sum(Process_output_arrival, over=process_output, by=Process_output_bus[bus])
+      sum(Process_output_arrival, over=process_output, by=process_output[bus])
   StorageUnit_injection:
     expression: >-
-      sum(StorageUnit_sign * (StorageUnit_p_dispatch - StorageUnit_p_store), over=storage_unit, by=StorageUnit_bus[bus])
-  Store_injection: sum(Store_sign * Store_p, over=store, by=Store_bus[bus])
+      sum(StorageUnit_sign * (StorageUnit_p_dispatch - StorageUnit_p_store), over=storage_unit, by=storage_unit[bus])
+  Store_injection: sum(Store_sign * Store_p, over=store, by=store[bus])
   Transformer_injection:
     expression: >-
-      -sum(Transformer_s, over=transformer, by=Transformer_bus0[bus])
-      + sum(Transformer_s, over=transformer, by=Transformer_bus1[bus])
-      - (0.5 * sum(Transformer_loss, over=transformer, by=Transformer_bus0[bus]))
-      - (0.5 * sum(Transformer_loss, over=transformer, by=Transformer_bus1[bus]))
+      -sum(Transformer_s, over=transformer, by=transformer[bus0])
+      + sum(Transformer_s, over=transformer, by=transformer[bus1])
+      - (0.5 * sum(Transformer_loss, over=transformer, by=transformer[bus0]))
+      - (0.5 * sum(Transformer_loss, over=transformer, by=transformer[bus1]))
   Bus_injection:
     dims: [scenario, snapshot, bus]
     expression: >-
@@ -2668,12 +2657,12 @@ expressions:
       what every component puts into a bus, less what it takes out of it;
       PyPSA writes each term into the balance, and a load on its right-hand
       side
-  Line_angle_sum: sum(Line_s * at(Line_cycle_weight, by=snapshot_period[period]), over=line)
+  Line_angle_sum: sum(Line_s * at(Line_cycle_weight, by=snapshot[period]), over=line)
   Transformer_angle_sum:
     expression: >-
-      sum(Transformer_s * at(Transformer_cycle_weight, by=snapshot_period[period]), over=transformer)
+      sum(Transformer_s * at(Transformer_cycle_weight, by=snapshot[period]), over=transformer)
       + sum(Transformer_phase_shift_weight, over=transformer)
-      + sum(Transformer_phase_shift * at(Transformer_phase_shift_cycle_weight, by=snapshot_period[period]), over=transformer)
+      + sum(Transformer_phase_shift * at(Transformer_phase_shift_cycle_weight, by=snapshot[period]), over=transformer)
   Cycle_angle_sum:
     dims: [scenario, snapshot, cycle]
     expression: Line_angle_sum + Transformer_angle_sum
@@ -2713,7 +2702,7 @@ conditions:
       period's first, and the horizon's first where the generator comes in off
       or carries an initial output
     condition: >-
-      position(snapshot, within=snapshot_period[period]) > 0 OR (position(snapshot) == 0 AND
+      position(snapshot, within=snapshot[period]) > 0 OR (position(snapshot) == 0 AND
       (Generator_status_initial == 0 OR Generator_p_init))
   Link_com_ext:
     description: >-
@@ -2746,7 +2735,7 @@ conditions:
       period's first, and the horizon's first where the link comes in off or
       carries an initial output
     condition: >-
-      position(snapshot, within=snapshot_period[period]) > 0 OR (position(snapshot) == 0 AND
+      position(snapshot, within=snapshot[period]) > 0 OR (position(snapshot) == 0 AND
       (Link_status_initial == 0 OR Link_p_init))
   Process_com_ext:
     description: >-
@@ -2779,7 +2768,7 @@ conditions:
       period's first, and the horizon's first where the process comes in off
       or carries an initial output
     condition: >-
-      position(snapshot, within=snapshot_period[period]) > 0 OR (position(snapshot) == 0 AND
+      position(snapshot, within=snapshot[period]) > 0 OR (position(snapshot) == 0 AND
       (Process_status_initial == 0 OR Process_p_init))
   StorageUnit_fix:
     description: >-
@@ -3775,14 +3764,14 @@ constraints:
       voltage angle difference across it, `x_pu_eff` times the flow in
       radians, is the negative of its limit
     dims: [scenario, snapshot, line]
-    where: Line_v_ang_max AND Line_carrier == 'AC' AND Line_active
+    where: Line_v_ang_max AND line[carrier] == 'AC' AND Line_active
     expression: Line_s >= -Line_v_ang_max * (3.141592653589793 / 180) / Line_x_pu_eff
   Line_v_ang_upper:
     description: >-
       `Line-v_ang-upper` — an AC line carries at most the flow at which the
       voltage angle difference across it reaches its limit
     dims: [scenario, snapshot, line]
-    where: Line_v_ang_max AND Line_carrier == 'AC' AND Line_active
+    where: Line_v_ang_max AND line[carrier] == 'AC' AND Line_active
     expression: Line_s <= Line_v_ang_max * (3.141592653589793 / 180) / Line_x_pu_eff
   Line_loss_upper:
     description: "`Line-loss_upper` — a line dissipates at most the loss at its rating"
@@ -3912,8 +3901,8 @@ constraints:
       `-period-{p}` for each period `p`. This entry states them all over the
       outage dimension
     dims: [scenario, snapshot, line, outage]
-    where: not Line_s_nom_extendable AND at(Line_BODF, by=snapshot_period[period])
-    expression: Line_s_monitored + at(Line_BODF, by=snapshot_period[period]) * Outage_s >= -Line_s_max_pu * Line_s_nom
+    where: not Line_s_nom_extendable AND at(Line_BODF, by=snapshot[period])
+    expression: Line_s_monitored + at(Line_BODF, by=snapshot[period]) * Outage_s >= -Line_s_max_pu * Line_s_nom
   Line_fix_s_upper_security:
     description: >-
       `Line-fix-s-upper-security-for-{c}-outage-in-sub-network-{n}` —
@@ -3924,8 +3913,8 @@ constraints:
       `-period-{p}` for each period `p`. This entry states them all over the
       outage dimension
     dims: [scenario, snapshot, line, outage]
-    where: not Line_s_nom_extendable AND at(Line_BODF, by=snapshot_period[period])
-    expression: Line_s_monitored + at(Line_BODF, by=snapshot_period[period]) * Outage_s <= Line_s_max_pu * Line_s_nom
+    where: not Line_s_nom_extendable AND at(Line_BODF, by=snapshot[period])
+    expression: Line_s_monitored + at(Line_BODF, by=snapshot[period]) * Outage_s <= Line_s_max_pu * Line_s_nom
   Line_ext_s_lower_security:
     description: >-
       `Line-ext-s-lower-security-for-{c}-outage-in-sub-network-{n}` —
@@ -3937,8 +3926,8 @@ constraints:
       `-period-{p}` for each period `p`. This entry states them all over the
       outage dimension
     dims: [scenario, snapshot, line, outage]
-    where: Line_s_nom_extendable AND at(Line_BODF, by=snapshot_period[period])
-    expression: Line_s_monitored + at(Line_BODF, by=snapshot_period[period]) * Outage_s >= -Line_s_max_pu * Line_s_nom_ext
+    where: Line_s_nom_extendable AND at(Line_BODF, by=snapshot[period])
+    expression: Line_s_monitored + at(Line_BODF, by=snapshot[period]) * Outage_s >= -Line_s_max_pu * Line_s_nom_ext
   Line_ext_s_upper_security:
     description: >-
       `Line-ext-s-upper-security-for-{c}-outage-in-sub-network-{n}` —
@@ -3949,8 +3938,8 @@ constraints:
       `-period-{p}` for each period `p`. This entry states them all over the
       outage dimension
     dims: [scenario, snapshot, line, outage]
-    where: Line_s_nom_extendable AND at(Line_BODF, by=snapshot_period[period])
-    expression: Line_s_monitored + at(Line_BODF, by=snapshot_period[period]) * Outage_s <= Line_s_max_pu * Line_s_nom_ext
+    where: Line_s_nom_extendable AND at(Line_BODF, by=snapshot[period])
+    expression: Line_s_monitored + at(Line_BODF, by=snapshot[period]) * Outage_s <= Line_s_max_pu * Line_s_nom_ext
   Transformer_fix_s_lower_security:
     description: >-
       `Transformer-fix-s-lower-security-for-{c}-outage-in-sub-network-{n}`
@@ -3961,8 +3950,8 @@ constraints:
       `-period-{p}` for each period `p`. This entry states them all over the
       outage dimension
     dims: [scenario, snapshot, transformer, outage]
-    where: not Transformer_s_nom_extendable AND at(Transformer_BODF, by=snapshot_period[period])
-    expression: Transformer_s_monitored + at(Transformer_BODF, by=snapshot_period[period]) * Outage_s >= -Transformer_s_max_pu * Transformer_s_nom
+    where: not Transformer_s_nom_extendable AND at(Transformer_BODF, by=snapshot[period])
+    expression: Transformer_s_monitored + at(Transformer_BODF, by=snapshot[period]) * Outage_s >= -Transformer_s_max_pu * Transformer_s_nom
   Transformer_fix_s_upper_security:
     description: >-
       `Transformer-fix-s-upper-security-for-{c}-outage-in-sub-network-{n}`
@@ -3973,8 +3962,8 @@ constraints:
       `-period-{p}` for each period `p`. This entry states them all over the
       outage dimension
     dims: [scenario, snapshot, transformer, outage]
-    where: not Transformer_s_nom_extendable AND at(Transformer_BODF, by=snapshot_period[period])
-    expression: Transformer_s_monitored + at(Transformer_BODF, by=snapshot_period[period]) * Outage_s <= Transformer_s_max_pu * Transformer_s_nom
+    where: not Transformer_s_nom_extendable AND at(Transformer_BODF, by=snapshot[period])
+    expression: Transformer_s_monitored + at(Transformer_BODF, by=snapshot[period]) * Outage_s <= Transformer_s_max_pu * Transformer_s_nom
   Transformer_ext_s_lower_security:
     description: >-
       `Transformer-ext-s-lower-security-for-{c}-outage-in-sub-network-{n}`
@@ -3986,8 +3975,8 @@ constraints:
       `-period-{p}` for each period `p`. This entry states them all over the
       outage dimension
     dims: [scenario, snapshot, transformer, outage]
-    where: Transformer_s_nom_extendable AND at(Transformer_BODF, by=snapshot_period[period])
-    expression: Transformer_s_monitored + at(Transformer_BODF, by=snapshot_period[period]) * Outage_s >= -Transformer_s_max_pu * Transformer_s_nom_ext
+    where: Transformer_s_nom_extendable AND at(Transformer_BODF, by=snapshot[period])
+    expression: Transformer_s_monitored + at(Transformer_BODF, by=snapshot[period]) * Outage_s >= -Transformer_s_max_pu * Transformer_s_nom_ext
   Transformer_ext_s_upper_security:
     description: >-
       `Transformer-ext-s-upper-security-for-{c}-outage-in-sub-network-{n}`
@@ -3999,8 +3988,8 @@ constraints:
       `-period-{p}` for each period `p`. This entry states them all over the
       outage dimension
     dims: [scenario, snapshot, transformer, outage]
-    where: Transformer_s_nom_extendable AND at(Transformer_BODF, by=snapshot_period[period])
-    expression: Transformer_s_monitored + at(Transformer_BODF, by=snapshot_period[period]) * Outage_s <= Transformer_s_max_pu * Transformer_s_nom_ext
+    where: Transformer_s_nom_extendable AND at(Transformer_BODF, by=snapshot[period])
+    expression: Transformer_s_monitored + at(Transformer_BODF, by=snapshot[period]) * Outage_s <= Transformer_s_max_pu * Transformer_s_nom_ext
   Kirchhoff_Voltage_Law:
     description: >-
       `Kirchhoff-Voltage-Law` — around every independent cycle the
@@ -4590,7 +4579,7 @@ assumptions:
       level — PyPSA refuses it where any period's years is not one
       (`global_constraints.py:443`)
   StorageUnit_operational_limit_carried_over_has_unit_years:
-    holds: "at(period_weight_years == 1, by=snapshot_period[period])"
+    holds: "at(period_weight_years == 1, by=snapshot[period])"
     where: "StorageUnit_operational_limit_weight AND NOT StorageUnit_state_of_charge_initial_per_period AND GlobalConstraint_counts_snapshot"
     description: >-
       the same for an `operational_limit` row, over the periods it counts —
@@ -4611,7 +4600,7 @@ assumptions:
       level — PyPSA refuses it where any period's years is not one
       (`global_constraints.py:495`)
   Store_operational_limit_carried_over_has_unit_years:
-    holds: "at(period_weight_years == 1, by=snapshot_period[period])"
+    holds: "at(period_weight_years == 1, by=snapshot[period])"
     where: "Store_operational_limit_weight AND NOT Store_e_initial_per_period AND GlobalConstraint_counts_snapshot"
     description: >-
       the same for an `operational_limit` row, over the periods it counts —

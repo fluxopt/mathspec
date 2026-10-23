@@ -62,7 +62,7 @@ if TYPE_CHECKING:
 #: What a name a file may write turns out to be. Answered by
 #: [`Namespace.kind`][], so a pass reading a name switches over this rather
 #: than over the stores it would otherwise have to try in order.
-NameKind = Literal['variable', 'parameter', 'dimension', 'relation']
+NameKind = Literal['variable', 'parameter', 'dimension', 'set']
 
 
 class Namespace:
@@ -87,7 +87,7 @@ class Namespace:
         'leaf_dims',
         'parameters',
         'properties',
-        'relations',
+        'sets',
         'spec',
         'subjects',
         'tables',
@@ -131,9 +131,9 @@ class Namespace:
         #: Every table the file declares, as [`tables`][] lowers it; what the
         #: program carries as its relations.
         self.tables = tables(spec)
-        #: relation or set name -> its columns and key: the tables a file
-        #: writes by name, which a property's dotted name is not.
-        self.relations: dict[str, Relation] = {n: lk for n, lk in self.tables.items() if lk.subject is None}
+        #: set name -> the relation it lowers to: the tables a file writes by
+        #: name, which a property's dotted name is not.
+        self.sets: dict[str, Relation] = {n: lk for n, lk in self.tables.items() if lk.subject is None}
         #: dimension or set -> its key as ``(member, dimension)`` pairs: a
         #: dimension is its own one member, and a set has its own.
         self.subjects: dict[str, tuple[tuple[str, str], ...]] = {
@@ -302,11 +302,9 @@ class Namespace:
     def columns(self, name: str) -> tuple[str, ...] | None:
         """What ``name[...]`` may name, or ``None`` where *name* takes no brackets.
 
-        A relation's columns; a set's members and properties; a dimension's
-        own name, which is its one member, and its properties.
+        A set's members and properties, and a dimension's own name, which is
+        its one member, and its properties.
         """
-        if name in self.spec.relations:
-            return self.relations[name].roles
         if name in self.subjects:
             return (*(m for m, _ in self.subjects[name]), *self.properties.get(name, {}))
         return None
@@ -314,8 +312,7 @@ class Namespace:
     def table(self, name: str, columns: Iterable[str]) -> tuple[str, Relation]:
         """The table ``name[columns]`` reads: the name a program node carries, and its shape.
 
-        A relation, and a set where *columns* names none of its properties,
-        read their own table. One property is read from its own table,
+        A set read by its members alone reads its own table. One property is read from its own table,
         ``subject.property``, which carries the subject's members too. Several
         are read from their inner join, a relation named after the subject,
         keyed by its members, with one value column per property in the order
@@ -327,7 +324,7 @@ class Namespace:
         properties = self.properties.get(name, {})
         read = [c for c in dict.fromkeys(columns) if c in properties]
         if not read:
-            return name, self.relations[name]
+            return name, self.sets[name]
         if len(read) == 1:
             return f'{name}.{read[0]}', self.tables[f'{name}.{read[0]}']
         key = self.subjects[name]
@@ -338,7 +335,7 @@ class Namespace:
     def reads_over(self, dimension: str) -> list[str]:
         """Every ``name[column]`` a file may write whose column is over *dimension*, for the writer who named the dimension."""
         return [
-            *(f'{n}[{r}]' for n, shape in self.relations.items() for r, dim in shape.columns if dim == dimension),
+            *(f'{n}[{r}]' for n, shape in self.sets.items() for r, dim in shape.columns if dim == dimension),
             *(f'{s}[{p}]' for s, group in self.properties.items() for p, into in group.items() if into == dimension),
         ]
 
@@ -350,8 +347,8 @@ class Namespace:
             return 'parameter'
         if name in self.dimensions:
             return 'dimension'
-        if name in self.relations:
-            return 'relation'
+        if name in self.sets:
+            return 'set'
         return None
 
     def unknown(self, name: str, context: str, *, allow_dims: bool, formals: Iterable[str] = ()) -> str:
@@ -361,8 +358,8 @@ class Namespace:
             name: The name the file wrote.
             context: The entry it was found in.
             allow_dims: Whether a dimension would have been accepted there. It marks a
-                condition, which reads a relation as readily as a parameter, so the
-                listing carries the relations too; an expression, where a relation is not a
+                condition, which reads a set as readily as a parameter, so the
+                listing carries the sets too; an expression, where a set is not a
                 value, lists the variables instead.
             formals: A macro's formals, listed first when there are any.
         """
@@ -371,7 +368,7 @@ class Namespace:
             [
                 ('Parameters', self.parameters),
                 ('Dimensions', self.dimensions),
-                ('Relations', self.relations),
+                ('Sets', self.sets),
                 *([('Conditions', self.conditions)] if self.conditions else []),
             ]
             if allow_dims
@@ -406,8 +403,7 @@ def tables(spec: Spec) -> dict[str, Relation]:
     [`reference_errors`][mathspec._validation.reference_errors] passed, so
     every subject is a dimension or a set.
     """
-    relations = {n: Relation(lk.pairs, lk.key_roles, lk.missing, lk.description) for n, lk in spec.relations.items()}
-    relations |= {n: Relation(st.pairs, st.members, st.missing, st.description) for n, st in spec.sets.items()}
+    relations = {n: Relation(st.pairs, st.members, st.missing, st.description) for n, st in spec.sets.items()}
     for subject, properties in spec.properties.items():
         key = spec.sets[subject].pairs if subject in spec.sets else ((subject, subject),)
         relations |= {

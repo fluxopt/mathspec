@@ -36,7 +36,7 @@ STORAGE: dict[str, Any] = {
         'storage': {'ordered': True},
         'period': {'dtype': 'int'},
     },
-    'relations': {'period_of': {'key': 'snapshot', 'values': 'period'}},
+    'properties': {'snapshot': {'period': 'period'}},
     'parameters': {
         'cyclic': {'dims': ['storage'], 'dtype': 'bool'},
         'committable': {'dims': ['storage'], 'dtype': 'bool'},
@@ -194,11 +194,11 @@ class TestWillNotDecide:
     def test_a_group_is_named_as_the_group_it_is(self, spec: Spec):
         """`within=` counts within each group, and the refusal says which."""
         cases = {
-            'first': 'position(snapshot, within=period_of[period]) == 0',
-            'last': 'position(snapshot, within=period_of[period]) == -1',
+            'first': 'position(snapshot, within=snapshot[period]) == 0',
+            'last': 'position(snapshot, within=snapshot[period]) == -1',
         }
         [refusal] = refusals(spec, cases)
-        assert 'within each period_of group' in refusal
+        assert 'within each snapshot[period] group' in refusal
 
     def test_a_literal_written_first_is_named_as_the_order_it_is(self, spec: Spec):
         """The advice was to do what the author had already done.

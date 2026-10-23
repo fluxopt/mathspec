@@ -55,30 +55,28 @@ dimensions:
   carrier:
     description: energy carriers, what a growth limit is set per
 
-relations:
-  snapshot_period:
-    description: the investment period a snapshot falls in
-    key: snapshot
-    values: period
-  Link_carrier:
-    description: the carrier a link converts from
-    key: link
-    values: carrier
-  Link_bus0:
-    description: the bus a link leaves
-    key: link
-    values: bus
-  Link_output_link:
-    description: the link an output port belongs to
-    key: link_output
-    values: link
-  Link_output_bus:
-    description: >-
-      the bus an output port delivers to — PyPSA's `bus1`, `bus2`, … columns.
-      A link of three output ports is three labels here rather than a third
-      relation, so the file states any number of them
-    key: link_output
-    values: bus
+properties:
+  snapshot:
+    period:
+      description: the investment period a snapshot falls in
+      into: period
+  link:
+    carrier:
+      description: the carrier a link converts from
+      into: carrier
+    bus0:
+      description: the bus a link leaves
+      into: bus
+  link_output:
+    link:
+      description: the link an output port belongs to
+      into: link
+    bus:
+      description: >-
+        the bus an output port delivers to — PyPSA's `bus1`, `bus2`, … columns.
+        A link of three output ports is three labels here rather than a third
+        relation, so the file states any number of them
+      into: bus
 
 parameters:
   Link_p_nom:
@@ -260,8 +258,8 @@ expressions:
     cases:
       wrapping:
         when: Link_output_cyclic_delay
-        expression: shift(at(Link_p, by=Link_output_link[link]), along=snapshot, offset=Link_output_delay, edge='wrap', within=snapshot_period[period]) * Link_efficiency
-    otherwise: shift(at(Link_p, by=Link_output_link[link]), along=snapshot, offset=Link_output_delay, edge=0, within=snapshot_period[period]) * Link_efficiency
+        expression: shift(at(Link_p, by=link_output[link]), along=snapshot, offset=Link_output_delay, edge='wrap', within=snapshot[period]) * Link_efficiency
+    otherwise: shift(at(Link_p, by=link_output[link]), along=snapshot, offset=Link_output_delay, edge=0, within=snapshot[period]) * Link_efficiency
   Link_transmission_volume_expansion:
     expression: sum(Link_p_nom_ext * Link_volume_weight, over=link)
     adds_to: transmission_volume_expansion
@@ -273,20 +271,20 @@ expressions:
     adds_to: tech_capacity_expansion
   Link_opex:
     expression: >-
-      sum(sum(((Link_p * Link_marginal_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot_period[period]), over=link), over=snapshot)
-      + sum(sum((((Link_p * Link_p) * Link_marginal_cost_quadratic) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot_period[period]), over=link), over=snapshot)
+      sum(sum(((Link_p * Link_marginal_cost) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot[period]), over=link), over=snapshot)
+      + sum(sum((((Link_p * Link_p) * Link_marginal_cost_quadratic) * snapshot_weightings_objective) * at(period_weight_objective, by=snapshot[period]), over=link), over=snapshot)
     adds_to: scenario_opex
   Link_capex:
     expression: sum(scenario_weight * Link_p_nom_ext * Link_capital_cost * Link_capital_weight)
     adds_to: total_cost
   Link_additions:
     expression: >-
-      sum(Link_p_nom_ext * Link_first_active, over=link, by=Link_carrier[carrier])
+      sum(Link_p_nom_ext * Link_first_active, over=link, by=link[carrier])
     adds_to: Carrier_additions
   Link_injection:
     expression: >-
-      -sum(Link_p, over=link, by=Link_bus0[bus])
-      + sum(Link_output_arrival, over=link_output, by=Link_output_bus[bus])
+      -sum(Link_p, over=link, by=link[bus0])
+      + sum(Link_output_arrival, over=link_output, by=link_output[bus])
     adds_to: Bus_injection
 
 conditions:
@@ -390,13 +388,13 @@ assumptions:
 | Symbol | Meaning |
 |---|---|
 | $`\Xi`$ | index $`\xi`$ — `scenario` — the futures dispatch is chosen in, each with a weight |
-| $`\mathcal{T}`$ | index $`t`$ — `snapshot` with $`\mathrm{snapshot\_period}: \mathcal{T} \to \mathcal{Y}`$ — dispatch periods |
-| $`\mathcal{N}`$ | index $`n`$ — `bus` with $`\mathrm{Link\_bus0}: \mathcal{L} \to \mathcal{N},\ \mathrm{Link\_output\_bus}: \mathcal{O} \to \mathcal{N}`$ — network nodes |
-| $`\mathcal{L}`$ | index $`l`$ — `link` with $`\mathrm{Link\_carrier}: \mathcal{L} \to \mathcal{I},\ \mathrm{Link\_bus0}: \mathcal{L} \to \mathcal{N},\ \mathrm{Link\_output\_link}: \mathcal{O} \to \mathcal{L}`$ — controllable connections, each from one bus to the buses it delivers to |
-| $`\mathcal{O}`$ | index $`o`$ — `link_output` with $`\mathrm{Link\_output\_link}: \mathcal{O} \to \mathcal{L},\ \mathrm{Link\_output\_bus}: \mathcal{O} \to \mathcal{N}`$ — a link's output ports, one label per port a link declares — PyPSA's `bus1`, `bus2`, … columns read long, so a link of any number of output ports is one term in the balance, data prep |
+| $`\mathcal{T}`$ | index $`t`$ — `snapshot` with $`\mathrm{period}: \mathcal{T} \to \mathcal{Y}`$ — dispatch periods |
+| $`\mathcal{N}`$ | index $`n`$ — `bus` with $`\mathrm{bus0}: \mathcal{L} \to \mathcal{N},\ \mathrm{bus}: \mathcal{O} \to \mathcal{N}`$ — network nodes |
+| $`\mathcal{L}`$ | index $`l`$ — `link` with $`\mathrm{carrier}: \mathcal{L} \to \mathcal{I},\ \mathrm{bus0}: \mathcal{L} \to \mathcal{N},\ \mathrm{link}: \mathcal{O} \to \mathcal{L}`$ — controllable connections, each from one bus to the buses it delivers to |
+| $`\mathcal{O}`$ | index $`o`$ — `link_output` with $`\mathrm{link}: \mathcal{O} \to \mathcal{L},\ \mathrm{bus}: \mathcal{O} \to \mathcal{N}`$ — a link's output ports, one label per port a link declares — PyPSA's `bus1`, `bus2`, … columns read long, so a link of any number of output ports is one term in the balance, data prep |
 | $`\mathcal{G}`$ | index $`g`$ — `global_constraint` — PyPSA's `GlobalConstraint` rows, one label per declared limit |
-| $`\mathcal{Y}`$ | index $`y`$ — `period` with $`\mathrm{snapshot\_period}: \mathcal{T} \to \mathcal{Y}`$ — investment periods — PyPSA's `investment_periods` |
-| $`\mathcal{I}`$ | index $`i`$ — `carrier` with $`\mathrm{Link\_carrier}: \mathcal{L} \to \mathcal{I}`$ — energy carriers, what a growth limit is set per |
+| $`\mathcal{Y}`$ | index $`y`$ — `period` with $`\mathrm{period}: \mathcal{T} \to \mathcal{Y}`$ — investment periods — PyPSA's `investment_periods` |
+| $`\mathcal{I}`$ | index $`i`$ — `carrier` with $`\mathrm{carrier}: \mathcal{L} \to \mathcal{I}`$ — energy carriers, what a growth limit is set per |
 
 #### Parameters
 
@@ -462,7 +460,7 @@ assumptions:
 |---|---|
 | $`t \ominus k`$ | `edge='wrap'` — $`t-k`$, cyclic |
 | $`t \boxminus_{v} k`$ | `edge=v` — $`t-k`$, and $`v`$ past the edge |
-| $`t \ominus^{\mathrm{relation}(t)} k`$ | `within=relation[...]` — $`t-k`$ inside the group of $`t`$ |
+| $`t \ominus^{\mathrm{property}(t)} k`$ | `within=subject[...]` — $`t-k`$ inside the group of $`t`$ |
 
 #### Conditions
 
@@ -509,7 +507,7 @@ F_{l} \in \mathbb{R} \qquad \forall\, l \in \mathcal{L} \,:\, \mathrm{ext}^{f}_{
 **`Link_output_arrival`**
 
 ```math
-\overrightarrow{f}_{\xi,t,o} = \begin{cases} f_{\xi,t \ominus^{\mathrm{snapshot\_period}(t)} \mathrm{d}^{f},\mathrm{Link\_output\_link}(o)} \cdot \eta_{\xi,t,o} & \text{if } \mathrm{cyc}^{f}_{o} \\ f_{\xi,t \boxminus_{0}^{\mathrm{snapshot\_period}(t)} \mathrm{d}^{f},\mathrm{Link\_output\_link}(o)} \cdot \eta_{\xi,t,o} & \text{otherwise} \end{cases} \qquad \forall\, \xi \in \Xi,\ t \in \mathcal{T},\ o \in \mathcal{O}
+\overrightarrow{f}_{\xi,t,o} = \begin{cases} f_{\xi,t \ominus^{\mathrm{period}(t)} \mathrm{d}^{f},\mathrm{link}(o)} \cdot \eta_{\xi,t,o} & \text{if } \mathrm{cyc}^{f}_{o} \\ f_{\xi,t \boxminus_{0}^{\mathrm{period}(t)} \mathrm{d}^{f},\mathrm{link}(o)} \cdot \eta_{\xi,t,o} & \text{otherwise} \end{cases} \qquad \forall\, \xi \in \Xi,\ t \in \mathcal{T},\ o \in \mathcal{O}
 ```
 
 **`Link_transmission_volume_expansion`**
@@ -533,7 +531,7 @@ F_{l} \in \mathbb{R} \qquad \forall\, l \in \mathcal{L} \,:\, \mathrm{ext}^{f}_{
 **`Link_opex`**
 
 ```math
-\mathit{Link\_opex}_{\xi} = \sum_{t \in \mathcal{T}} \sum_{l \in \mathcal{L}} f_{\xi,t,l} \cdot \mathrm{c}^{f}_{\xi,t,l} \cdot \mathrm{w}_{t} \cdot \mathrm{w}^{y}_{\mathrm{snapshot\_period}(t)} + \sum_{t \in \mathcal{T}} \sum_{l \in \mathcal{L}} f_{\xi,t,l} \cdot f_{\xi,t,l} \cdot \mathrm{c}^{f,(2)}_{\xi,t,l} \cdot \mathrm{w}_{t} \cdot \mathrm{w}^{y}_{\mathrm{snapshot\_period}(t)} \qquad \forall\, \xi \in \Xi
+\mathit{Link\_opex}_{\xi} = \sum_{t \in \mathcal{T}} \sum_{l \in \mathcal{L}} f_{\xi,t,l} \cdot \mathrm{c}^{f}_{\xi,t,l} \cdot \mathrm{w}_{t} \cdot \mathrm{w}^{y}_{\mathrm{period}(t)} + \sum_{t \in \mathcal{T}} \sum_{l \in \mathcal{L}} f_{\xi,t,l} \cdot f_{\xi,t,l} \cdot \mathrm{c}^{f,(2)}_{\xi,t,l} \cdot \mathrm{w}_{t} \cdot \mathrm{w}^{y}_{\mathrm{period}(t)} \qquad \forall\, \xi \in \Xi
 ```
 
 **`Link_capex`**
@@ -545,13 +543,13 @@ F_{l} \in \mathbb{R} \qquad \forall\, l \in \mathcal{L} \,:\, \mathrm{ext}^{f}_{
 **`Link_additions`**
 
 ```math
-\mathit{Link\_additions}_{i,y} = \sum_{l \in \mathcal{L} \,:\, \mathrm{Link\_carrier}(l) = i} F_{l} \cdot \mathrm{new}^{f}_{y,l} \qquad \forall\, i \in \mathcal{I},\ y \in \mathcal{Y}
+\mathit{Link\_additions}_{i,y} = \sum_{l \in \mathcal{L} \,:\, \mathrm{carrier}(l) = i} F_{l} \cdot \mathrm{new}^{f}_{y,l} \qquad \forall\, i \in \mathcal{I},\ y \in \mathcal{Y}
 ```
 
 **`Link_injection`**
 
 ```math
-\mathit{Link\_injection}_{n,\xi,t} = -\left( \sum_{l \in \mathcal{L} \,:\, \mathrm{Link\_bus0}(l) = n} f_{\xi,t,l} \right) + \sum_{o \in \mathcal{O} \,:\, \mathrm{Link\_output\_bus}(o) = n} \overrightarrow{f}_{\xi,t,o} \qquad \forall\, n \in \mathcal{N},\ \xi \in \Xi,\ t \in \mathcal{T}
+\mathit{Link\_injection}_{n,\xi,t} = -\left( \sum_{l \in \mathcal{L} \,:\, \mathrm{bus0}(l) = n} f_{\xi,t,l} \right) + \sum_{o \in \mathcal{O} \,:\, \mathrm{bus}(o) = n} \overrightarrow{f}_{\xi,t,o} \qquad \forall\, n \in \mathcal{N},\ \xi \in \Xi,\ t \in \mathcal{T}
 ```
 
 #### Subject to

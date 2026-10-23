@@ -60,8 +60,9 @@ and you can nest them as `override(merge([…]), […])`.
      snapshot: { dtype: int }
      bus: { dtype: str }
      generator: { dtype: str }
-   relations:
-     Generator_bus: { key: generator, values: bus }
+   properties:
+     generator:
+       bus: bus
    parameters:
      Generator_p_nom: { dims: [generator] }
      Generator_marginal_cost: { dims: [generator] }
@@ -69,7 +70,7 @@ and you can nest them as `override(merge([…]), […])`.
      Generator_p: { dims: [snapshot, generator], bounds: { lower: 0, upper: Generator_p_nom } }
    expressions:
      Generator_injection:
-       expression: sum(Generator_p, over=generator, by=Generator_bus[bus])
+       expression: sum(Generator_p, over=generator, by=generator[bus])
        adds_to: Bus_injection
      Generator_cost:
        expression: sum(Generator_p * Generator_marginal_cost)
@@ -84,13 +85,14 @@ and you can nest them as `override(merge([…]), […])`.
      snapshot: { dtype: int }
      bus: { dtype: str }
      load: { dtype: str }
-   relations:
-     Load_bus: { key: load, values: bus }
+   properties:
+     load:
+       bus: bus
    parameters:
      Load_p_set: { dims: [snapshot, load] }
    expressions:
      Load_injection:
-       expression: -sum(Load_p_set, over=load, by=Load_bus[bus])
+       expression: -sum(Load_p_set, over=load, by=load[bus])
        adds_to: Bus_injection
    ```
 
@@ -128,8 +130,9 @@ and you can nest them as `override(merge([…]), […])`.
      snapshot: { dtype: int, ordered: true }
      bus: { dtype: str }
      store: { dtype: str }
-   relations:
-     Store_bus: { key: store, values: bus }
+   properties:
+     store:
+       bus: bus
    parameters:
      Store_e_nom: { dims: [store] }
    variables:
@@ -141,7 +144,7 @@ and you can nest them as `override(merge([…]), […])`.
        expression: Store_e == shift(Store_e, along=snapshot, offset=1, edge='wrap') - Store_p
    expressions:
      Store_injection:
-       expression: sum(Store_p, over=store, by=Store_bus[bus])
+       expression: sum(Store_p, over=store, by=store[bus])
        adds_to: Bus_injection
    ```
 
@@ -200,22 +203,22 @@ which each component pins at its own port.
 
 ## What a fragment may share
 
-| The entry                                        | What happens                                                                                                                                                                                                            |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| a dimension, a relation or a set                 | every fragment may declare it, and the ones that do say the same thing about it                                                                                                                                         |
-| the properties of one subject                    | every fragment may give the subject properties, and the subject has all of them. A property that two fragments declare says the same thing in both ([properties](../reference/language/sets.md#properties))             |
-| a `description` on a shared entry                | it is prose rather than a claim, and the first wording in the list is carried                                                                                                                                           |
-| `ordered: true` on a shared dimension            | it says that the members have an order and does not change them, so the dimension is ordered if one fragment says so                                                                                                    |
-| `missing:` on a shared relation, set or property | it says what a missing row of the data means, so every fragment that declares the entry gives the same value. `missing: refused` is the same as no `missing:`                                                           |
-| any other entry                                  | one fragment declares it, and a second is refused                                                                                                                                                                       |
-| an entry under `given:`                          | it is checked against the fragment that introduces the name, then folded into it. Its description fills the entry where the introducer wrote none                                                                       |
-| a given expression                               | the body of the definition carries no dimension that the `dims` of the reading fragment do not name                                                                                                                     |
-| a given condition                                | the `dims` of the reading fragment name exactly the dimensions that the condition of the defining fragment reads                                                                                                        |
-| a given entry no fragment introduces             | it stays under `given:` until a host model provides it                                                                                                                                                                  |
-| an expression with `adds_to:`                    | the sum it names is the body one fragment defines, if any, followed by every term by its name, in the order of the list. [Terms](../reference/language/parameters-variables-constraints.md#terms) gives what is refused |
-| `objective`                                      | one fragment sets it, and a second is refused. Several fragments contribute to it as terms of a sum the objective reads                                                                                                 |
-| `version`                                        | every fragment is written against the same one                                                                                                                                                                          |
-| `description` at the top of a fragment           | it is about the fragment and is not carried. Pass the composed spec's as `description=`                                                                                                                                 |
+| The entry                              | What happens                                                                                                                                                                                                            |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| a dimension or a set                   | every fragment may declare it, and the ones that do say the same thing about it                                                                                                                                         |
+| the properties of one subject          | every fragment may give the subject properties, and the subject has all of them. A property that two fragments declare says the same thing in both ([properties](../reference/language/sets.md#properties))             |
+| a `description` on a shared entry      | it is prose rather than a claim, and the first wording in the list is carried                                                                                                                                           |
+| `ordered: true` on a shared dimension  | it says that the members have an order and does not change them, so the dimension is ordered if one fragment says so                                                                                                    |
+| `missing:` on a shared set or property | it says what a missing row of the data means, so every fragment that declares the entry gives the same value. `missing: refused` is the same as no `missing:`                                                           |
+| any other entry                        | one fragment declares it, and a second is refused                                                                                                                                                                       |
+| an entry under `given:`                | it is checked against the fragment that introduces the name, then folded into it. Its description fills the entry where the introducer wrote none                                                                       |
+| a given expression                     | the body of the definition carries no dimension that the `dims` of the reading fragment do not name                                                                                                                     |
+| a given condition                      | the `dims` of the reading fragment name exactly the dimensions that the condition of the defining fragment reads                                                                                                        |
+| a given entry no fragment introduces   | it stays under `given:` until a host model provides it                                                                                                                                                                  |
+| an expression with `adds_to:`          | the sum it names is the body one fragment defines, if any, followed by every term by its name, in the order of the list. [Terms](../reference/language/parameters-variables-constraints.md#terms) gives what is refused |
+| `objective`                            | one fragment sets it, and a second is refused. Several fragments contribute to it as terms of a sum the objective reads                                                                                                 |
+| `version`                              | every fragment is written against the same one                                                                                                                                                                          |
+| `description` at the top of a fragment | it is about the fragment and is not carried. Pass the composed spec's as `description=`                                                                                                                                 |
 
 ## A name two fragments declare
 
@@ -365,10 +368,10 @@ Given variable 'Generator_p' collides with the variable of the same name. Rename
 | `null` under an entry's name        | it is removed                                                              |
 | `null` on a field of an entry       | the field takes its default, and the rest of the entry stays               |
 | `null` under a section's name       | it is refused                                                              |
-| a dimension, a relation, a set      | it is added, or restated as the base declares it                           |
+| a dimension or a set                | it is added, or restated as the base declares it                           |
 | a property                          | it is added, or restated as the base declares it                           |
 | `ordered:` on a restated dimension  | `true` makes the dimension ordered; `false` over an ordered one is refused |
-| `missing:` on a relation, a set     | it changes whether every key combination needs a row, as on a parameter    |
+| `missing:` on a set                 | it changes whether every combination needs a row, as on a parameter        |
 | `missing:` on a property            | it changes whether every row of the subject has the property               |
 | an entry under one kind of `given:` | it is edited, added or removed like any entry, and the other kinds stay    |
 | `version`, `description`            | the patch's value replaces the base's                                      |
@@ -392,7 +395,7 @@ as the base spells it.
 
 ## A dimension redeclared
 
-A patch may add a dimension, a relation, a set or a property, and may
+A patch may add a dimension, a set or a property, and may
 restate one the base declares. The restatement says what the base says: half an entry is a
 second reading of the same name, and a field written at its default is the
 same as one left out. Changing one under the expressions already written
@@ -412,7 +415,7 @@ patch 'unordered.yaml' says the dimension 'snapshot' is not ordered, where its b
 ```
 
 `missing:` is a claim about the data, not the coordinate space. A patch may
-change it on a relation, a set or a property as on a parameter, and may name
+change it on a set or a property as on a parameter, and may name
 it alone: `properties: {line: {bus1: {missing: absent}}}`. `null` puts the default, `refused`,
 back.
 

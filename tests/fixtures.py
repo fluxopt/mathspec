@@ -47,13 +47,13 @@ DISPATCH_MODEL: dict[str, Any] = {
     'objective': {'sense': 'minimize', 'expression': 'sum(p * cost)'},
 }
 
-#: Two dimensions, a relation between them, a numeric, a scalar, a boolean and a
+#: Two dimensions, a property of one into the other, a numeric, a scalar, a boolean and a
 #: label parameter, a variable on each frame — one entry of every kind
 #: a rule can name, and no objective, so a test adds what it judges. `p` and `r`
 #: share no dimension, which is what a rule about *different* dims needs.
 SMALL_MODEL: dict[str, Any] = {
     'dimensions': {'g': {'dtype': 'str', 'ordered': True}, 'h': {'dtype': 'str', 'ordered': True}},
-    'relations': {'lk': {'key': 'g', 'values': 'h'}},
+    'properties': {'g': {'h': 'h'}},
     'parameters': {
         'c': {'dims': ['g']},
         'k': {'dims': []},

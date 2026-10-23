@@ -153,8 +153,8 @@ class ExpressionResolver:
             return None
         if isinstance(node, ColumnsNode):
             self.errors.append(
-                f'{self.context}: {node} names columns of a relation, which is allowed only as an operator '
-                f'argument, such as at(x, by={node}). A relation is not a value.'
+                f'{self.context}: {node} reads a set or a property, which is allowed only as an operator '
+                f'argument, such as at(x, by={node}). A set or a property is not a value.'
             )
             return None
         assert_never(node)
@@ -180,7 +180,7 @@ class ExpressionResolver:
                 assert_never(node.op)
 
     def _name(self, node: NameNode) -> Expression | None:
-        """A bare name as the variable, parameter or named expression it declares; a dimension or relation is not a value.
+        """A bare name as the variable, parameter or named expression it declares; a dimension or a set is not a value.
 
         A named expression arrives as the one node [`Namespace.named`][]
         built for it; the cast is the one place a
@@ -213,10 +213,10 @@ class ExpressionResolver:
                     f'not a value. To use its coordinates as data, declare a parameter over it.'
                 )
                 return None
-            case 'relation':
+            case 'set':
                 self.errors.append(
-                    f"{self.context}: '{node.name}' is a relation, and a relation is not a value. Use its "
-                    f'columns as sum(x, over=<column>, by={node.name}[<column>]) or in a condition, or declare a '
+                    f"{self.context}: '{node.name}' is a set, and a set is not a value. Read it as "
+                    f'sum(x, over=<member>, by={node.name}[<member or property>]) or in a condition, or declare a '
                     f'parameter to carry numbers.'
                 )
                 return None
@@ -282,7 +282,7 @@ class ExpressionResolver:
         return self._translation(node.name, operand, along, amounts, edge, partition)
 
     def _sum(self, operand: Expression, over: tuple[str, ...] | None, columns: ColumnsNode | None) -> Expression | None:
-        """A plain sum over the dims *over* names, or a sum through a relation, grouped by *columns*.
+        """A plain sum over the dims *over* names, or a sum through a subject, grouped by *columns*.
 
         Through a relation, the join and the sum over the axes it opens are one
         call, so no axis is ever left open. A name in *over* that is no column
@@ -321,7 +321,7 @@ class ExpressionResolver:
         return node
 
     def _at(self, operand: Expression, columns: ColumnsNode) -> Expression | None:
-        """``at(x, by=relation[column])``: *operand* read at the value of *columns* each row of the relation holds."""
+        """``at(x, by=subject[property])``: *operand* read at the value of *columns* each row of the subject holds."""
         join = self.lookup(columns, frozenset(operand.dims))
         return None if join is None else self._joined(operand, join)
 
@@ -495,7 +495,7 @@ class ExpressionResolver:
         return Dual(value.name, dims=sorted_dims(declared.dims))
 
     def _over(self, value: ArithmeticNode, operator: str, *, relation: bool) -> tuple[str, ...] | None:
-        """``over=``: a dimension or a list of them, and beside ``by=`` the columns of the relation too, each a bare name.
+        """``over=``: a dimension or a list of them, and beside ``by=`` the columns of the subject too, each a bare name.
 
         Beside ``by=`` a name is read against the relation in [`_grouping`][],
         so only a plain sum checks its names here.
@@ -504,9 +504,9 @@ class ExpressionResolver:
             return None
         if isinstance(value, ColumnsNode):
             self.errors.append(
-                f'{self.context}: {operator}(over={value}) names a relation, and over= takes bare names. Write '
-                f'over={shown(value.columns)}. Beside by={value.relation}[...], a name in over= is a column of '
-                f"'{value.relation}', or a dimension."
+                f'{self.context}: {operator}(over={value}) reads a subject, and over= takes bare names. Write '
+                f'over={shown(value.columns)}. Beside by={value.relation}[...], a name in over= is a member or '
+                f"a property of '{value.relation}', or a dimension."
             )
             return None
         names = names_in(value)
@@ -530,7 +530,7 @@ class ExpressionResolver:
         return names if len(self.errors) == found else None
 
     def columns_ref(self, value: ArithmeticNode, operator: str, key: str) -> ColumnsNode | None:
-        """A kwarg naming columns of one relation, ``relation[column, …]``, each a column the relation declares.
+        """A kwarg naming what one subject reads, ``subject[name, …]``, each a member or a property of it.
 
         The relation is written once and its columns after it, so one call
         reads one table by the grammar alone.
@@ -542,11 +542,11 @@ class ExpressionResolver:
             return None
         if value.relation in self.formals:
             return None
-        if (problem := self.not_a_relation(value.relation, operator, key)) is not None:
+        if (problem := self.not_a_subject(value.relation, operator, key)) is not None:
             self.errors.append(problem)
             return None
         admitted = self.ns.columns(value.relation)
-        assert admitted is not None, 'not_a_relation refuses a name that takes no brackets'
+        assert admitted is not None, 'not_a_subject refuses a name that takes no brackets'
         if unknown := [c for c in value.columns if c not in admitted and c not in self.formals]:
             self.errors.append(
                 f'{self.context}: {operator}({key}={value}) names {unknown}, which is no '
@@ -571,30 +571,26 @@ class ExpressionResolver:
     def _not_columns(self, value: ArithmeticNode, operator: str, key: str) -> str:
         """Why *value* is not a column selection, with the selection it most likely meant."""
         ns, context = self.ns, self.context
-        if isinstance(value, NameNode) and value.name in ns.relations:
+        if isinstance(value, NameNode) and value.name in ns.sets:
             return (
-                f'{context}: {operator}({key}={value.name}) names the relation and none of its columns. Write '
-                f"{key}={value.name}[<column>], with a column of '{value.name}': "
+                f'{context}: {operator}({key}={value.name}) names the set and none of its members or properties. '
+                f"Write {key}={value.name}[<name>], with a member or a property of '{value.name}': "
                 f'{list(ns.columns(value.name) or ())}.'
             )
         if isinstance(value, NameNode) and value.name in ns.dimensions:
             over_here = ns.reads_over(value.name)
-            hint = (
-                f'Columns over {value.name!r}: {over_here}'
-                if over_here
-                else f'No relation has a column over {value.name!r}.'
-            )
+            hint = f'Reads over {value.name!r}: {over_here}' if over_here else f'Nothing is over {value.name!r}.'
             return (
                 f"{context}: {operator}({key}={value.name}): '{value.name}' is a dimension, and {key}= takes "
-                f'columns of a relation, written relation[column]. {hint}'
+                f'what one subject reads, written subject[property]. {hint}'
             )
         return (
-            f'{context}: {operator}({key}=...) takes columns of one relation. Write relation[column] or '
-            f'relation[column, ...].'
+            f'{context}: {operator}({key}=...) takes what one subject reads. Write subject[property] or '
+            f'subject[property, ...].'
         )
 
     def _grouping(self, columns: ColumnsNode, over: tuple[str, ...]) -> tuple[JoinColumns, tuple[str, ...]] | None:
-        """How ``sum(x, over=..., by=relation[...])`` joins the relation, and the dims it sums away with no column.
+        """How ``sum(x, over=..., by=subject[...])`` joins the subject's table, and the dims it sums away with no column.
 
         A name in *over* is a column of the relation where it has one, and a
         dimension otherwise, summed away after the group-by. The entry
@@ -608,7 +604,7 @@ class ExpressionResolver:
         call = f'sum(by={columns})'
         from_roles = tuple(n for n in over if n in admitted)
         plain = tuple(n for n in over if n not in admitted)
-        noun, nouns = _columns_noun(ns, name)
+        noun, nouns = 'column', 'columns'
         if unknown := [n for n in plain if n not in ns.dimensions]:
             self.errors.append(
                 f"{self.context}: {call}: over={unknown[0]} names no {noun} of '{name}', whose {nouns} are "
@@ -631,7 +627,7 @@ class ExpressionResolver:
             self.errors.append(
                 f'{self.context}: {call}: the columns this sum groups by, {list(join.grouped)}, hold the whole key '
                 f'{list(shape.key)}, so every group is one row and the sum adds nothing. Write '
-                f'{_lookup_rewrite(name, from_roles, plain)}, or group by a value column.'
+                f'{_lookup_rewrite(name, from_roles, plain)}, or group by a property.'
             )
             return None
         return join, plain
@@ -648,14 +644,14 @@ class ExpressionResolver:
         table, shape = self.ns.table(name, columns.columns)
         if not shape.values:
             self.errors.append(
-                f"{self.context}: {call}: '{name}' has every column in its key, so it has no value column for at() "
+                f"{self.context}: {call}: '{name}' is read by its members alone, so it has no property for at() "
                 f'to read. Sum through it instead.'
             )
             return None
         if keyed := [r for r in columns.columns if r in shape.key]:
             self.errors.append(
-                f"{self.context}: {call} names {keyed}, a key column of '{name}'. A lookup reads value columns "
-                f'at the key. Name one of the value columns, {list(shape.values)}, or sum through the key column.'
+                f"{self.context}: {call} names {keyed}, a member of '{name}'. A lookup reads properties at the "
+                f'members. Name one of its properties, {list(shape.values)}, or sum through the member.'
             )
             return None
         matched = inner - {shape.dim(r) for r in columns.columns}
@@ -682,7 +678,7 @@ class ExpressionResolver:
         return JoinColumns(table, shape, (*from_roles, *kept), (*into_roles, *kept))
 
     def partition(self, columns: ColumnsNode, operator: str, along_dim: str) -> Partition | None:
-        """How a partition (``shift``, ``sum_back``, ``position``) steps along the relation *columns* names.
+        """How a partition (``shift``, ``sum_back``, ``position``) steps along the table *columns* reads.
 
         It steps along the one key column over *along_dim* (a key has one
         column per dimension), joins on the other key columns and groups by the
@@ -695,42 +691,40 @@ class ExpressionResolver:
         call = f'{operator}(within={columns})'
         if not shape.values:
             self.errors.append(
-                f"{context}: {call}: '{name}' has every column in its key, so it makes no groups. Move the group "
-                f'columns under values:, and keep under key: the column {operator} steps along.'
+                f"{context}: {call}: '{name}' is read by its members alone, so it makes no groups. Group by a "
+                f"property of '{name}'."
             )
             return None
         over_keys = [r for r in shape.key if shape.dim(r) == along_dim]
         if not over_keys:
             self.errors.append(
-                f"{context}: {call}: '{name}' has no key column over '{along_dim}'. Its key is {list(shape.key)}."
+                f"{context}: {call}: '{name}' has no member over '{along_dim}'. Its members are {list(shape.key)}."
             )
             return None
         if keyed := [r for r in within_roles if r in shape.key]:
             self.errors.append(
-                f"{context}: {call}: within= names {keyed}, a key column of '{name}'. Name one of its value "
-                f'columns, {list(shape.values)}.'
+                f"{context}: {call}: within= names {keyed}, a member of '{name}'. Name one of its properties, "
+                f'{list(shape.values)}.'
             )
             return None
         (along,) = over_keys
         joined = tuple(r for r in shape.key if r != along)
         return Partition(table, shape, along, within_roles, joined)
 
-    def not_a_relation(self, name: str, operator: str, key: str) -> str | None:
-        """Why *name*, written before the columns of a selection, is not a relation; ``None`` where it is one."""
+    def not_a_subject(self, name: str, operator: str, key: str) -> str | None:
+        """Why *name*, written before the brackets of a read, is no set and no dimension with properties; ``None`` where it is one."""
         ns, context = self.ns, self.context
-        if name in ns.relations or name in ns.properties:
+        if name in ns.sets or name in ns.properties:
             return None
         if name in ns.dimensions:
             return (
                 f"{context}: {operator}({key}={name}[...]): '{name}' is a dimension with no properties. Declare "
-                f'one under properties: {name}: {{<property>: <dimension>}}, or write a relation first and its '
-                f'columns after it: {key}=<relation>[<column>].'
+                f'one under properties: {name}: {{<property>: <dimension>}}.'
             )
         return (
-            f'{context}: {operator}({key}={name}[...]) does not name a relation{_or_a_formal(self.formals)}. '
-            f'{did_you_mean(name, ns.relations, label="Relations")}\n'
-            f"Declare it under 'relations:' as {name}: {{key: <the columns a row is identified by>, "
-            f'values: <the columns they determine>}}.'
+            f'{context}: {operator}({key}={name}[...]) does not name a set or a dimension'
+            f'{_or_a_formal(self.formals)}. '
+            f'{did_you_mean(name, [*ns.sets, *ns.properties], label="Sets and dimensions with properties")}'
         )
 
 
@@ -775,9 +769,7 @@ def _columns_over(shape: Relation, dims: tuple[str, ...]) -> str:
 
 
 def _columns_noun(ns: Namespace, name: str) -> tuple[str, str]:
-    """What one name, and several, inside ``name[...]`` are called: a relation's columns, a dimension's properties, a set's members and properties."""
-    if name in ns.spec.relations:
-        return 'column', 'columns'
+    """What one name, and several, inside ``name[...]`` are called: a dimension's properties, a set's members and properties."""
     if name in ns.dimensions:
         return 'property', 'properties'
     return 'member or property', 'members and properties'

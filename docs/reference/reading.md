@@ -125,7 +125,7 @@ means: `'refused'`, `'absent'`, or the value that the row reads as. A given
 parameter is a `GivenParameter` under `program.given.parameters`, with its
 `dims` and `dtype` and no `missing` or `where`, because the file that
 declares the parameter says. The program of `spec.expand(...)` reports the same values.
-`program.relations[name].missing` is `'refused'` or `'absent'`.
+`program.relations[name].missing` is `'refused'` or `'absent'`, for a set and a property alike.
 
 Under `'refused'`, the engine does not build the model from a table with a
 missing row, and names the coordinate. Each engine decides whether it raises at
@@ -141,7 +141,7 @@ it the parameter is absent wherever it is read, and the engine drops the rows of
 the data there when it attaches. Then it applies `missing:` to the coordinates
 the mask keeps: a value fills a missing row there, and `'refused'` asks for a
 row only there. A mask reads no variable and no masked parameter, so the
-engine can evaluate each mask from the dimensions, the relations and the
+engine can evaluate each mask from the dimensions, the sets, the properties and the
 unmasked parameters, before it reads any masked parameter
 ([a parameter's mask](language/parameters-variables-constraints.md#a-parameters-mask)).
 
@@ -150,10 +150,9 @@ An engine must refuse a divisor that is `0` in a row it builds, whatever made it
 ([zero divisors in the data](language/absence.md#zero-divisors-in-the-data)).
 
 A `RelationComparison` or a `RelationPairComparison` is false at a coordinate
-where a relation it reads has no row, whatever its operator: `!=` is false
-there too. A `Not` of it is then true. So `connection != 'input'` keeps no
-coordinate that `connection` leaves out, and `NOT connection == 'input'` keeps
-every one.
+where a table it reads has no row, whatever its operator: `!=` is false
+there too. A `Not` of it is then true. So `line[bus1] != 'b1'` keeps no
+line that has no `bus1`, and `NOT line[bus1] == 'b1'` keeps every one.
 
 ## The tables of sets and properties
 
@@ -177,7 +176,7 @@ table for each set and one for each property, and no table holds a null.
 relation with no value columns, under its own name. A property is a relation
 under `subject.property`, keyed by the subject's members, with one value
 column, and its `subject` names the dimension or set whose rows its key ranges
-over. A relation from `relations:` has `subject` set to `None`.
+over. A set has `subject` set to `None`.
 
 ```python
 from mathspec import to_spec
@@ -232,7 +231,7 @@ a walk reads through it.
 
 Every expression node has `dims`: the dimensions over which it is indexed,
 sorted by name. A sum has the dimensions its operand has,
-less the ones it sums over. A `Join` under a sum through a relation has the
+less the ones it sums over. A `Join` under a sum through a property has the
 dimensions of that sum. A `Join` also opens one `Axis` for each column it
 drops, but an axis is not a dimension and is not in `dims`. An
 `ExpressionReference` has the dimensions of its body.
@@ -259,8 +258,8 @@ The mask also answers four questions:
 
 A comparison of expressions arrives as an `ExpressionComparison`. Its two
 sides are program expressions like a constraint's, and its `dims` are every
-dimension either side carries. Its `names_read` are every parameter and relation
-that the sides read, including the relation that a grouping reads through.
+dimension either side carries. Its `names_read` are every parameter and table
+that the sides read, including the tables that a grouping reads through.
 
 A name compared against a literal does not arrive this way. `p_max > 5` is a
 `ParameterComparison` and `1 * p_max > 5` is an `ExpressionComparison`, though
@@ -270,10 +269,10 @@ Three conditions read another condition rather than an entry. A
 `CountComparison` carries the mask it counts and the dimension it counts away.
 A `TranslatedCondition` carries the mask it reads at a neighbouring
 coordinate. A `JoinedCondition` carries the mask it reads through a
-relation, and the `JoinColumns` it joins on and groups by. Each holds that
+property, and the `JoinColumns` it joins on and groups by. Each holds that
 mask as a `Mask`, where a connective holds a bare condition, so the walk
 recurses through a connective and stops at these. `.names_read` and `.dims` see
-through all three, and the relation a `JoinedCondition` reads is in its
+through all three, and the tables a `JoinedCondition` reads are in its
 `.names_read`.
 
 `Mask(condition)` answers the same four questions of any resolved condition,
@@ -370,7 +369,7 @@ introduced is named under the entry the expansion emitted.
   shift, or a set. In brackets, each entry names the one change that would
   remove the tie.
 - `undecided` lists each read whose reach only the data can decide, as a `Reach`:
-  the entry, the parameter or relation it reads, and the kind of read. A
+  the entry, the parameter or table it reads, and the kind of read. A
   caller that holds the data hands the smallest value of each named parameter
   to `resolved`, which returns the report with those reads decided.
 - `restarts` names each entry that counts a `position()` along the axis.
@@ -416,7 +415,7 @@ spec.to_yaml(canonical=True) == to_spec(spec.to_yaml(canonical=True)).to_yaml(ca
 ```
 
 - The sections come in one order, whatever order the file wrote them in:
-  `version`, `description`, `given`, `dimensions`, `relations`, `parameters`,
+  `version`, `description`, `given`, `dimensions`, `sets`, `properties`, `parameters`,
   `conditions`, `variables`, `expressions`, `objective`, `constraints`, `sos`,
   `piecewise`, `assumptions`, `macros`. The keys of an entry also come in one
   order.

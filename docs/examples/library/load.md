@@ -24,8 +24,10 @@ dimensions:
   snapshot: { dtype: datetime, description: dispatch periods }
   port: { dtype: str, description: "the connections components make, one label per connection" }
   load: { dtype: str, description: "demands, each on one port" }
-relations:
-  Load_port: { key: load, values: port }
+properties:
+  load:
+    port: port
+
 parameters:
   Load_p_set: { dims: [snapshot, load], description: "`Load-p_set` — what a load takes in a snapshot" }
 constraints:
@@ -34,7 +36,7 @@ constraints:
       what a load takes is what its port withdraws. No PyPSA row stands for
       this: PyPSA writes the load into the balance instead
     dims: [snapshot, load]
-    expression: at(Port_p, by=Load_port[port]) == -Load_p_set
+    expression: at(Port_p, by=load[port]) == -Load_p_set
 ```
 
 PyPSA's `Load`, wired to a port rather than straight to a bus. What it takes is data, so it decides nothing.
@@ -50,8 +52,8 @@ PyPSA's `Load`, wired to a port rather than straight to a bus. What it takes is 
 | Symbol | Meaning |
 |---|---|
 | $`\mathcal{T}`$ | index $`t`$ — `snapshot` — dispatch periods |
-| $`\mathcal{J}`$ | index $`j`$ — `port` with $`\mathrm{Load\_port}: \mathcal{D} \to \mathcal{J}`$ — the connections components make, one label per connection |
-| $`\mathcal{D}`$ | index $`d`$ — `load` with $`\mathrm{Load\_port}: \mathcal{D} \to \mathcal{J}`$ — demands, each on one port |
+| $`\mathcal{J}`$ | index $`j`$ — `port` with $`\mathrm{port}: \mathcal{D} \to \mathcal{J}`$ — the connections components make, one label per connection |
+| $`\mathcal{D}`$ | index $`d`$ — `load` with $`\mathrm{port}: \mathcal{D} \to \mathcal{J}`$ — demands, each on one port |
 
 #### Parameters
 
@@ -64,6 +66,6 @@ PyPSA's `Load`, wired to a port rather than straight to a bus. What it takes is 
 **`Load_withdrawal`**
 
 ```math
-f_{t,\mathrm{Load\_port}(d)} = -\mathrm{load}_{t,d} \qquad \forall\, t \in \mathcal{T},\ d \in \mathcal{D}
+f_{t,\mathrm{port}(d)} = -\mathrm{load}_{t,d} \qquad \forall\, t \in \mathcal{T},\ d \in \mathcal{D}
 ```
 <!-- gallery:end -->

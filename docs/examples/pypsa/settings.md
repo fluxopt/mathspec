@@ -77,11 +77,11 @@ dimensions:
   carrier:
     description: energy carriers, what a growth limit is set per
 
-relations:
-  snapshot_period:
-    description: the investment period a snapshot falls in
-    key: snapshot
-    values: period
+properties:
+  snapshot:
+    period:
+      description: the investment period a snapshot falls in
+      into: period
 
 parameters:
   snapshot_weightings_objective:
@@ -146,7 +146,7 @@ expressions:
     cases:
       counted:
         when: GlobalConstraint_counts_snapshot
-        expression: snapshot_weightings_generators * at(period_weight_years, by=snapshot_period[period])
+        expression: snapshot_weightings_generators * at(period_weight_years, by=snapshot[period])
     otherwise: 0
 
 objective:
@@ -172,9 +172,9 @@ objective:
 | Symbol | Meaning |
 |---|---|
 | $`\Xi`$ | index $`\xi`$ — `scenario` — the futures dispatch is chosen in, each with a weight |
-| $`\mathcal{T}`$ | index $`t`$ — `snapshot` with $`\mathrm{snapshot\_period}: \mathcal{T} \to \mathcal{Y}`$ — dispatch periods |
+| $`\mathcal{T}`$ | index $`t`$ — `snapshot` with $`\mathrm{period}: \mathcal{T} \to \mathcal{Y}`$ — dispatch periods |
 | $`\mathcal{G}`$ | index $`g`$ — `global_constraint` — PyPSA's `GlobalConstraint` rows, one label per declared limit |
-| $`\mathcal{Y}`$ | index $`y`$ — `period` with $`\mathrm{snapshot\_period}: \mathcal{T} \to \mathcal{Y}`$ — investment periods — PyPSA's `investment_periods` |
+| $`\mathcal{Y}`$ | index $`y`$ — `period` with $`\mathrm{period}: \mathcal{T} \to \mathcal{Y}`$ — investment periods — PyPSA's `investment_periods` |
 | $`\mathcal{I}`$ | index $`i`$ — `carrier` — energy carriers, what a growth limit is set per |
 
 #### Parameters
@@ -202,7 +202,7 @@ objective:
 **`GlobalConstraint_energy_weight`**
 
 ```math
-\mathit{w}^{\mathrm{gc}}_{\xi,g,t} = \begin{cases} \mathrm{w}^{\mathrm{gen}}_{t} \cdot \mathrm{w}^{\mathrm{yr}}_{\mathrm{snapshot\_period}(t)} & \text{if } \mathrm{in}_{\xi,g,t} \\ 0 & \text{otherwise} \end{cases} \qquad \forall\, \xi \in \Xi,\ g \in \mathcal{G},\ t \in \mathcal{T}
+\mathit{w}^{\mathrm{gc}}_{\xi,g,t} = \begin{cases} \mathrm{w}^{\mathrm{gen}}_{t} \cdot \mathrm{w}^{\mathrm{yr}}_{\mathrm{period}(t)} & \text{if } \mathrm{in}_{\xi,g,t} \\ 0 & \text{otherwise} \end{cases} \qquad \forall\, \xi \in \Xi,\ g \in \mathcal{G},\ t \in \mathcal{T}
 ```
 
 #### Objective

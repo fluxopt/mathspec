@@ -24,7 +24,7 @@ nothing else.
 <!-- notation:begin -->
 ### Legend
 
-A dimension, a relation and a parameter declare no equation; what they print is the legend every spec opens with.
+A dimension, a set, a property and a parameter declare no equation; what they print is the legend every spec opens with.
 
 ```yaml
 dimensions:
@@ -36,15 +36,26 @@ dimensions:
   technology: { dtype: str }
   bp: { dtype: int, ordered: true } # the breakpoints every curve below runs through
 
-relations:
-  gen_bus: { key: generator, values: bus }
-  zone_of: { key: bus, values: zone }
-  area_of: { key: bus, values: zone, missing: absent } # a second map into the same set, to compare against; a bus may be in no area
-  season_of: { key: snapshot, values: season }
-  gen_zone: { key: [generator, snapshot], values: zone } # a map keyed by two dimensions: a call sums one away and joins on the other
-  rep_of: { key: snapshot, values: { rep: snapshot } } # a map into its own dimension: the representative snapshot
-  connection: { key: [generator, bus], missing: absent } # a bare relation, with no value columns: many-to-many, read only by sum with both ends named
-  gen_bt: { key: generator, values: [bus, technology] } # one table with two value columns, read to both at once
+sets:
+  dispatch_pair: { dims: [generator, bus], missing: absent } # a set: the pairs that exist, and the subject of a property below
+  generator_snapshot: { dims: [generator, snapshot] } # a set over two dimensions: a call through its property sums one away and joins on the other
+  connection: { dims: [generator, bus], missing: absent } # a set with no property: many-to-many, read only by sum with both members named
+
+properties:
+  generator:
+    fuel: { into: technology, missing: absent } # a property of a dimension: the legend names it after itself, and says a generator may have none
+    bus: bus
+    technology: technology # with bus, two properties read at once: the call reads their inner join
+  bus:
+    zone: zone
+    area: { into: zone, missing: absent } # a second property into the same dimension, to compare against; a bus may be in no area
+  snapshot:
+    season: season
+    rep: snapshot # a property into its own dimension: the representative snapshot
+  generator_snapshot:
+    zone: zone
+  dispatch_pair:
+    area: zone # a property of a set: the legend maps it from the set by name
 
 parameters:
   p_max: { dims: [generator], missing: .inf } # a value: the legend says what a missing row reads as
@@ -70,12 +81,12 @@ parameters:
 
 | Symbol | Meaning |
 |---|---|
-| $`\mathcal{T}`$ | index $`t`$ — `snapshot` (`int` coordinates) with $`\mathrm{season\_of}: \mathcal{T} \to \mathcal{S},\ \mathrm{gen\_zone}: \mathcal{G} \times \mathcal{T} \to \mathcal{Z},\ \mathrm{rep\_of}: \mathcal{T} \to \mathcal{T}`$ |
-| $`\mathcal{G}`$ | index $`g`$ — `generator` with $`\mathrm{gen\_bus}: \mathcal{G} \to \mathcal{B},\ \mathrm{gen\_zone}: \mathcal{G} \times \mathcal{T} \to \mathcal{Z},\ \mathrm{connection} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{gen\_bt}: \mathcal{G} \to \mathcal{B} \times \mathcal{E},\ \mathrm{dispatch\_pair} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{fuel}: \mathcal{G} \to \mathcal{E},\ \mathrm{area}: \mathrm{dispatch\_pair} \to \mathcal{Z}`$, `connection` is `absent` where the data has no row, `dispatch_pair` is `absent` where the data has no row, `generator[fuel]` is `absent` where the data has no row |
-| $`\mathcal{B}`$ | index $`b`$ — `bus` with $`\mathrm{gen\_bus}: \mathcal{G} \to \mathcal{B},\ \mathrm{zone\_of}: \mathcal{B} \to \mathcal{Z},\ \mathrm{area\_of}: \mathcal{B} \to \mathcal{Z},\ \mathrm{connection} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{gen\_bt}: \mathcal{G} \to \mathcal{B} \times \mathcal{E},\ \mathrm{dispatch\_pair} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{area}: \mathrm{dispatch\_pair} \to \mathcal{Z}`$, `area_of` is `absent` where the data has no row, `connection` is `absent` where the data has no row, `dispatch_pair` is `absent` where the data has no row |
-| $`\mathcal{Z}`$ | index $`z`$ — `zone` with $`\mathrm{zone\_of}: \mathcal{B} \to \mathcal{Z},\ \mathrm{area\_of}: \mathcal{B} \to \mathcal{Z},\ \mathrm{gen\_zone}: \mathcal{G} \times \mathcal{T} \to \mathcal{Z},\ \mathrm{area}: \mathrm{dispatch\_pair} \to \mathcal{Z}`$, `area_of` is `absent` where the data has no row |
-| $`\mathcal{S}`$ | index $`s`$ — `season` with $`\mathrm{season\_of}: \mathcal{T} \to \mathcal{S}`$ |
-| $`\mathcal{E}`$ | index $`e`$ — `technology` with $`\mathrm{gen\_bt}: \mathcal{G} \to \mathcal{B} \times \mathcal{E},\ \mathrm{fuel}: \mathcal{G} \to \mathcal{E}`$, `generator[fuel]` is `absent` where the data has no row |
+| $`\mathcal{T}`$ | index $`t`$ — `snapshot` (`int` coordinates) with $`\mathrm{generator\_snapshot} \subseteq \mathcal{G} \times \mathcal{T},\ \mathrm{season}: \mathcal{T} \to \mathcal{S},\ \mathrm{rep}: \mathcal{T} \to \mathcal{T},\ \mathrm{zone}: \mathrm{generator\_snapshot} \to \mathcal{Z}`$ |
+| $`\mathcal{G}`$ | index $`g`$ — `generator` with $`\mathrm{dispatch\_pair} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{generator\_snapshot} \subseteq \mathcal{G} \times \mathcal{T},\ \mathrm{connection} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{fuel}: \mathcal{G} \to \mathcal{E},\ \mathrm{bus}: \mathcal{G} \to \mathcal{B},\ \mathrm{technology}: \mathcal{G} \to \mathcal{E},\ \mathrm{zone}: \mathrm{generator\_snapshot} \to \mathcal{Z},\ \mathrm{area}: \mathrm{dispatch\_pair} \to \mathcal{Z}`$, `dispatch_pair` is `absent` where the data has no row, `connection` is `absent` where the data has no row, `generator[fuel]` is `absent` where the data has no row |
+| $`\mathcal{B}`$ | index $`b`$ — `bus` with $`\mathrm{dispatch\_pair} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{connection} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{bus}: \mathcal{G} \to \mathcal{B},\ \mathrm{zone}: \mathcal{B} \to \mathcal{Z},\ \mathrm{area}: \mathcal{B} \to \mathcal{Z},\ \mathrm{area}: \mathrm{dispatch\_pair} \to \mathcal{Z}`$, `dispatch_pair` is `absent` where the data has no row, `connection` is `absent` where the data has no row, `bus[area]` is `absent` where the data has no row |
+| $`\mathcal{Z}`$ | index $`z`$ — `zone` with $`\mathrm{zone}: \mathcal{B} \to \mathcal{Z},\ \mathrm{area}: \mathcal{B} \to \mathcal{Z},\ \mathrm{zone}: \mathrm{generator\_snapshot} \to \mathcal{Z},\ \mathrm{area}: \mathrm{dispatch\_pair} \to \mathcal{Z}`$, `bus[area]` is `absent` where the data has no row |
+| $`\mathcal{S}`$ | index $`s`$ — `season` with $`\mathrm{season}: \mathcal{T} \to \mathcal{S}`$ |
+| $`\mathcal{E}`$ | index $`e`$ — `technology` with $`\mathrm{fuel}: \mathcal{G} \to \mathcal{E},\ \mathrm{technology}: \mathcal{G} \to \mathcal{E}`$, `generator[fuel]` is `absent` where the data has no row |
 | $`\mathcal{A}`$ | index $`a`$ — `bp` |
 
 #### Parameters
@@ -144,9 +155,9 @@ parameters:
 |---|---|
 | $`t \ominus k`$ | `edge='wrap'` — $`t-k`$, cyclic |
 | $`t \boxminus_{v} k`$ | `edge=v` — $`t-k`$, and $`v`$ past the edge |
-| $`t \ominus^{\mathrm{relation}(t)} k`$ | `within=relation[...]` — $`t-k`$ inside the group of $`t`$ |
+| $`t \ominus^{\mathrm{property}(t)} k`$ | `within=subject[...]` — $`t-k`$ inside the group of $`t`$ |
 | $`\mathrm{pos}(t)`$ | `position()` — the position of $`t`$, counted from $`0`$; $`t`$ is the label |
-| $`\mathrm{pos}_{\mathrm{relation}(t)}(t)`$ | `position(within=relation[...])` — the position of $`t`$ inside its group |
+| $`\mathrm{pos}_{\mathrm{property}(t)}(t)`$ | `position(within=subject[...])` — the position of $`t`$ inside its group |
 | $`\lvert \mathcal{T} \rvert`$ | the size of $`\mathcal{T}`$; $`\lvert \mathcal{T} \rvert - 1`$ is the last position |
 
 ### Variable domains
@@ -375,19 +386,19 @@ objective:
 \max \sum_{t \in \mathcal{T},\ g \in \mathcal{G}} p_{t,g} \cdot \mathrm{cost}_{g} + \sum_{t \in \mathcal{T},\ g \in \mathcal{G}} p_{t,g} \cdot p_{t,g} \cdot \mathrm{cost}_{g} + \sum_{t \in \mathcal{T},\ g \in \mathcal{G}} p_{t,g} \cdot \mathrm{cost}_{g} \cdot \mathrm{growth}^{\mathrm{lead}_{g}} + \sum_{t \in \mathcal{T},\ g \in \mathcal{G}} p_{t,g} \cdot \left( \mathrm{growth}^{\mathrm{lead}_{g}} \right)^{2} + \sum_{t \in \mathcal{T},\ g \in \mathcal{G}} p_{t,g} \cdot \mathrm{p}^{\mathrm{max}}_{g} - \mathit{reserve} - \mathit{headroom}
 ```
 
-### Relations
+### Sets and properties
 
-#### Sum through a relation
+#### Sum through a property
 
 ```yaml
 constraints:
   balance:
     dims: [snapshot, bus]
-    expression: sum(p, over=generator, by=gen_bus[bus]) + spill - slack == load
+    expression: sum(p, over=generator, by=generator[bus]) + spill - slack == load
 ```
 
 ```math
-\sum_{g \in \mathcal{G} \,:\, \mathrm{gen\_bus}(g) = b} p_{t,g} + \mathit{spill}_{t} - \mathit{slack}_{t} = \mathrm{load}_{t,b} \qquad \forall\, t \in \mathcal{T},\ b \in \mathcal{B}
+\sum_{g \in \mathcal{G} \,:\, \mathrm{bus}(g) = b} p_{t,g} + \mathit{spill}_{t} - \mathit{slack}_{t} = \mathrm{load}_{t,b} \qquad \forall\, t \in \mathcal{T},\ b \in \mathcal{B}
 ```
 
 #### Sum over every dimension
@@ -405,22 +416,22 @@ constraints:
 \sum_{t \in \mathcal{T},\ g \in \mathcal{G}} p_{t,g} \le \mathrm{budget}
 ```
 
-#### `at` through a relation
+#### `at` through a property
 
-at(), which re-indexes through a relation instead of an offset
+at(), which re-indexes through a property instead of an offset
 
 ```yaml
 constraints:
   lookup:
     dims: [snapshot, bus]
-    expression: spill <= at(zone_cap, by=zone_of[zone])
+    expression: spill <= at(zone_cap, by=bus[zone])
 ```
 
 ```math
-\mathit{spill}_{t} \le \mathrm{zone\_cap}_{\mathrm{zone\_of}(b)} \qquad \forall\, t \in \mathcal{T},\ b \in \mathcal{B}
+\mathit{spill}_{t} \le \mathrm{zone\_cap}_{\mathrm{zone}(b)} \qquad \forall\, t \in \mathcal{T},\ b \in \mathcal{B}
 ```
 
-#### Sum into two value columns
+#### Sum into two properties
 
 one table read to two value columns: the domain carries a condition per column
 
@@ -428,14 +439,14 @@ one table read to two value columns: the domain carries a condition per column
 constraints:
   grouped_once:
     dims: [snapshot, bus, technology]
-    expression: sum(p, over=generator, by=gen_bt[bus, technology]) <= tech_cap
+    expression: sum(p, over=generator, by=generator[bus, technology]) <= tech_cap
 ```
 
 ```math
-\sum_{g \in \mathcal{G} \,:\, \mathrm{gen\_bt.bus}(g) = b \wedge \mathrm{gen\_bt.technology}(g) = e} p_{t,g} \le \mathrm{tech\_cap}_{b,e} \qquad \forall\, t \in \mathcal{T},\ b \in \mathcal{B},\ e \in \mathcal{E}
+\sum_{g \in \mathcal{G} \,:\, \mathrm{bus}(g) = b \wedge \mathrm{technology}(g) = e} p_{t,g} \le \mathrm{tech\_cap}_{b,e} \qquad \forall\, t \in \mathcal{T},\ b \in \mathcal{B},\ e \in \mathcal{E}
 ```
 
-#### `at` through two value columns
+#### `at` through two properties
 
 the same table joined the other way, reading one slot through two columns
 
@@ -443,14 +454,14 @@ the same table joined the other way, reading one slot through two columns
 constraints:
   looked_up_once:
     dims: [generator]
-    expression: units <= at(tech_cap, by=gen_bt[bus, technology])
+    expression: units <= at(tech_cap, by=generator[bus, technology])
 ```
 
 ```math
-\mathit{units}_{g} \le \mathrm{tech\_cap}_{\mathrm{gen\_bt.bus}(g),\mathrm{gen\_bt.technology}(g)} \qquad \forall\, g \in \mathcal{G}
+\mathit{units}_{g} \le \mathrm{tech\_cap}_{\mathrm{bus}(g),\mathrm{technology}(g)} \qquad \forall\, g \in \mathcal{G}
 ```
 
-#### Shift within one value column
+#### Shift within one of two properties
 
 a partition grouped by one named value column of a two-value table, and a position within both
 
@@ -458,17 +469,17 @@ a partition grouped by one named value column of a two-value table, and a positi
 constraints:
   within_bus:
     dims: [generator]
-    where: "position(generator, within=gen_bt[bus, technology]) == 0"
-    expression: units <= shift(units, along=generator, offset=1, edge=0, within=gen_bt[bus])
+    where: "position(generator, within=generator[bus, technology]) == 0"
+    expression: units <= shift(units, along=generator, offset=1, edge=0, within=generator[bus])
 ```
 
 ```math
-\mathit{units}_{g} \le \mathit{units}_{g \boxminus_{0}^{\mathrm{gen\_bt.bus}(g)} 1} \qquad \forall\, g \in \mathcal{G} \,:\, \mathrm{pos}_{\left( \mathrm{gen\_bt.bus}(g),\ \mathrm{gen\_bt.technology}(g) \right)}(g) = 0
+\mathit{units}_{g} \le \mathit{units}_{g \boxminus_{0}^{\mathrm{bus}(g)} 1} \qquad \forall\, g \in \mathcal{G} \,:\, \mathrm{pos}_{\left( \mathrm{bus}(g),\ \mathrm{technology}(g) \right)}(g) = 0
 ```
 
-#### Sum through a bare relation
+#### Sum through a set
 
-a sum through a bare relation: the domain is a row of the relation rather than a function's value
+a sum through a set: the domain is a row of the set rather than a function's value
 
 ```yaml
 constraints:
@@ -481,9 +492,9 @@ constraints:
 \sum_{g \in \mathcal{G} \,:\, \left( g,\ b \right) \in \mathrm{connection}} p_{t,g} \le \mathrm{load}_{t,b} \qquad \forall\, t \in \mathcal{T},\ b \in \mathcal{B}
 ```
 
-#### Bare relation as a condition
+#### Set as a condition
 
-a bare relation as a where: the row of the frame has to be a member of the relation
+a set as a where: the row of the frame has to be a row of the set
 
 ```yaml
 constraints:
@@ -497,7 +508,7 @@ constraints:
 p_{t,g} \le \mathrm{load}_{t,b} \qquad \forall\, t \in \mathcal{T},\ g \in \mathcal{G},\ b \in \mathcal{B} \,:\, \left( g,\ b \right) \in \mathrm{connection}
 ```
 
-#### Map into its own dimension
+#### Property into its own dimension
 
 a map into its own dimension, read both ways: the frame is unchanged and the index is primed
 
@@ -505,11 +516,11 @@ a map into its own dimension, read both ways: the frame is unchanged and the ind
 constraints:
   representative:
     dims: [snapshot]
-    expression: sum(spill, over=snapshot, by=rep_of[rep]) <= at(spill, by=rep_of[rep])
+    expression: sum(spill, over=snapshot, by=snapshot[rep]) <= at(spill, by=snapshot[rep])
 ```
 
 ```math
-\sum_{t' \in \mathcal{T} \,:\, \mathrm{rep\_of}(t') = t} \mathit{spill}_{t'} \le \mathit{spill}_{\mathrm{rep\_of}(t)} \qquad \forall\, t \in \mathcal{T}
+\sum_{t' \in \mathcal{T} \,:\, \mathrm{rep}(t') = t} \mathit{spill}_{t'} \le \mathit{spill}_{\mathrm{rep}(t)} \qquad \forall\, t \in \mathcal{T}
 ```
 
 #### Sum through a property of a dimension
@@ -558,7 +569,7 @@ constraints:
 p_{t,g} \le \mathrm{budget} \qquad \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \,:\, \mathrm{fuel}(g) \text{ is defined}
 ```
 
-#### Sum through a two-key map
+#### Sum over one member of a set, through its property
 
 a grouping through a two-key map, summing one key away: the condition reads the other, and the row keeps it
 
@@ -566,14 +577,14 @@ a grouping through a two-key map, summing one key away: the condition reads the 
 constraints:
   zonal:
     dims: [snapshot, zone]
-    expression: sum(p, over=generator, by=gen_zone[zone]) <= zone_cap
+    expression: sum(p, over=generator, by=generator_snapshot[zone]) <= zone_cap
 ```
 
 ```math
-\sum_{g \in \mathcal{G} \,:\, \mathrm{gen\_zone}(g,\ t) = z} p_{t,g} \le \mathrm{zone\_cap}_{z} \qquad \forall\, t \in \mathcal{T},\ z \in \mathcal{Z}
+\sum_{g \in \mathcal{G} \,:\, \mathrm{zone}(g,\ t) = z} p_{t,g} \le \mathrm{zone\_cap}_{z} \qquad \forall\, t \in \mathcal{T},\ z \in \mathcal{Z}
 ```
 
-#### Sum over the other key of a two-key map
+#### Sum over the other member of a set
 
 the same table summing its other key away
 
@@ -581,14 +592,14 @@ the same table summing its other key away
 constraints:
   zonal_history:
     dims: [generator, zone]
-    expression: sum(p, over=snapshot, by=gen_zone[zone]) <= zone_cap
+    expression: sum(p, over=snapshot, by=generator_snapshot[zone]) <= zone_cap
 ```
 
 ```math
-\sum_{t \in \mathcal{T} \,:\, \mathrm{gen\_zone}(g,\ t) = z} p_{t,g} \le \mathrm{zone\_cap}_{z} \qquad \forall\, g \in \mathcal{G},\ z \in \mathcal{Z}
+\sum_{t \in \mathcal{T} \,:\, \mathrm{zone}(g,\ t) = z} p_{t,g} \le \mathrm{zone\_cap}_{z} \qquad \forall\, g \in \mathcal{G},\ z \in \mathcal{Z}
 ```
 
-#### Sum between the two keys of a map
+#### Sum between the two members of a set
 
 the same table read between its two key columns: no value column is read, so the domain asks only that the row is there
 
@@ -596,14 +607,14 @@ the same table read between its two key columns: no value column is read, so the
 constraints:
   zonal_membership:
     dims: [snapshot]
-    expression: sum(units, over=generator, by=gen_zone[snapshot]) <= budget
+    expression: sum(units, over=generator, by=generator_snapshot[snapshot]) <= budget
 ```
 
 ```math
-\sum_{g \in \mathcal{G} \,:\, \mathrm{gen\_zone}(g,\ t) \text{ is defined}} \mathit{units}_{g} \le \mathrm{budget} \qquad \forall\, t \in \mathcal{T}
+\sum_{g \in \mathcal{G} \,:\, \left( g,\ t \right) \in \mathrm{generator\_snapshot}} \mathit{units}_{g} \le \mathrm{budget} \qquad \forall\, t \in \mathcal{T}
 ```
 
-#### `at` through a two-key map
+#### `at` through a property of a set
 
 the same table joined the other way, reading the slot the row's own snapshot puts the generator in
 
@@ -611,12 +622,12 @@ the same table joined the other way, reading the slot the row's own snapshot put
 constraints:
   zonal_lookup:
     dims: [snapshot, generator]
-    where: "gen_zone == 'north' AND position(generator, within=gen_zone[zone]) == 0"
-    expression: p <= at(spill * zone_cap, by=gen_zone[zone])
+    where: "generator_snapshot[zone] == 'north' AND position(generator, within=generator_snapshot[zone]) == 0"
+    expression: p <= at(spill * zone_cap, by=generator_snapshot[zone])
 ```
 
 ```math
-p_{t,g} \le \mathit{spill}_{t} \cdot \mathrm{zone\_cap}_{\mathrm{gen\_zone}(g,\ t)} \qquad \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \,:\, \mathrm{gen\_zone}(g,\ t) = \text{'}\mathrm{north}\text{'} \wedge \mathrm{pos}_{\mathrm{gen\_zone}(g,\ t)}(g) = 0
+p_{t,g} \le \mathit{spill}_{t} \cdot \mathrm{zone\_cap}_{\mathrm{zone}(g,\ t)} \qquad \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \,:\, \mathrm{zone}(g,\ t) = \text{'}\mathrm{north}\text{'} \wedge \mathrm{pos}_{\mathrm{zone}(g,\ t)}(g) = 0
 ```
 
 ### Arithmetic and literals
@@ -693,11 +704,11 @@ names the signed sum on the right of a plus: inlined, its minus prints as a subt
 constraints:
   netted:
     dims: [snapshot, bus]
-    expression: sum(p, over=generator, by=gen_bus[bus]) + net == load
+    expression: sum(p, over=generator, by=generator[bus]) + net == load
 ```
 
 ```math
-\sum_{g \in \mathcal{G} \,:\, \mathrm{gen\_bus}(g) = b} p_{t,g} + \mathit{net}_{t} = \mathrm{load}_{t,b} \qquad \forall\, t \in \mathcal{T},\ b \in \mathcal{B}
+\sum_{g \in \mathcal{G} \,:\, \mathrm{bus}(g) = b} p_{t,g} + \mathit{net}_{t} = \mathrm{load}_{t,b} \qquad \forall\, t \in \mathcal{T},\ b \in \mathcal{B}
 ```
 
 #### Cased expression in a constraint
@@ -783,12 +794,12 @@ expressions:
     dims: [snapshot, generator]
     cases:
       opening: { when: "position(snapshot) == 0", expression: cost }
-      winter: { when: "position(snapshot) > 0 and season_of == 'winter'", expression: cost * 2 }
+      winter: { when: "position(snapshot) > 0 and snapshot[season] == 'winter'", expression: cost * 2 }
     otherwise: 0
 ```
 
 ```math
-\mathrm{startup\_cost}_{t,g} = \begin{cases} \mathrm{cost}_{g} & \text{if } \mathrm{pos}(t) = 0 \\ \mathrm{cost}_{g} \cdot 2 & \text{if } \mathrm{pos}(t) > 0 \wedge \mathrm{season\_of}(t) = \text{'}\mathrm{winter}\text{'} \\ 0 & \text{otherwise} \end{cases} \qquad \forall\, t \in \mathcal{T},\ g \in \mathcal{G}
+\mathrm{startup\_cost}_{t,g} = \begin{cases} \mathrm{cost}_{g} & \text{if } \mathrm{pos}(t) = 0 \\ \mathrm{cost}_{g} \cdot 2 & \text{if } \mathrm{pos}(t) > 0 \wedge \mathrm{season}(t) = \text{'}\mathrm{winter}\text{'} \\ 0 & \text{otherwise} \end{cases} \qquad \forall\, t \in \mathcal{T},\ g \in \mathcal{G}
 ```
 
 #### Data-only expression
@@ -1002,17 +1013,17 @@ p_{t \boxminus_{0} \mathrm{lead},g} \le \mathrm{p}^{\mathrm{max}}_{g} \qquad \fo
 
 #### Cyclic shift within a group
 
-a translation partitioned by a relation: the group rides on the operator
+a translation partitioned by a property: the group rides on the operator
 
 ```yaml
 constraints:
   in_season:
     dims: [snapshot, generator]
-    expression: p <= shift(p, along=snapshot, offset=1, edge='wrap', within=season_of[season])
+    expression: p <= shift(p, along=snapshot, offset=1, edge='wrap', within=snapshot[season])
 ```
 
 ```math
-p_{t,g} \le p_{t \ominus^{\mathrm{season\_of}(t)} 1,g} \qquad \forall\, t \in \mathcal{T},\ g \in \mathcal{G}
+p_{t,g} \le p_{t \ominus^{\mathrm{season}(t)} 1,g} \qquad \forall\, t \in \mathcal{T},\ g \in \mathcal{G}
 ```
 
 #### Filled shift within a group
@@ -1023,11 +1034,11 @@ the same group, with a fill: each season's opening row is kept and given a zero
 constraints:
   held_in_season:
     dims: [snapshot, generator]
-    expression: p <= shift(p, along=snapshot, offset=1, edge=0, within=season_of[season])
+    expression: p <= shift(p, along=snapshot, offset=1, edge=0, within=snapshot[season])
 ```
 
 ```math
-p_{t,g} \le p_{t \boxminus_{0}^{\mathrm{season\_of}(t)} 1,g} \qquad \forall\, t \in \mathcal{T},\ g \in \mathcal{G}
+p_{t,g} \le p_{t \boxminus_{0}^{\mathrm{season}(t)} 1,g} \qquad \forall\, t \in \mathcal{T},\ g \in \mathcal{G}
 ```
 
 ### Trailing windows
@@ -1064,17 +1075,17 @@ constraints:
 
 #### Window within a group
 
-a window partitioned by a relation: the group rides on the operator
+a window partitioned by a property: the group rides on the operator
 
 ```yaml
 constraints:
   seasonal_window:
     dims: [snapshot, generator]
-    expression: sum_back(on, along=snapshot, window=3, within=season_of[season]) <= units
+    expression: sum_back(on, along=snapshot, window=3, within=snapshot[season]) <= units
 ```
 
 ```math
-\sum_{t' \in \mathcal{T} \,:\, 0 \le t -^{\mathrm{season\_of}(t)} t' < 3} \mathit{on}_{t',g} \le \mathit{units}_{g} \qquad \forall\, t \in \mathcal{T},\ g \in \mathcal{G}
+\sum_{t' \in \mathcal{T} \,:\, 0 \le t -^{\mathrm{season}(t)} t' < 3} \mathit{on}_{t',g} \le \mathit{units}_{g} \qquad \forall\, t \in \mathcal{T},\ g \in \mathcal{G}
 ```
 
 ### Piecewise curves
@@ -1391,17 +1402,17 @@ assumptions:
 \mathrm{lead}_{g} \le 3 \qquad \forall\, g \in \mathcal{G}
 ```
 
-#### Two relations compared
+#### Two properties compared
 
 two maps into one set, compared row by row
 
 ```yaml
 assumptions:
-  zones_agree: "zone_of == area_of"
+  zones_agree: "bus[zone] == bus[area]"
 ```
 
 ```math
-\mathrm{zone\_of}(b) = \mathrm{area\_of}(b) \qquad \forall\, b \in \mathcal{B}
+\mathrm{zone}(b) = \mathrm{area}(b) \qquad \forall\, b \in \mathcal{B}
 ```
 
 #### Reduction in an assumption
@@ -1447,19 +1458,19 @@ assumptions:
 \mathrm{p}^{\mathrm{min}}_{g} < \mathrm{p}^{\mathrm{max}}_{g} \qquad \forall\, g \in \mathcal{G} \,:\, \mathrm{is\_flexible}_{g}
 ```
 
-#### Assumption with a relation condition
+#### Assumption with a property condition
 
-a relation comparison as the where, over a frame two dims wide
+a property comparison as the where, over a frame two dims wide
 
 ```yaml
 assumptions:
   northern_demand_is_real:
     holds: "load >= 0"
-    where: "zone_of == 'north'"
+    where: "bus[zone] == 'north'"
 ```
 
 ```math
-\mathrm{load}_{t,b} \ge 0 \qquad \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \,:\, \mathrm{zone\_of}(b) = \text{'}\mathrm{north}\text{'}
+\mathrm{load}_{t,b} \ge 0 \qquad \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \,:\, \mathrm{zone}(b) = \text{'}\mathrm{north}\text{'}
 ```
 
 ### Where conditions
@@ -1504,12 +1515,12 @@ a position in a dimension, and the same position within a group
 constraints:
   first:
     dims: [snapshot, generator]
-    where: "position(snapshot) == 0 OR position(snapshot, within=season_of[season]) == 0"
+    where: "position(snapshot) == 0 OR position(snapshot, within=snapshot[season]) == 0"
     expression: on == 1
 ```
 
 ```math
-\mathit{on}_{t,g} = 1 \qquad \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \,:\, \mathrm{pos}(t) = 0 \vee \mathrm{pos}_{\mathrm{season\_of}(t)}(t) = 0
+\mathit{on}_{t,g} = 1 \qquad \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \,:\, \mathrm{pos}(t) = 0 \vee \mathrm{pos}_{\mathrm{season}(t)}(t) = 0
 ```
 
 #### Position counted from the end
@@ -1520,28 +1531,28 @@ the same two counted from the end, which print against a size rather than as the
 constraints:
   last:
     dims: [snapshot, generator]
-    where: "position(snapshot) == -1 OR position(snapshot, within=season_of[season]) == -1"
+    where: "position(snapshot) == -1 OR position(snapshot, within=snapshot[season]) == -1"
     expression: on == 0
 ```
 
 ```math
-\mathit{on}_{t,g} = 0 \qquad \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \,:\, \mathrm{pos}(t) = \lvert \mathcal{T} \rvert - 1 \vee \mathrm{pos}_{\mathrm{season\_of}(t)}(t) = \lvert \mathcal{T}_{\mathrm{season\_of}(t)} \rvert - 1
+\mathit{on}_{t,g} = 0 \qquad \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \,:\, \mathrm{pos}(t) = \lvert \mathcal{T} \rvert - 1 \vee \mathrm{pos}_{\mathrm{season}(t)}(t) = \lvert \mathcal{T}_{\mathrm{season}(t)} \rvert - 1
 ```
 
 #### Relation compared to a label
 
-a relation compared to a label, to another relation, and to nothing
+a property compared to a label, to another property, and to nothing
 
 ```yaml
 constraints:
   northern:
     dims: [snapshot, bus]
-    where: "zone_of == 'north' AND zone_of != area_of AND zone_of"
+    where: "bus[zone] == 'north' AND bus[zone] != bus[area] AND bus[zone]"
     expression: slack <= load
 ```
 
 ```math
-\mathit{slack}_{t} \le \mathrm{load}_{t,b} \qquad \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \,:\, \mathrm{zone\_of}(b) = \text{'}\mathrm{north}\text{'} \wedge \mathrm{zone\_of}(b) \neq \mathrm{area\_of}(b) \wedge \mathrm{zone\_of}(b) \text{ is defined}
+\mathit{slack}_{t} \le \mathrm{load}_{t,b} \qquad \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \,:\, \mathrm{zone}(b) = \text{'}\mathrm{north}\text{'} \wedge \mathrm{zone}(b) \neq \mathrm{area}(b) \wedge \mathrm{zone}(b) \text{ is defined}
 ```
 
 #### Constant true condition
@@ -1610,18 +1621,18 @@ p_{t,g} \le \mathrm{p}^{\mathrm{max}}_{g} \qquad \forall\, t \in \mathcal{T},\ g
 
 #### Shift and lookup in a condition
 
-a translation under a comparison names its edge, a lookup reads through a relation, and the position keeps the vacated row out
+a translation under a comparison names its edge, a lookup reads through a property, and the position keeps the vacated row out
 
 ```yaml
 constraints:
   ramped:
     dims: [snapshot, bus]
-    where: "load - shift(load, along=snapshot, offset=1, edge=0) <= at(zone_cap, by=zone_of[zone]) AND position(snapshot) > 0"
+    where: "load - shift(load, along=snapshot, offset=1, edge=0) <= at(zone_cap, by=bus[zone]) AND position(snapshot) > 0"
     expression: slack <= load
 ```
 
 ```math
-\mathit{slack}_{t} \le \mathrm{load}_{t,b} \qquad \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \,:\, \mathrm{load}_{t,b} - \mathrm{load}_{t \boxminus_{0} 1,b} \le \mathrm{zone\_cap}_{\mathrm{zone\_of}(b)} \wedge \mathrm{pos}(t) > 0
+\mathit{slack}_{t} \le \mathrm{load}_{t,b} \qquad \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \,:\, \mathrm{load}_{t,b} - \mathrm{load}_{t \boxminus_{0} 1,b} \le \mathrm{zone\_cap}_{\mathrm{zone}(b)} \wedge \mathrm{pos}(t) > 0
 ```
 
 #### Reduction in a scalar condition
@@ -1688,19 +1699,19 @@ constraints:
 \mathit{slack}_{t} \le \mathrm{load}_{t,b} \qquad \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \,:\, \mathrm{load}_{t,b} \text{ is defined} \wedge \neg \left( \mathrm{load}_{t - 1,b} \text{ is defined} \right)
 ```
 
-#### Condition through a relation
+#### Condition through a property
 
-a condition read through a relation: a bus is held only where its zone has a cap at all
+a condition read through a property: a bus is held only where its zone has a cap at all
 
 ```yaml
 constraints:
   zoned:
     dims: [bus]
-    where: "at(zone_cap, by=zone_of[zone])"
+    where: "at(zone_cap, by=bus[zone])"
     expression: theta <= budget
 ```
 
 ```math
-\theta_{b} \le \mathrm{budget} \qquad \forall\, b \in \mathcal{B} \,:\, \mathrm{zone\_cap}_{\mathrm{zone\_of}(b)} \text{ is defined}
+\theta_{b} \le \mathrm{budget} \qquad \forall\, b \in \mathcal{B} \,:\, \mathrm{zone\_cap}_{\mathrm{zone}(b)} \text{ is defined}
 ```
 <!-- notation:end -->
