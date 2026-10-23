@@ -76,7 +76,9 @@ __all__ = [
     'ParameterSpec',
     'PiecewiseLinkSpec',
     'PiecewiseSpec',
+    'PropertySpec',
     'RelationSpec',
+    'SetSpec',
     'SosSpec',
     'Spec',
     'VariableSpec',
@@ -168,6 +170,19 @@ def _missing_null(kind: str, rewrite: str) -> ValueError:
     return ValueError(f'missing: null on {kind} says nothing. {rewrite}')
 
 
+def _refused_or_absent(v: object, kind: str, may: str, outcome: str) -> object:
+    """*v* where it is ``refused`` or ``absent``, the two words a ``missing:`` on a table takes.
+
+    A label is data, so no value fills a gap in a map: the ``missing:`` of a
+    relation, a set or a property reads a key, never a value.
+    """
+    if v is None:
+        raise _missing_null(kind, f'Write absent where {may}, or leave the key out for refused.')
+    if v not in get_args(RelationMissing):
+        raise ValueError(f'missing: {_as_yaml(v)} on {kind}, which takes refused or absent. {outcome}')
+    return v
+
+
 #: Every formulation, in the order [`Spec.expand`][] writes them out: a curve
 #: emits a set, and no set emits a curve.
 FORMULATIONS: tuple[Formulation, ...] = ('piecewise', 'sos')
@@ -243,18 +258,12 @@ class RelationSpec(_StrictSpec):
     @field_validator('missing', mode='before')
     @classmethod
     def _refused_or_absent(cls, v: object) -> object:
-        """A label is data, so no value fills a gap in a map."""
-        if v is None:
-            raise _missing_null(
-                'a relation', 'Write absent where a key combination may have no row, or leave the key out for refused.'
-            )
-        if v not in get_args(RelationMissing):
-            msg = (
-                f'missing: {_as_yaml(v)} on a relation, which takes refused or absent. A key combination with no '
-                f'row is refused, or is not in the relation.'
-            )
-            raise ValueError(msg)
-        return v
+        return _refused_or_absent(
+            v,
+            'a relation',
+            'a key combination may have no row',
+            'A key combination with no row is refused, or is not in the relation.',
+        )
 
     @model_serializer(mode='wrap')
     def _as_written(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
@@ -287,6 +296,120 @@ class RelationSpec(_StrictSpec):
     def value_roles(self) -> tuple[str, ...]:
         """The roles the key determines; empty for a bare relation."""
         return tuple(role for role, _ in side_columns(self.values))
+
+
+class SetSpec(_StrictSpec):
+    """A named set: which combinations of the labels of its dimensions exist.
+
+    ``dims:`` lists the dimensions a row combines, or maps each member's name to
+    its dimension where two members share one. No entry is over a set. An entry
+    is over the member dimensions, and ``where:`` names the set::
+
+        sets:
+          connection: {dims: [entity, port], missing: absent}
+          cover: {dims: {generator: generator, start: snapshot, covered: snapshot}, missing: absent}
+
+    The rows are data, and arrive under the set's name, one column per member.
+    A set is also the subject of the [`PropertySpec`][] entries declared under
+    its name.
+    """
+
+    _label: ClassVar[str] = 'a set entry'
+
+    dims: list[str] | dict[str, str]
+    #: Whether every combination of the member dimensions is a row:
+    #: ``refused`` refuses data that leaves one out, and ``absent`` reads it
+    #: as not in the set.
+    missing: RelationMissing = 'refused'
+    description: str | None = None
+
+    @field_validator('missing', mode='before')
+    @classmethod
+    def _refused_or_absent(cls, v: object) -> object:
+        return _refused_or_absent(
+            v,
+            'a set',
+            'a combination of its dimensions may have no row',
+            'A combination with no row is refused, or is not in the set.',
+        )
+
+    @model_serializer(mode='wrap')
+    def _as_written(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
+        """``missing`` is written where it is not ``refused``: refused is what leaving it out says."""
+        return _without_refused(cast('dict[str, object]', handler(self)))
+
+    @property
+    def pairs(self) -> tuple[tuple[str, str], ...]:
+        """``(member, dimension)`` per member, in written order."""
+        return side_columns(self.dims)
+
+    @property
+    def members(self) -> tuple[str, ...]:
+        """The member names, however ``dims:`` was written."""
+        return tuple(member for member, _ in self.pairs)
+
+
+class PropertySpec(_StrictSpec):
+    """A fact about each row of a subject, which is a dimension or a set: one label of the dimension it maps into.
+
+    Declared under ``properties:``, keyed by the subject and then by the
+    property's name. ``bus: bus`` is the short form of ``bus: {into: bus}``::
+
+        properties:
+          generator:
+            bus: bus
+          line:
+            bus0: bus
+            bus1: {into: bus, missing: absent}
+          generator_period:
+            zone: zone
+
+    ``missing:`` asks whether every row of the subject has the property. The
+    value is never missing: a row that has the property has one label of
+    ``into``. The table is data, and arrives under ``subject.property``, with
+    the subject's key columns and one column named after the property.
+    """
+
+    _label: ClassVar[str] = 'a property entry'
+
+    into: str
+    #: Whether every row of the subject has the property: ``refused`` refuses
+    #: data that leaves one out, and ``absent`` reads it as a row without it.
+    missing: RelationMissing = 'refused'
+    description: str | None = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def _from_string(cls, data: object) -> object:
+        return {'into': data} if isinstance(data, str) else data
+
+    @field_validator('missing', mode='before')
+    @classmethod
+    def _refused_or_absent(cls, v: object) -> object:
+        return _refused_or_absent(
+            v,
+            'a property',
+            'a row of its subject may lack the property',
+            'A row of the subject with no value is refused, or does not have the property.',
+        )
+
+    @classmethod
+    @override
+    def __get_pydantic_json_schema__(cls, core_schema: CoreSchema, handler: GetJsonSchemaHandler) -> dict[str, object]:
+        """The published schema admits the dimension name the short form is written as."""
+        return _also_written_as(core_schema, handler, {'type': 'string'})
+
+    @model_serializer
+    def _as_written(self) -> str | dict[str, object]:
+        """The short form wherever ``into`` is all the entry says."""
+        if self.missing == 'refused' and self.description is None:
+            return self.into
+        written: dict[str, object] = {'into': self.into}
+        if self.missing != 'refused':
+            written['missing'] = self.missing
+        if self.description is not None:
+            written['description'] = self.description
+        return written
 
 
 class DimensionSpec(_StrictSpec):
@@ -1050,7 +1173,7 @@ class Spec(_StrictSpec):
     [`LanguageError`][mathspec.errors.LanguageError] on a spec the language refuses.
     Holding one is the proof, so nothing downstream checks it again.
 
-    The API is the thirteen sections plus ``version`` and
+    The API is the fifteen sections plus ``version`` and
     ``description``, three ways back out — [`to_dict`][] for the spec as
     data, [`to_yaml`][] for the file a reviewer reads, [`expand`][] for the
     spec with its formulations written out as plain rows — and [`program`][], the
@@ -1072,6 +1195,10 @@ class Spec(_StrictSpec):
     given: GivenSpec = GivenSpec()
     dimensions: dict[str, DimensionSpec] = {}
     relations: dict[str, RelationSpec] = {}
+    sets: dict[str, SetSpec] = {}
+    #: subject -> property name -> the property, where the subject is a
+    #: dimension or a set.
+    properties: dict[str, dict[str, PropertySpec]] = {}
     parameters: dict[str, ParameterSpec] = {}
     conditions: dict[str, ConditionSpec] = {}
     variables: dict[str, VariableSpec] = {}
@@ -1223,9 +1350,14 @@ class Spec(_StrictSpec):
         section added later cannot be forgotten here — every mapping a Spec
         carries is keyed by an entry name. ``given:`` nests its five
         mappings one level down, so they are read off [`GivenSpec`][] the
-        same way.
+        same way, and ``properties:`` nests each subject's properties, which
+        a call writes after the subject as ``subject[property]``.
         """
-        sections = [*self, *((f'given: {kind}', group) for kind, group in self.given)]
+        sections = [
+            *self,
+            *((f'given: {kind}', group) for kind, group in self.given),
+            *((f'properties: {subject}', group) for subject, group in self.properties.items()),
+        ]
         errors = [
             f'{section}: {name!r} is not a name. Start it with a letter or an underscore, '
             f'then use only letters, digits or underscores.'

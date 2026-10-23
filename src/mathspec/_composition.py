@@ -92,6 +92,8 @@ What a patch may say, and what is refused:
   set to ``null`` is refused, because it removes nothing.
 * **``given:`` is laid over one kind at a time**, by the same rules as any
   owned section.
+* **``properties:`` is laid over one subject at a time**, by the same rules,
+  so a patch adds, edits or removes one property and keeps the others.
 """
 
 from __future__ import annotations
@@ -107,7 +109,7 @@ from mathspec._validation import to_spec
 from mathspec._yaml import read_spec
 from mathspec.errors import LanguageError, did_you_mean, schema_error
 from mathspec.program import variables_of
-from mathspec.spec import GivenSpec, Spec
+from mathspec.spec import GivenSpec, PropertySpec, Spec
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -137,6 +139,7 @@ IRREGULAR = {
     'piecewise': 'piecewise curve',
     'sos': 'special-ordered set',
     'objective': 'objective',
+    'properties': 'properties of',
 }
 
 
@@ -789,6 +792,8 @@ def _lay_over(base: dict[str, object], patch: dict[str, object], name: str) -> d
             laid[key] = _given(_mapping(laid.get(key)), _section(value, key, name), name)
         elif key in SHARED_SECTIONS:
             laid[key] = _shared(_mapping(laid.get(key)), _section(value, key, name), key, name)
+        elif key == 'properties':
+            laid[key] = _properties(_mapping(laid.get(key)), _section(value, key, name), name)
         elif key in OWNED_SECTIONS:
             section = _section(value, key, name)
             if key == 'expressions':
@@ -920,6 +925,24 @@ def _owned(
                 f'{did_you_mean(key, list(out))} A patch creates an entry only by writing it whole, '
                 f'and this one is not: {_incomplete(label, cls, entry)}.'
             )
+    return out
+
+
+def _properties(declared: dict[str, object], patch: dict[str, object], name: str) -> dict[str, object]:
+    """The ``properties:`` section, one subject laid over at a time, so a patch edits one property and keeps the rest.
+
+    A property the base writes in the short form is read as ``{into: ...}``
+    first, so a patch that writes only its ``missing:`` edits it rather than
+    replacing it.
+    """
+    out = dict(declared)
+    for subject, over in patch.items():
+        if over is None:
+            _removed(out, subject, 'properties of', name)
+            continue
+        standing = {p: {'into': e} if isinstance(e, str) else e for p, e in _mapping(out.get(subject)).items()}
+        section = _section(over, f'properties: {subject}', name)
+        out[subject] = _owned(standing, section, 'property', PropertySpec, name)
     return out
 
 
