@@ -298,27 +298,142 @@ def test_a_missing_that_reads_a_value_is_refused(path, written, fragment):
     ('patch', 'properties'),
     [
         pytest.param('properties: {generator: {zone: zone}}\n', {'bus': 'bus', 'zone': 'zone'}, id='add'),
+        pytest.param('properties: {generator: {bus: bus}}\n', {'bus': 'bus'}, id='restate'),
         pytest.param(
             'properties: {generator: {bus: {missing: absent}}}\n',
             {'bus': {'into': 'bus', 'missing': 'absent'}},
-            id='edit-a-short-form',
+            id='change-the-missing-of-a-short-form',
         ),
-        pytest.param('properties: {generator: {bus: null}}\n', None, id='remove-the-last'),
-        pytest.param('properties: {generator: null}\n', None, id='remove-the-subject'),
     ],
 )
-def test_a_patch_lays_over_one_subject_at_a_time(patch, properties):
+def test_a_patch_lays_a_property_over_as_a_relation(patch, properties):
     laid = override(to_spec(MODEL), [patch]).to_dict()['properties']
-    assert laid.get('generator') == properties
+    assert laid['generator'] == properties
     assert laid['line'] == MODEL['properties']['line'], 'a patch to one subject keeps the others'
 
 
-def test_a_patch_that_creates_a_property_writes_it_whole():
-    with pytest.raises(LanguageError, match=r"edits the property 'zone'.*a property needs `into`"):
-        override(to_spec(MODEL), ['properties: {generator: {zone: {missing: absent}}}\n'])
+@pytest.mark.parametrize(
+    ('patch', 'fragment'),
+    [
+        pytest.param(
+            'properties: {generator: {bus: null}}\n',
+            "patch '#1' removes the property 'generator.bus', which a patch cannot change.",
+            id='remove-a-property',
+        ),
+        pytest.param(
+            'properties: {generator: null}\n',
+            "patch '#1' removes the properties of 'generator', which a patch cannot change.",
+            id='remove-a-subject',
+        ),
+        pytest.param(
+            'properties: {line: {bus0: zone}}\n',
+            "patch '#1' declares the property 'line.bus0' as {'into': 'zone'}, where its base declares "
+            "{'into': 'bus'}.",
+            id='change-what-a-property-maps-into',
+        ),
+        pytest.param(
+            'properties: {generator: {zone: {missing: absent}}}\n',
+            'properties.generator.zone.into: Field required',
+            id='create-a-property-without-into',
+        ),
+        pytest.param(
+            'sets: {generator_period: {dims: [generator, zone]}}\n',
+            "patch '#1' declares the set 'generator_period' as {'dims': ['generator', 'zone']}, where its base "
+            "declares {'dims': ['generator', 'period']}.",
+            id='change-the-dimensions-of-a-set',
+        ),
+        pytest.param(
+            'sets: {cover: null}\n',
+            "patch '#1' removes the set 'cover', which a patch cannot change.",
+            id='remove-a-set',
+        ),
+    ],
+)
+def test_a_patch_that_changes_a_set_or_a_property_is_refused(patch, fragment):
+    with pytest.raises(LanguageError) as caught:
+        override(to_spec(MODEL), [patch])
+    assert fragment in str(caught.value)
 
 
-def test_two_fragments_that_declare_one_subject_are_refused():
-    fragment = {'dimensions': {'generator': {}, 'bus': {}}, 'properties': {'generator': {'bus': 'bus'}}}
-    with pytest.raises(LanguageError, match="both declare the properties of 'generator'"):
-        merge([fragment, fragment])
+def test_a_patch_changes_the_missing_of_a_set():
+    laid = override(to_spec(MODEL), ['sets: {connection: {missing: refused}}\n']).to_dict()['sets']
+    assert laid['connection'] == {'dims': ['entity', 'port']}, 'refused is what leaving missing out says'
+
+
+def _fragment(properties: dict[str, Any], sets: dict[str, Any] | None = None) -> dict[str, Any]:
+    dimensions = {'generator': {}, 'bus': {}, 'zone': {}, 'period': {'dtype': 'int'}}
+    return {'dimensions': dimensions, 'properties': properties, **({'sets': sets} if sets else {})}
+
+
+@pytest.mark.parametrize(
+    ('fragments', 'properties'),
+    [
+        pytest.param(
+            [_fragment({'generator': {'bus': 'bus'}}), _fragment({'generator': {'zone': 'zone'}})],
+            {'generator': {'bus': 'bus', 'zone': 'zone'}},
+            id='two-properties-of-one-subject',
+        ),
+        pytest.param(
+            [_fragment({'generator': {'bus': 'bus'}}), _fragment({'generator': {'bus': {'into': 'bus'}}})],
+            {'generator': {'bus': 'bus'}},
+            id='one-property-in-both-forms',
+        ),
+        pytest.param(
+            [
+                _fragment({'generator': {'bus': 'bus'}}),
+                _fragment({'generator': {'bus': {'into': 'bus', 'description': 'where it injects'}}}),
+            ],
+            {'generator': {'bus': {'into': 'bus', 'description': 'where it injects'}}},
+            id='a-description-is-prose',
+        ),
+    ],
+)
+def test_merging_joins_the_properties_of_a_subject(fragments, properties):
+    assert merge(fragments).to_dict()['properties'] == properties
+
+
+@pytest.mark.parametrize(
+    ('fragments', 'fragment'),
+    [
+        pytest.param(
+            [_fragment({'generator': {'site': 'bus'}}), _fragment({'generator': {'site': 'zone'}})],
+            "say different things about the property 'generator.site': {'into': 'bus'} against "
+            "{'into': 'zone'}. Make the two identical, or give one of them a name of its own.",
+            id='a-property-into-two-dimensions',
+        ),
+        pytest.param(
+            [
+                _fragment({'generator': {'bus': 'bus'}}),
+                _fragment({'generator': {'bus': {'into': 'bus', 'missing': 'absent'}}}),
+            ],
+            "say different things about the property 'generator.bus'",
+            id='a-property-that-reads-a-missing-row-two-ways',
+        ),
+        pytest.param(
+            [
+                _fragment({}, {'gp': {'dims': ['generator', 'period']}}),
+                _fragment({}, {'gp': {'dims': ['generator', 'period'], 'missing': 'absent'}}),
+            ],
+            "say different things about the set 'gp': {'dims': ['generator', 'period']} against "
+            "{'dims': ['generator', 'period'], 'missing': 'absent'}.",
+            id='a-set-that-reads-a-missing-row-two-ways',
+        ),
+        pytest.param(
+            [
+                _fragment({}, {'gp': {'dims': ['generator', 'period']}}),
+                _fragment({}, {'gp': {'dims': ['period', 'generator']}}),
+            ],
+            "say different things about the set 'gp'",
+            id='a-set-with-its-members-in-another-order',
+        ),
+    ],
+)
+def test_merging_refuses_a_set_or_a_property_two_fragments_declare_differently(fragments, fragment):
+    with pytest.raises(LanguageError) as caught:
+        merge(fragments)
+    assert fragment in str(caught.value)
+
+
+def test_merging_carries_a_set_both_fragments_declare_alike():
+    sets = {'gp': {'dims': ['generator', 'period']}}
+    assert merge([_fragment({}, sets), _fragment({}, sets)]).to_dict()['sets'] == sets

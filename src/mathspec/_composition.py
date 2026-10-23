@@ -19,16 +19,18 @@ such as ``'#2'``.
 [`merge`][] writes nothing a fragment did not write, except a ``+``. It
 joins fragments' text in one place, a named expression that terms add to;
 every other entry is copied as written, refused where two fragments own it,
-or held identical where it is a dimension or a relation.
+or held identical where it is a dimension, a relation, a set or a property.
 What that means for each section:
 
-* **A dimension or a relation every fragment may declare**, and the ones that
-  do have to say the same thing about it. Prose is not a claim, so two
+* **A dimension, a relation, a set or a property every fragment may
+  declare**, and the ones that do have to say the same thing about it. The
+  properties of one subject are joined, so two fragments may each give
+  ``generator`` a property of its own. Prose is not a claim, so two
   descriptions of one dimension agree, and the first one given is carried.
   ``ordered`` is a claim about the space, not the space, so a dimension one
   fragment declares ordered is ordered.
-  A relation's ``missing:`` is a claim about the data, and the fragments
-  agree on it: ``absent`` and ``refused`` change the result differently, so
+  The ``missing:`` of a relation, a set or a property is a claim about the
+  data, and the fragments agree on it: ``absent`` and ``refused`` change the result differently, so
   neither folds into the other. ``missing: refused`` is the same as none.
 * **Every other entry is owned.** A name two fragments declare is refused,
   both named.
@@ -79,12 +81,13 @@ What a patch may say, and what is refused:
 * **Patches are laid in order.** Each is laid on the base with every
   earlier patch laid on it, so a later patch wins a field an earlier one
   writes, and edits or removes an entry an earlier one creates.
-* **A patch adjusts the math, not the coordinate space.** A ``dimensions`` or
-  ``relations`` entry may be added or restated as the schema reads its base,
-  never changed and never removed. A restated dimension may add
+* **A patch adjusts the math, not the coordinate space.** A dimension, a
+  relation, a set or a property may be added or restated as the schema reads
+  its base, never changed and never removed. A restated dimension may add
   ``ordered: true``, and may not write it false over a base that makes it.
-  A relation's ``missing:`` is a claim about the data, not the space: a
-  patch may change it as it changes a parameter's, and may name it alone.
+  The ``missing:`` of a relation, a set or a property is a claim about the
+  data, not the space: a patch may change it as it changes a parameter's, and
+  may name it alone.
 * ``null`` **makes what it names absent.** An entry set to ``null`` is
   removed, and a removal of what the base does not declare is refused. A field
   set to ``null`` is dropped, and takes its default when the result loads:
@@ -92,8 +95,6 @@ What a patch may say, and what is refused:
   set to ``null`` is refused, because it removes nothing.
 * **``given:`` is laid over one kind at a time**, by the same rules as any
   owned section.
-* **``properties:`` is laid over one subject at a time**, by the same rules,
-  so a patch adds, edits or removes one property and keeps the others.
 """
 
 from __future__ import annotations
@@ -116,12 +117,14 @@ if TYPE_CHECKING:
 
     from mathspec.program import Program
 
-SHARED_SECTIONS = ('dimensions', 'relations')
+SHARED_SECTIONS = ('dimensions', 'relations', 'sets')
 
+#: Every section a fragment owns. ``properties:`` is shared too, one property
+#: at a time, which [`_flat`][] lays out for the rules of a shared entry.
 OWNED_SECTIONS = tuple(
     name
     for name, field in Spec.model_fields.items()
-    if get_origin(field.annotation) is dict and name not in SHARED_SECTIONS
+    if get_origin(field.annotation) is dict and name not in (*SHARED_SECTIONS, 'properties')
 )
 
 GIVEN_KINDS = {
@@ -139,7 +142,6 @@ IRREGULAR = {
     'piecewise': 'piecewise curve',
     'sos': 'special-ordered set',
     'objective': 'objective',
-    'properties': 'properties of',
 }
 
 
@@ -160,7 +162,7 @@ def merge(fragments: Sequence[Source], description: str | None = None) -> Spec:
     Raises:
         LanguageError: A fragment does not load on its own; two fragments
             declare one name; two fragments say different things about one
-            dimension, relation or given entry; a fragment reads a name as
+            dimension, relation, set, property or given entry; a fragment reads a name as
             something other than what its sibling introduces, as another kind
             of thing, or over fewer dimensions than its body carries; a fragment
             adds a term to a variable, a parameter, a constraint or a
@@ -181,6 +183,11 @@ def merge(fragments: Sequence[Source], description: str | None = None) -> Spec:
     for section in SHARED_SECTIONS:
         if agreed := _agreed(read, section, _singular(section), 'give one of them a name of its own'):
             merged[section] = agreed
+    flat: dict[str, dict[str, object]] = {
+        name: {'properties': _flat(sections.get('properties'))} for name, sections in read.items()
+    }
+    if properties := _agreed(flat, 'properties', 'property', 'give one of them a name of its own'):
+        merged['properties'] = _nested(properties)
     asked = {name: spec.given.model_dump(exclude_unset=True) for name, spec in loaded.items()}
     readings = {
         kind: _agreed(asked, kind, label, 'read it over the same dims', claims=_reading_claims)
@@ -322,12 +329,39 @@ def _joined(section: str, kept: object, entry: object, claims: Callable[[object]
     return {**_mapping(kept), 'ordered': True} if ordered else kept
 
 
-def _declared(section: str, entry: object) -> dict[str, object]:
-    """*entry* as the schema reads it, so a field written at its default says what leaving it out says."""
+def _declared(cls: type[BaseModel], entry: object) -> dict[str, object]:
+    """*entry* as the schema reads it, every field present, so a field written at its default says what leaving it out says.
+
+    The fields themselves, not the serialised form, which writes a property
+    as the bare dimension it maps into.
+    """
     try:
-        return _entry_class(Spec, section).model_validate(entry).model_dump()
+        return dict(cls.model_validate(entry))
     except ValidationError as e:
         raise schema_error(e) from None
+
+
+def _flat(properties: object) -> dict[str, object]:
+    """``properties:`` as one entry per property, keyed ``subject.property`` and in the long form.
+
+    The rules for a shared entry then read each property as they read a
+    relation. A subject and a property are names, so neither holds a dot, and
+    [`_nested`][] splits the key back without doubt.
+    """
+    return {
+        f'{subject}.{prop}': {'into': entry} if isinstance(entry, str) else entry
+        for subject, group in _mapping(properties).items()
+        for prop, entry in _mapping(group).items()
+    }
+
+
+def _nested(flat: Mapping[str, object]) -> dict[str, object]:
+    """*flat* back under ``subject: {property: ...}``, as a file writes it."""
+    nested: dict[str, dict[str, object]] = {}
+    for key, entry in flat.items():
+        subject, prop = key.split('.', 1)
+        nested.setdefault(subject, {})[prop] = entry
+    return cast('dict[str, object]', nested)
 
 
 def _claimed(read: Mapping[str, dict[str, object]], section: str) -> dict[str, object]:
@@ -853,8 +887,19 @@ def _given(declared: dict[str, object], patch: dict[str, object], name: str) -> 
     return out
 
 
-def _shared(declared: dict[str, object], patch: dict[str, object], section: str, name: str) -> dict[str, object]:
-    """One ``dimensions`` or ``relations`` section: a patch adds one or restates one, never changes or drops it.
+def _shared(
+    declared: dict[str, object],
+    patch: dict[str, object],
+    section: str,
+    name: str,
+    *,
+    label: str | None = None,
+    cls: type[BaseModel] | None = None,
+) -> dict[str, object]:
+    """One shared section: a patch adds an entry or restates one, never changes or drops it.
+
+    The section is ``dimensions``, ``relations`` or ``sets``, or the properties
+    as [`_flat`][] lays them out, which pass their *label* and *cls*.
 
     The restatement is compared as the schema reads both sides rather than
     field by field: a patch that names half an entry is as much a second
@@ -862,11 +907,12 @@ def _shared(declared: dict[str, object], patch: dict[str, object], section: str,
     field written at its default is no change. A dimension's ``ordered`` folds
     by [`_joined`][], so a patch may add the claim; writing it false over a
     base that makes it is the one narrowing [`_joined`][] cannot see. A
-    relation's ``missing:`` is laid over as a field and left out of the
-    comparison, being a claim about the data.
+    ``missing:`` on anything but a dimension is laid over as a field and left
+    out of the comparison, being a claim about the data.
     """
     out = dict(declared)
-    singular = _singular(section)
+    singular = label or _singular(section)
+    schema = cls or _entry_class(Spec, section)
     for key, entry in patch.items():
         if entry is None:
             raise LanguageError(
@@ -876,12 +922,12 @@ def _shared(declared: dict[str, object], patch: dict[str, object], section: str,
         if key not in out:
             out[key] = entry
             continue
-        if section == 'relations' and 'missing' in _mapping(entry):
+        if section != 'dimensions' and 'missing' in _mapping(entry):
             out[key] = _reread(out[key], _mapping(entry))
             entry = _without(entry, 'missing')
             if not entry:
                 continue
-        base, laid = _declared(section, out[key]), _declared(section, entry)
+        base, laid = _declared(schema, out[key]), _declared(schema, entry)
         if base.get('ordered') and _mapping(entry).get('ordered') is False:
             raise LanguageError(
                 f"patch '{name}' says the {singular} '{key}' is not ordered, where its base declares it "
@@ -929,21 +975,20 @@ def _owned(
 
 
 def _properties(declared: dict[str, object], patch: dict[str, object], name: str) -> dict[str, object]:
-    """The ``properties:`` section, one subject laid over at a time, so a patch edits one property and keeps the rest.
+    """The ``properties:`` section, each property laid over as a relation is: added, restated, or its ``missing:`` changed.
 
-    A property the base writes in the short form is read as ``{into: ...}``
-    first, so a patch that writes only its ``missing:`` edits it rather than
-    replacing it.
+    Both sides are read in the long form first, so a patch that writes only
+    a property's ``missing:`` changes that field of a property the base
+    writes as ``bus: bus``.
     """
-    out = dict(declared)
-    for subject, over in patch.items():
-        if over is None:
-            _removed(out, subject, 'properties of', name)
-            continue
-        standing = {p: {'into': e} if isinstance(e, str) else e for p, e in _mapping(out.get(subject)).items()}
-        section = _section(over, f'properties: {subject}', name)
-        out[subject] = _owned(standing, section, 'property', PropertySpec, name)
-    return out
+    if removed := [subject for subject, over in patch.items() if over is None]:
+        raise LanguageError(
+            f"patch '{name}' removes the properties of '{removed[0]}', which a patch cannot change. Leave "
+            f'them out of the patch, and remove the entries written over them one at a time.'
+        )
+    laid = {subject: _section(over, f'properties: {subject}', name) for subject, over in patch.items()}
+    flat = _shared(_flat(declared), _flat(laid), 'properties', name, label='property', cls=PropertySpec)
+    return _nested(flat)
 
 
 def _removed(out: dict[str, object], key: str, label: str, name: str) -> None:
