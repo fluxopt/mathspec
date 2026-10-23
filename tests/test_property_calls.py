@@ -236,6 +236,17 @@ def test_a_position_within_a_property_reads_its_table():
             id='a-presence-test-of-a-property-the-dimension-lacks',
         ),
         pytest.param(
+            {'variables.x.where': 'nowhere[bus]'},
+            "Variable 'x': 'nowhere' not found.",
+            id='a-presence-test-of-an-undeclared-name',
+        ),
+        pytest.param(
+            {'variables.x.where': 'cap[bus]'},
+            "'cap[bus]' reads a column of 'cap', which is a parameter. Only a relation, a set or a dimension has "
+            'columns.',
+            id='a-presence-test-of-a-parameter',
+        ),
+        pytest.param(
             {'variables.inj.where': 'connection[port]'},
             "'connection[port]' alone tests no property of 'connection'. Test whether 'connection' has a row with "
             "its bare name, 'connection'.",

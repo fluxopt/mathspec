@@ -340,7 +340,12 @@ class ConditionResolver:
             )
             return node
         if subject not in ns.subjects:
-            self.errors.append(ns.unknown(subject, context, allow_dims=True))
+            self.errors.append(
+                ns.unknown(subject, context, allow_dims=True)
+                if ns.kind(subject) is None
+                else f"{context}: '{node.columns}' reads a column of '{subject}', which is "
+                f'{_declared_as(ns, subject)}. Only a relation, a set or a dimension has columns.'
+            )
             return node
         if unknown := [c for c in named if c not in properties]:
             self.errors.append(
