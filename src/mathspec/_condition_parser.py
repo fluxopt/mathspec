@@ -26,6 +26,7 @@ from mathspec._expression_parser import (
     COLUMNS,
     NAME,
     ArithmeticNode,
+    ColumnsNode,
     KeywordNode,
     NameNode,
     children,
@@ -114,9 +115,18 @@ class UnresolvedComparisonNode:
     right: ArithmeticNode | ColumnNode | KeywordNode
 
 
+@dataclass(frozen=True)
+class UnresolvedPresenceNode:
+    """``subject[property, …]`` alone — true where the row of the subject has every property it names."""
+
+    columns: ColumnsNode
+
+
 #: The condition nodes that resolution replaces: their leaves are names not yet
 #: looked up in the spec.
-UnresolvedConditionNode = NameNode | UnresolvedComparisonNode | UnresolvedConditionCallNode | UnresolvedCountNode
+UnresolvedConditionNode = (
+    NameNode | UnresolvedComparisonNode | UnresolvedConditionCallNode | UnresolvedCountNode | UnresolvedPresenceNode
+)
 
 #: Every node a parsed condition is built of: the connectives and literals,
 #: the unresolved leaves, and the arithmetic and the two side nodes under a
@@ -140,7 +150,8 @@ def _build_condition_grammar() -> pp.ParserElement:
 
     Both quote characters are accepted because YAML already owns one of them.
     ``NOT`` binds tightest, then ``AND``, then ``OR``. A comparison is tried
-    before a bare name, since its left side begins with one.
+    before a bare name, since its left side begins with one, and so is
+    ``name[...]`` alone, which tests that a row has the properties it names.
     """
     condition = pp.Forward()
 
@@ -184,12 +195,15 @@ def _build_condition_grammar() -> pp.ParserElement:
     ).set_parse_action(lambda t: UnresolvedComparisonNode(t[0], t[1], t[2]))
     # pyrefly: ignore[implicit-any-lambda]
     existence = name.copy().set_parse_action(lambda t: NameNode(t[0]))
+    # pyrefly: ignore[implicit-any-lambda]
+    presence = COLUMNS.copy().add_parse_action(lambda t: UnresolvedPresenceNode(t[0]))
 
     atom = (
         true_lit
         | false_lit
         | count_comparison
         | comparison
+        | presence
         | condition_call
         | existence
         | (pp.Suppress('(') + condition + pp.Suppress(')'))
@@ -231,8 +245,9 @@ def _named_rewrite(text: str, loc: int) -> str | None:
     """The rewrite for a connective habit of pandas or C, or a comparison of several columns, or ``None``.
 
     ``!=``, ``<`` and ``>`` are legal here, so only the tokens no condition
-    admits are diagnosed. The grammar gives up at the bracket of
-    ``relation[a, b]``, since a comparison reads one column.
+    admits are diagnosed. A comparison reads one column, so the grammar gives
+    up at the bracket of ``relation[a, b]`` inside a comparison, and at the
+    comparator after ``subject[a, b]``, which alone is a test of presence.
     """
     rest = text[loc:].lstrip()
     if rest.startswith('&'):
@@ -247,6 +262,12 @@ def _named_rewrite(text: str, loc: int) -> str | None:
         before := re.search(rf'({NAME})\s*$', text[:loc])
     ):
         relation, columns = before.group(1), [c.strip() for c in listed.group(1).split(',')]
+        each = ' AND '.join(f'{relation}[{column}] == …' for column in columns)
+        return f"a comparison reads one column of '{relation}'. Compare each column on its own: {each}."
+    if re.match(r'(==|!=|<=|>=|<|>)', rest) and (
+        read := re.search(rf'({NAME})\s*\[\s*({NAME}(?:\s*,\s*{NAME})+)\s*\]\s*$', text[:loc])
+    ):
+        relation, columns = read.group(1), [c.strip() for c in read.group(2).split(',')]
         each = ' AND '.join(f'{relation}[{column}] == …' for column in columns)
         return f"a comparison reads one column of '{relation}'. Compare each column on its own: {each}."
     return None

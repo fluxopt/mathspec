@@ -12,6 +12,7 @@ it releases that version ([RELEASING.md](https://github.com/energy-models/mathsp
 
 ## Upcoming version
 
+- feat(language): a call reads a property of a dimension or a set, written subject[property] ([#2](https://github.com/fluxopt/mathspec/pull/2))
 - feat(language): a file may declare sets of labels and the properties of a dimension or a set ([#1](https://github.com/fluxopt/mathspec/pull/1))
 - feat(language): a parameter may declare the coordinates it has with `where:`, and outside them it is absent ([#945](https://github.com/energy-models/mathspec/pull/945))
 - fix(language): a divisor that a where, a case or a masked variable guards loads under missing: 0, and so does a variable number outside its bounds ([#942](https://github.com/energy-models/mathspec/pull/942))

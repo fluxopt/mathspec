@@ -24,6 +24,7 @@ from mathspec._condition_parser import (
     UnresolvedConditionCallNode,
     UnresolvedConditionNode,
     UnresolvedCountNode,
+    UnresolvedPresenceNode,
 )
 from mathspec._dimensions import join_dims
 from mathspec._divisors import zero_divisor_refusals
@@ -120,6 +121,8 @@ class ConditionResolver:
             return self._condition_call(node)
         if isinstance(node, UnresolvedCountNode):
             return self._count(node)
+        if isinstance(node, UnresolvedPresenceNode):
+            return self._presence(node)
         if isinstance(node, Not):
             return Not(self._child(node.operand))
         if isinstance(node, And):
@@ -319,6 +322,44 @@ class ConditionResolver:
         dims = tuple(sorted(mask.dims - {over.name}))
         return CountComparison(mask, over.name, node.op, value.value, dims)
 
+    def _presence(self, node: UnresolvedPresenceNode) -> Condition | UnresolvedConditionNode:
+        """``subject[property, …]`` alone: true where the row of the subject has every property it names.
+
+        Each property is a table of its own, and a row has the property where
+        the table has a row at its key, so several properties are the
+        conjunction of one test each. A relation, and a set read by its
+        members, are tested by their bare name.
+        """
+        ns, context = self.ns, self.context
+        subject, named = node.columns.relation, node.columns.columns
+        properties = ns.properties.get(subject, {})
+        if subject in ns.relations and not set(named) & set(properties):
+            self.errors.append(
+                f"{context}: '{node.columns}' alone tests no property of '{subject}'. Test whether '{subject}' has "
+                f"a row with its bare name, '{subject}'."
+            )
+            return node
+        if subject not in ns.subjects:
+            self.errors.append(
+                ns.unknown(subject, context, allow_dims=True)
+                if ns.kind(subject) is None
+                else f"{context}: '{node.columns}' reads a column of '{subject}', which is "
+                f'{_declared_as(ns, subject)}. Only a relation, a set or a dimension has columns.'
+            )
+            return node
+        if unknown := [c for c in named if c not in properties]:
+            self.errors.append(
+                f"{context}: '{node.columns}' names {unknown}, which is no property of '{subject}'. "
+                f'{did_you_mean(unknown[0], properties, label="Properties")}'
+            )
+            return node
+        dims = tuple(d for _, d in ns.subjects[subject])
+        tests: list[Condition] = [RelationDefined(f'{subject}.{p}', dims) for p in dict.fromkeys(named)]
+        held = tests[0]
+        for test in tests[1:]:
+            held = And(held, test)
+        return held
+
     def _comparison(self, node: UnresolvedComparisonNode) -> Condition | UnresolvedConditionNode:
         """``side <op> side``, read for what each side is.
 
@@ -476,16 +517,17 @@ class ConditionResolver:
         if not plain.quoted and isinstance(value, str):
             right_name, right_column = _split_column(value)
             if (rhs_kind := ns.kind(right_name)) is not None:
-                if rhs_kind == 'relation' and ns.kind(left_name) == 'relation':
-                    left = self._relation_column(left_name, left_column or None, plain.name, plain.op)
-                    right = self._relation_column(right_name, right_column or None, value, plain.op)
+                if _reads(ns, right_name, right_column) and _reads(ns, left_name, left_column):
+                    left = self._read(left_name, left_column or None, plain.name, plain.op)
+                    right = self._read(right_name, right_column or None, value, plain.op)
                     if left is None or right is None:
                         return node
                     if (refusal := _relation_pair_error(context, plain, value, ns, left, right)) is not None:
                         self.errors.append(refusal)
                         return node
-                    dims = tuple(ns.relations[left_name].dim(k) for k in ns.relations[left_name].key)
-                    return RelationPairComparison(left_name, left, right_name, right, plain.op, dims)
+                    shape = ns.tables[left[0]]
+                    dims = tuple(shape.dim(k) for k in shape.key)
+                    return RelationPairComparison(left[0], left[1], right[0], right[1], plain.op, dims)
                 given = right_name in ns.spec.given.expressions
                 self.errors.append(_declared_rhs_error(context, plain, value, rhs_kind, given=given))
                 return node
@@ -494,19 +536,19 @@ class ConditionResolver:
         if kind is None:
             self.errors.append(ns.unknown(left_name, context, allow_dims=True))
             return node
-        if left_column and kind != 'relation':
+        if left_column and ns.columns(left_name) is None:
             self.errors.append(
                 f"{context}: '{plain.name}' reads a column of '{left_name}', which is {_declared_as(ns, left_name)}. "
-                f'Only a relation has columns.'
+                f'Only a relation, a set or a dimension has columns.'
             )
             return node
-        column = None
+        read: tuple[str, str] | None = None
         dtype: DeclaredDtype | None = None
-        if kind == 'relation':
-            column = self._relation_column(left_name, left_column or None, plain.name, plain.op)
-            if column is None:
+        if _reads(ns, left_name, left_column):
+            read = self._read(left_name, left_column or None, plain.name, plain.op)
+            if read is None:
                 return node
-            dtype = ns.dtypes[ns.relations[left_name].dim(column)]
+            dtype = ns.dtypes[ns.tables[read[0]].dim(read[1])]
         elif kind in ('parameter', 'dimension'):
             dtype = ns.dtypes[left_name]
         if dtype is not None:
@@ -515,6 +557,9 @@ class ConditionResolver:
                 return node
             value = typed
 
+        if read is not None:
+            shape = ns.tables[read[0]]
+            return RelationComparison(read[0], read[1], plain.op, value, tuple(shape.dim(k) for k in shape.key))
         match kind:
             case 'parameter':
                 assert not isinstance(value, datetime.date)
@@ -522,9 +567,7 @@ class ConditionResolver:
             case 'dimension':
                 return DimensionComparison(left_name, plain.op, value)
             case 'relation':
-                assert column is not None
-                shape = ns.relations[left_name]
-                return RelationComparison(left_name, column, plain.op, value, tuple(shape.dim(k) for k in shape.key))
+                raise AssertionError('a relation is read as a table above, with or without a column')
             case 'variable' if left_name in ns.spec.given.expressions:
                 self.errors.append(
                     f"{context}: where references the given expression '{left_name}'. {GIVEN_IN_A_CONDITION}"
@@ -535,6 +578,25 @@ class ConditionResolver:
                     f'and dimension coordinates.'
                 )
         return node
+
+    def _read(self, name: str, column: str | None, spelling: str, op: ComparisonOperator) -> tuple[str, str] | None:
+        """The table and the column a side of a where-comparison reads, or ``None`` with the refusal appended.
+
+        A property is read from its own table, ``subject.property``, and a
+        relation's or a set's own column from the relation or the set.
+        """
+        ns, context = self.ns, self.context
+        properties = ns.properties.get(name, {})
+        if column is not None and column in properties:
+            return f'{name}.{column}', column
+        if name in ns.relations:
+            read = self._relation_column(name, column, spelling, op)
+            return None if read is None else (name, read)
+        self.errors.append(
+            f"{context}: '{spelling}' reads '{column}', which is no property of '{name}'. "
+            f'{did_you_mean(column or "", properties, label="Properties")}'
+        )
+        return None
 
     def _relation_column(self, name: str, column: str | None, spelling: str, op: ComparisonOperator) -> str | None:
         """The value column a where-comparison on relation *name* reads, or the refusal.
@@ -682,6 +744,11 @@ def _side_name(side: ArithmeticNode | ColumnNode) -> str | None:
     return None
 
 
+def _reads(ns: Namespace, name: str, column: str) -> bool:
+    """Whether a side spelled *name* or ``name[column]`` reads a table: a relation or a set by its bare name, or any subject with a column."""
+    return ns.kind(name) == 'relation' or (bool(column) and ns.columns(name) is not None)
+
+
 def _split_column(name: str) -> tuple[str, str]:
     """``relation[column]`` as its two names, and a bare name with an empty column: the one reader of a side's spelling."""
     relation, _, column = name.partition('[')
@@ -779,7 +846,9 @@ def _declared_rhs_error(context: str, node: _Plain, value: str, kind: str, *, gi
     )
 
 
-def _relation_pair_error(context: str, node: _Plain, other: str, ns: Namespace, left: str, right: str) -> str | None:
+def _relation_pair_error(
+    context: str, node: _Plain, other: str, ns: Namespace, left_read: tuple[str, str], right_read: tuple[str, str]
+) -> str | None:
     """Why two relation columns may not be compared, or ``None`` where they may.
 
     Both relations are read at their keys, so the keys must be over the same
@@ -791,7 +860,8 @@ def _relation_pair_error(context: str, node: _Plain, other: str, ns: Namespace, 
     """
     comparison = f"'{node.name} {node.op} {other}'"
     left_name, right_name = _split_column(node.name)[0], _split_column(other)[0]
-    ls, rs = ns.relations[left_name], ns.relations[right_name]
+    (left_table, left), (right_table, right) = left_read, right_read
+    ls, rs = ns.tables[left_table], ns.tables[right_table]
     left_keys, right_keys = {ls.dim(k) for k in ls.key}, {rs.dim(k) for k in rs.key}
     if left_keys != right_keys:
         return (

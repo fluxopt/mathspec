@@ -549,12 +549,28 @@ class Relation:
         return self._dim_of[role]
 
 
+def _tables_read(name: str, relation: Relation) -> tuple[str, ...]:
+    """The tables a call through *relation*, named *name*, reads.
+
+    One table, *name*, unless the call reads several properties of one
+    subject. Then *name* is the subject, and each property is a table of its
+    own, ``subject.property``, whose inner join on the subject's members is
+    *relation*.
+    """
+    if relation.subject is not None and name == relation.subject:
+        return tuple(f'{name}.{value}' for value in relation.values)
+    return (name,)
+
+
 @dataclass(frozen=True)
 class JoinColumns:
     """One relation as one call joins it: the columns joined on, and the columns grouped by.
 
     The entry fixes no direction; the call does, and this is the one it
-    named. ``name`` is the relation's, as [`Program.relations`][] keys it.
+    named. ``name`` is the relation's, as [`Program.relations`][] keys it,
+    except for a call that reads several properties of one subject: there
+    ``name`` is the subject, ``relation`` is the inner join of their tables,
+    and [`tables`][] names them.
     ``joined`` and ``grouped`` are *roles*, which are column names of
     ``relation``. ``relation`` maps every role to its dimension and names the
     key. ``joined`` is
@@ -578,6 +594,16 @@ class JoinColumns:
     def dim(self, role: str) -> str:
         """The dimension *role* ranges over."""
         return self.relation.dim(role)
+
+    @property
+    def tables(self) -> tuple[str, ...]:
+        """The tables of [`Program.relations`][] the call reads, which the data supplies."""
+        return _tables_read(self.name, self.relation)
+
+    @property
+    def written(self) -> str:
+        """The name the file writes before the brackets: the subject of a property, else the table."""
+        return self.relation.subject or self.name
 
     @property
     def dropped(self) -> tuple[str, ...]:
@@ -633,7 +659,9 @@ class JoinColumns:
 class Partition:
     """One relation as a partition steps along it: the key column it steps along, the columns it partitions by, and the key columns it joins on.
 
-    ``name`` is the relation's, as [`Program.relations`][] keys it.
+    ``name`` is the relation's, as [`Program.relations`][] keys it, or the
+    subject where ``within=`` names several of its properties, as in
+    [`JoinColumns`][].
     ``along``, ``grouped`` and ``joined`` are *roles*, which are column names
     of ``relation``. ``relation`` maps every role to its dimension and names
     the key.
@@ -653,6 +681,16 @@ class Partition:
     def dim(self, role: str) -> str:
         """The dimension *role* ranges over."""
         return self.relation.dim(role)
+
+    @property
+    def tables(self) -> tuple[str, ...]:
+        """The tables of [`Program.relations`][] the partition reads, which the data supplies."""
+        return _tables_read(self.name, self.relation)
+
+    @property
+    def written(self) -> str:
+        """The name the file writes before the brackets: the subject of a property, else the table."""
+        return self.relation.subject or self.name
 
     @property
     def along_dim(self) -> str:
@@ -1589,7 +1627,8 @@ def _atom_names(atom: TypedCondition) -> frozenset[str]:
     """One leaf's entries, its dimension apart — the rule [`Mask.names_read`][] is the union of.
 
     A comparison on a dimension names no entry — a coordinate is not
-    data to feed — a relation pair names both maps it compares, and a
+    data to feed — unless a position counts within groups, which names the
+    tables the groups are read from. A relation pair names both maps it compares, and a
     comparison of expressions names every parameter and relation its sides
     read, answered on the program's form of it since only a program mask is
     asked. ``assert_never``-closed for the reason [`_atom_dims`][] is: a condition
@@ -1608,8 +1647,10 @@ def _atom_names(atom: TypedCondition) -> frozenset[str]:
         case TranslatedCondition():
             return atom.operand.names_read
         case JoinedCondition():
-            return atom.operand.names_read | {atom.columns.name}
-        case DimensionComparison() | DimensionPosition():
+            return atom.operand.names_read | set(atom.columns.tables)
+        case DimensionPosition():
+            return frozenset(atom.partition.tables if atom.partition is not None else ())
+        case DimensionComparison():
             return frozenset()
         case _:
             assert_never(atom)
@@ -1629,10 +1670,10 @@ def _names_under(*expressions: Expression) -> frozenset[str]:
         if isinstance(node, Cases):
             names.update(*(region.when.names_read for region in node.regions))
         elif isinstance(node, Join):
-            names.add(node.columns.name)
+            names.update(node.columns.tables)
         elif isinstance(node, (Translate, WindowSum)):
             if node.partition is not None:
-                names.add(node.partition.name)
+                names.update(node.partition.tables)
             amount = node.offset if isinstance(node, Translate) else node.width
             if isinstance(amount, str):
                 names.add(amount)

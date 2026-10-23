@@ -270,7 +270,7 @@ def _observe(node: TypedCondition, subject: Subject, values: set[_Literal]) -> N
         raise Undecidable(msg)
     if isinstance(node, JoinedCondition):
         msg = (
-            f"it reads a condition through '{node.columns.name}', which only the data decides. "
+            f"it reads a condition through '{node.columns.written}', which only the data decides. "
             'Test this row, or precompute the read as a boolean parameter and test that'
         )
         raise Undecidable(msg)
