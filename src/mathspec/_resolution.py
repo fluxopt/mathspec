@@ -88,6 +88,7 @@ class Namespace:
         'parameters',
         'relations',
         'spec',
+        'tables',
         'variables',
     )
 
@@ -125,10 +126,12 @@ class Namespace:
         self.defaults: dict[str, bool | float] = {
             p: pd.missing for p, pd in spec.parameters.items() if not isinstance(pd.missing, str) and pd.where is None
         }
-        #: relation name -> its columns and key, as declared.
-        self.relations: dict[str, Relation] = {
-            n: Relation(lk.pairs, lk.key_roles, lk.missing, lk.description) for n, lk in spec.relations.items()
-        }
+        #: Every table the file declares, as [`tables`][] lowers it; what the
+        #: program carries as its relations.
+        self.tables = tables(spec)
+        #: relation or set name -> its columns and key: the tables a file
+        #: writes by name, which a property's dotted name is not.
+        self.relations: dict[str, Relation] = {n: lk for n, lk in self.tables.items() if lk.subject is None}
         #: parameter or variable name -> the ``dims`` it is read through. Stamped onto
         #: each leaf a condition names, the way a relation leaf carries ``over``.
         self.leaf_dims: dict[str, tuple[str, ...]] = {
@@ -336,6 +339,29 @@ class Namespace:
 # ---------------------------------------------------------------------------
 # the functions the rest of the package calls
 # ---------------------------------------------------------------------------
+
+
+def tables(spec: Spec) -> dict[str, Relation]:
+    """Every table *spec* declares, as the relation it lowers to.
+
+    A set is a bare relation under its own name. A property is a relation
+    named ``subject.property``, keyed by the subject's members, with one value
+    column named after the property. A dotted name is not one a file can
+    write, so it collides with nothing the file declares. Reads a spec that
+    [`reference_errors`][mathspec._validation.reference_errors] passed, so
+    every subject is a dimension or a set.
+    """
+    relations = {n: Relation(lk.pairs, lk.key_roles, lk.missing, lk.description) for n, lk in spec.relations.items()}
+    relations |= {n: Relation(st.pairs, st.members, st.missing, st.description) for n, st in spec.sets.items()}
+    for subject, properties in spec.properties.items():
+        key = spec.sets[subject].pairs if subject in spec.sets else ((subject, subject),)
+        relations |= {
+            f'{subject}.{name}': Relation(
+                (*key, (name, prop.into)), tuple(m for m, _ in key), prop.missing, prop.description, subject
+            )
+            for name, prop in properties.items()
+        }
+    return relations
 
 
 def mask_of(node: Condition | None) -> Mask | None:

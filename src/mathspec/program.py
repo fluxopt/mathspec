@@ -508,6 +508,10 @@ class Relation:
     have one row per key tuple — which keeps a mistyped label from silently
     dropping its terms in the join that places them, and is what lets ``at``
     read one value.
+
+    A ``sets:`` entry is a bare relation under its own name. A ``properties:``
+    entry is a relation named ``subject.property``, keyed by the subject's
+    members, with one value column named after the property.
     """
 
     columns: tuple[tuple[str, str], ...]
@@ -516,6 +520,12 @@ class Relation:
     #: or ``absent``.
     missing: RelationMissing = 'refused'
     description: str | None = None
+    #: The dimension or set whose rows the key ranges over, on a relation
+    #: lowered from a property; ``None`` on a set and on a relation. Every row
+    #: here is a row of the subject, and ``missing`` asks whether every row of
+    #: the subject is a row here, rather than every combination of the key's
+    #: dimensions.
+    subject: str | None = None
 
     @property
     def roles(self) -> tuple[str, ...]:

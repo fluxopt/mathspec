@@ -27,7 +27,7 @@ from mathspec._piecewise import Emitted as EmittedCurve
 from mathspec._sos import Emitted as EmittedSet
 from mathspec._sos import coefficients
 from mathspec._yaml import read_spec
-from mathspec.errors import SchemaError, unordered
+from mathspec.errors import SchemaError, did_you_mean, unordered
 from mathspec.spec import NUMERIC_DTYPES, Spec, side_columns
 
 if TYPE_CHECKING:
@@ -84,6 +84,8 @@ def reference_errors(spec: Spec) -> list[str]:
         *_name_collisions(spec),
         *_frame_dimensions(spec),
         *_relation_targets(spec),
+        *_set_members(spec),
+        *_property_targets(spec),
         *_bound_names(spec),
         *_sos_shapes(spec),
         *_sos_bounds(spec),
@@ -102,6 +104,7 @@ def _flat_namespace(spec: Spec) -> list[tuple[str, Iterable[str]]]:
     return [
         ('dimension', spec.dimensions),
         ('relation', spec.relations),
+        ('set', spec.sets),
         ('parameter', spec.parameters),
         ('given parameter', spec.given.parameters),
         ('variable', spec.variables),
@@ -154,7 +157,11 @@ def _frame_dimensions(spec: Spec) -> Iterator[str]:
         *(('Named expression', name, e.dims or []) for name, e in spec.expressions.items()),
     ]
     for kind, name, dims in frames:
-        yield from (undeclared_dimension(kind, name, d) for d in dims if d not in spec.dimensions)
+        yield from (
+            _over_a_set(kind, name, dims, d, spec) if d in spec.sets else undeclared_dimension(kind, name, d)
+            for d in dims
+            if d not in spec.dimensions
+        )
         yield from (
             f"{kind} '{name}' names dimension '{d}' twice. Delete one."
             for d, count in Counter(dims).items()
@@ -202,6 +209,93 @@ def _relation_targets(spec: Spec) -> Iterator[str]:
                 for d, count in Counter(dict(lk.pairs)[k] for k in lk.key_roles).items()
                 if count > 1
             )
+
+
+def _over_a_set(kind: str, name: str, dims: Iterable[str], set_name: str, spec: Spec) -> str:
+    """The refusal for an entry over a set, naming the frame over its member dimensions and the mask."""
+    members = [d for _, d in spec.sets[set_name].pairs]
+    rewrite = dict.fromkeys(d for written in dims for d in (members if written == set_name else [written]))
+    return (
+        f"{kind} '{name}' is over set '{set_name}', and no entry is over a set. Write dims: "
+        f'[{", ".join(rewrite)}] with where: {set_name}.'
+    )
+
+
+def _members_of_sets(kind: str, name: str, dims: Iterable[str], spec: Spec) -> Iterator[str]:
+    """A set or a property names dimensions only, and the rewrite for a set it names is that set's dimensions."""
+    for d in dict.fromkeys(dims):
+        if d in spec.sets:
+            members = ', '.join(dict.fromkeys(m for _, m in spec.sets[d].pairs))
+            yield f"{kind} '{name}' names set '{d}', and a set is not a dimension. Name its dimensions: {members}."
+        elif d not in spec.dimensions:
+            yield undeclared_dimension(kind, name, d)
+
+
+def _set_members(spec: Spec) -> Iterator[str]:
+    """A set has at least two members, each over a declared dimension, and named for two over one dimension."""
+    for sname, entry in spec.sets.items():
+        if len(entry.pairs) < 2:
+            yield (
+                f"Set '{sname}' has {len(entry.pairs)} member(s), and needs at least two under 'dims:'. For a "
+                f'subset of one dimension, declare a bool parameter instead.'
+            )
+        if isinstance(entry.dims, list):
+            yield from (
+                f"Set '{sname}' names dimension '{d}' twice under 'dims:'. Name the two members: "
+                f'dims: {{{d}0: {d}, {d}1: {d}}}.'
+                for d, count in Counter(entry.dims).items()
+                if count > 1
+            )
+        yield from _members_of_sets('Set', sname, (d for _, d in entry.pairs), spec)
+        yield from (
+            f"Set '{sname}' names member '{member}' after dimension '{member}', but the member is over "
+            f"'{dim}'. Rename the member after what it holds."
+            for member, dim in entry.pairs
+            if member in spec.dimensions and member != dim
+        )
+
+
+def _property_targets(spec: Spec) -> Iterator[str]:
+    """A property belongs to a dimension or a set, maps into a dimension, and is named apart from its subject's key."""
+    for subject, properties in spec.properties.items():
+        if subject in spec.sets:
+            key = spec.sets[subject].pairs
+        elif subject in spec.dimensions:
+            key = ((subject, subject),)
+        else:
+            yield (
+                f"Properties of '{subject}': '{subject}' is neither a dimension nor a set. Declare it under "
+                f"'dimensions:' or 'sets:'. {did_you_mean(subject, {*spec.dimensions, *spec.sets})}"
+            )
+            continue
+        twice = {d: [m for m, dim in key if dim == d] for d, count in Counter(d for _, d in key).items() if count > 1}
+        yield from (
+            f"Properties of '{subject}': the set has two members over '{d}' ({members}), and a subject has one "
+            f'member over each dimension. Declare the properties on a set without one of them.'
+            for d, members in twice.items()
+            if properties
+        )
+        members = {m for m, _ in key}
+        for pname, prop in properties.items():
+            label = f'{subject}.{pname}'
+            if pname in members:
+                yield (
+                    f"Property '{label}' has the name of a member of the key of '{subject}', so the two would "
+                    f'read the same. Rename the property.'
+                )
+            if prop.into in spec.sets:
+                dims = ', '.join(dict.fromkeys(d for _, d in spec.sets[prop.into].pairs))
+                yield (
+                    f"Property '{label}' maps into set '{prop.into}', and a property maps into one dimension. "
+                    f'Declare one property for each of {dims}.'
+                )
+            elif prop.into not in spec.dimensions:
+                yield undeclared_dimension('Property', label, prop.into)
+            elif pname in spec.dimensions and pname != prop.into:
+                yield (
+                    f"Property '{label}' is named after dimension '{pname}', but maps into '{prop.into}'. "
+                    f'Rename the property after what it holds.'
+                )
 
 
 def _bound_names(spec: Spec) -> Iterator[str]:
