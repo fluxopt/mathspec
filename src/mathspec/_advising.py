@@ -91,7 +91,7 @@ def _term_note(name: str) -> str:
 def _never_an_axis(program: Program) -> list[Advice]:
     """One piece of advice per dimension nothing reaches.
 
-    A dimension a relation has a column over is reached: its members are the
+    A dimension a set or a property has a column over is reached: its members are the
     labels that column is checked against, and a ``where`` selects on them,
     so it is in use even where nothing is indexed by it. A dimension only a
     given entry indexes is reached too: the column exists, in another
@@ -116,7 +116,7 @@ def _never_an_axis(program: Program) -> list[Advice]:
             'never-an-axis',
             name,
             f"dimension '{name}' is never used: nothing is indexed by it, nothing "
-            f'sums into it, and no relation has a column over it. Remove it, or keep it '
+            f'sums into it, and no set or property has a column over it. Remove it, or keep it '
             f'if the entries that use it are still to be written.',
         )
         for name in program.dimensions

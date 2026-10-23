@@ -3,11 +3,12 @@ SPDX-FileCopyrightText: mathspec contributors
 SPDX-License-Identifier: CC-BY-4.0
 -->
 
-# Relations as linear maps
+# Sets and properties as linear maps
 
 You can read a `sum` or an `at` through a
-[relation](../reference/language/relations.md) as the product of a matrix and
-a vector. The join and the group-by on the relations page are the two steps of
+[property](../reference/language/sets.md#properties) as the product of a matrix
+and a vector. The join and the group-by on the
+[sets and properties page](../reference/language/sets.md#sums) are the two steps of
 that product, and the product is the sum that a paper prints. Read on if
 "joined on" and "grouped by" read to you as database words, and you want the
 math behind them. Every formula below reads this spec:
@@ -17,8 +18,11 @@ dimensions:
   snapshot: { dtype: int }
   generator: { dtype: str }
   zone: { dtype: str }
-relations:
-  gen_zone: { key: [generator, snapshot], values: zone, missing: absent }
+sets:
+  generator_snapshot: { dims: [generator, snapshot], missing: absent }
+properties:
+  generator_snapshot:
+    zone: zone
 parameters:
   zone_cap: { dims: [snapshot, zone] }
 variables:
@@ -26,43 +30,45 @@ variables:
 constraints:
   zonal:
     dims: [snapshot, zone]
-    expression: sum(p, over=generator, by=gen_zone[zone]) <= zone_cap
+    expression: sum(p, over=generator, by=generator_snapshot[zone]) <= zone_cap
   looked_up:
     dims: [snapshot, generator]
-    where: gen_zone
-    expression: p <= at(zone_cap, by=gen_zone[zone])
+    where: generator_snapshot
+    expression: p <= at(zone_cap, by=generator_snapshot[zone])
 objective:
   sense: minimize
   expression: sum(p)
 ```
 
-## The indicator of a relation
+## The indicator of a set and a property
 
-A relation with columns over the dimensions $`D_1, \dots, D_n`$ is a set of
-rows, so it is a subset $`R \subseteq D_1 \times \dots \times D_n`$. Its
+A set with members over the dimensions $`D_1, \dots, D_n`$ is a set of rows,
+so it is a subset $`R \subseteq D_1 \times \dots \times D_n`$. Its
 **indicator** $`\mathbf{1}_R`$ is $`1`$ at a row of the table and $`0`$
-everywhere else. `key:` says that the set has one row per key tuple. So a
-relation with `key: K` and `values: V` is the graph of a function
-$`f: K \to V`$, and
+everywhere else. A property's table has one row per row of its subject that has
+the property. So a property of the subject $`K`$ into the dimension $`V`$ is the
+graph of a function $`f: K \to V`$, and its table $`R \subseteq K \times V`$
+has the indicator
 
 ```math
 \mathbf{1}_R(k, v) = [\, f(k) = v \,].
 ```
 
-By default the function is total: when the data is attached, a key tuple with
-no row is [refused](../reference/language/relations.md#the-data-contract).
-Under `missing: absent`, as in the spec above, the function is partial: it has
-no value at a key tuple with no row. A bare relation is a subset, with no
-function behind it. The same default holds for it, so a bare relation that is
-not every key tuple declares `missing: absent`. In the spec above, `gen_zone` is the graph of
-$`f: \mathcal{G} \times \mathcal{T} \to \mathcal{Z}`$. The
-[data contract](../reference/language/relations.md#the-data-contract) makes
-sure of this, because the loader checks for one row per key tuple when the
-data is attached.
+By default the function is total: when the data is attached, a row of the
+subject with no value is [refused](../reference/language/sets.md#a-missing-row).
+Under `missing: absent` the function is partial: it has no value at a row of
+the subject that lacks the property. A set alone is a subset, with no function
+behind it. The same default holds for it, so a set that is not every
+combination of its dimensions declares `missing: absent`, as
+`generator_snapshot` does above. Its property `zone` is the graph of a function
+from the rows of `generator_snapshot` into $`\mathcal{Z}`$. The
+[data contract](../reference/reading.md#the-tables-of-sets-and-properties) makes
+sure of this, because the engine checks for one row per row of the subject when
+the data is attached.
 
 ## A join and group-by as a contraction
 
-`sum(p, over=generator, by=gen_zone[zone])` multiplies two arrays, and sums
+`sum(p, over=generator, by=generator_snapshot[zone])` multiplies two arrays, and sums
 over the one index that they share and that the call names:
 
 ```math
@@ -71,16 +77,16 @@ y_{t,z} = \sum_{g} \mathbf{1}_R(g, t, z) \cdot p_{t,g} = \sum_{g \,:\, f(g,\,t) 
 
 The typesetter [prints](../reference/notation.md) the right-hand form. The
 left-hand form is a **tensor contraction**, which multiplies arrays and sums
-over an index they share. The relations page asks two questions of each
-column, and each pair of answers is a position that an index can take in the
+over an index they share. The sets and properties page asks two questions of
+each column, and each pair of answers is a position that an index can take in the
 formula:
 
-| The relations page says          | In the formula                                                       |
+| The reference page says          | In the formula                                                       |
 | -------------------------------- | -------------------------------------------------------------------- |
 | joined on, the column in `over=` | $`g`$ is on both factors and summed. The result loses it.            |
 | grouped by, the column in `by=`  | $`z`$ is on the indicator alone and not summed. The result gains it. |
 | joined on and grouped by         | $`t`$ is on both factors and not summed. The result keeps it.        |
-| neither                          | a value column not in the formula. Nothing reads it.                 |
+| neither                          | a property not in the formula. Nothing reads it.                     |
 
 The result carries the **free indices**, which are the indices that are not
 summed. They are the indices of the operand and of the indicator together,
@@ -97,21 +103,21 @@ sum that breaks one of three conditions, and the formula needs each of them:
 - The operand carries no column grouped by. Otherwise $`z`$ would sit on both
   factors and not be summed, so the product would match the two occurrences of
   $`z`$ and not add an axis. You write that match outside the operator:
-  `load * sum(p, over=generator, by=gen_bus[bus])`.
+  `load * sum(p, over=generator, by=generator[bus])`.
 
 So "joined on" and "grouped by" are the two positions that an index can take
-in the summation convention, applied to one product. The relations page has no
+in the summation convention, applied to one product. The reference page has no
 rule beyond this product.
 
 The key column that the call does not name makes the matrix
 **block-diagonal**, with one block for each value of that column. At each
 $`t`$, $`M_t[z, g] = \mathbf{1}_R(g, t, z)`$ is a
 $`|\mathcal{Z}| \times |\mathcal{G}|`$ matrix of zeros and ones, and
-$`y_t = M_t\, p_t`$. A relation keyed by one column has one block.
+$`y_t = M_t\, p_t`$. A property of a dimension has one block.
 
 ## A join alone
 
-`at(zone_cap, by=gen_zone[zone])` joins the same table, and binds the other
+`at(zone_cap, by=generator_snapshot[zone])` joins the same table, and binds the other
 index:
 
 ```math
@@ -130,14 +136,14 @@ it from the key alone. Where the columns a call groups by hold the whole key,
 every group is one row, and the group-by adds nothing.
 `JoinColumns.one_row_per_group` in `src/mathspec/program.py` names this case.
 A `sum` with one row per group adds up nothing, so the loader refuses it and
-names `at`. An `at` reads value columns at the whole key, so each of its
+names `at`. An `at` reads properties at the whole key, so each of its
 groups is always one row. The
-[relations page](../reference/language/relations.md#sums-through-a-relation)
+[reference page](../reference/language/sets.md#sums)
 quotes the message.
 
 The two maps are **adjoint**: an inner product does not change when the matrix
 moves to the other side as its transpose. For
-`gen_bus: { key: generator, values: bus }`, with $`x`$ over generators and
+`generator: {bus: bus}`, with $`x`$ over generators and
 $`y`$ over buses,
 
 ```math
@@ -146,16 +152,16 @@ $`y`$ over buses,
 
 which is why the program holds `at` as a `Join` node, and `sum(by=)` as the
 same `Join` under a `Sum`. The join keeps the column that the sum removes as
-an axis of its own, `Axis('generator', Column('gen_zone', 'generator'))`. That
-axis runs over `generator` and stands for the column of the relation, and the
+an axis of its own, `Axis('generator', Column('generator_snapshot.zone', 'generator'))`. That
+axis runs over `generator` and stands for the column of the property's table, and the
 `Sum` sums over it. So a map into its own dimension, which removes one
 dimension and adds the same one, still has two separate axes between the join
 and the sum.
 
-A bare relation has the same matrix, but no function behind it. A column of
-$`M`$ may then hold several ones, so the join returns several rows for one
-row of the operand, and no group is one row. That is why `at` through a bare
-relation is refused.
+A set read by its members alone has the same matrix, but no function behind
+it. A column of $`M`$ may then hold several ones, so the join returns several
+rows for one row of the operand, and no group is one row. That is why `at`
+through a set read by its members is refused.
 
 ## The join and the aggregate
 
@@ -203,20 +209,20 @@ model that an engine builds is not the matrix product.
   $`\mathrm{zone\_cap} \circ f`$ is undefined where $`f`$ is undefined, so
   `at` is absent there, and [absence
   spreads](../reference/language/absence.md#how-absence-travels) to the row.
-  `where: gen_zone` on `looked_up` writes the domain of $`f`$ into the spec,
+  `where: generator_snapshot` on `looked_up` writes the domain of $`f`$ into the spec,
   so a reader sees which rows exist without opening the data. Under the
-  default, `missing: refused`, the domain is every key tuple, so no key tuple
-  is outside it.
+  default, `missing: refused`, the domain is every combination of the
+  dimensions, so no combination is outside it.
 
 ## Partitions and tests
 
-The other two uses of a relation do not multiply by $`\mathbf{1}_R`$ and sum.
+The other two uses of a set or a property do not multiply by $`\mathbf{1}_R`$ and sum.
 
 - A partition steps inside a **fibre**, which is the set of members that
   $`f`$ sends to one value.
-  `shift(x, along=snapshot, offset=1, within=season_of[season])` reads the
+  `shift(x, along=snapshot, offset=1, within=snapshot[season])` reads the
   neighbour $`t'`$ of $`t`$ with $`f(t') = f(t)`$. The fibres of $`f`$
   partition the axis, and the dimensions do not change.
-- A test reads the indicator itself. The name of a relation in a `where`
+- A test reads the indicator itself. The name of a set in a `where`
   evaluates $`\mathbf{1}_R`$ at the coordinate of the entry, and keeps
   the coordinate where $`\mathbf{1}_R`$ is $`1`$.

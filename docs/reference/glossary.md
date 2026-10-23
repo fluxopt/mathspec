@@ -46,7 +46,7 @@ A consumer is responsible for checking that the host provides each given name
 ([what a program does not build](reading.md#what-a-program-does-not-build)).
 
 **Section**
-: One of the fifteen top-level keys of a file, such as `parameters:` or
+: One of the fourteen top-level keys of a file, such as `parameters:` or
 `given:`, and the entries under it ([file shape](language/file.md)).
 
 **Entry**
@@ -72,7 +72,7 @@ The data of an expression, a condition and a bound parameter must fit inside the
 ([how dimensions combine](language/expressions.md#how-dimensions-combine)).
 
 **Group**
-: The labels of a relation `value` column, used for grouping the relation's keys.
+: The labels of a property, used for grouping the rows of its subject.
 `within=<column>` can be used to apply `shift`, `sum_back` or `position()` separately per group.
 
 ## Conditions, masks and absence
@@ -91,7 +91,7 @@ condition is true, and leaves out the rest.
 row that reads it is not built ([absence](language/absence.md)).
 
 **Missing row**
-: A coordinate that a parameter's or a relation's table has no row for. Its
+: A coordinate that a parameter's, a set's or a property's table has no row for. Its
 `missing:` says what it is: refused when the data is attached (`refused`, the
 default), absence (`absent`), or a value, such as `0`
 ([a missing row](language/parameters-variables-constraints.md#a-missing-row)).
@@ -115,8 +115,8 @@ The meaning of some words changes depending on the context in which they appear 
 
 | Word     | One sense                                          | The other sense                                               |
 | -------- | -------------------------------------------------- | ------------------------------------------------------------- |
-| row      | a constraint at one coordinate                     | one line of a parameter's or a relation's table               |
-| column   | a variable at one coordinate                       | one column of a data table or a relation                      |
+| row      | a constraint at one coordinate                     | one line of a parameter's, a set's or a property's table      |
+| column   | a variable at one coordinate                       | one column of a data table, a set or a property               |
 | set      | an `sos:` entry                                    | the set symbol of a dimension, $\mathcal{G}$, in the legend   |
 | regime   | one case under [`cases:`](language/named.md#cases) | one of two constraints, each under its own `where:`           |
 | domain   | a variable's `continuous`, `integer` or `binary`   | the rows that hold a curve's link inside its breakpoint range |

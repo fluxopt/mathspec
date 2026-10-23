@@ -27,14 +27,14 @@ hold.
 
 ## What creates absence
 
-| Construct                                                     | What is absent                                                                                                         |
-| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `where:` on a variable                                        | the variable, at the masked coordinates                                                                                |
-| `where:` on a parameter                                       | the parameter, at the masked coordinates ([a parameter's mask](parameters-variables-constraints.md#a-parameters-mask)) |
-| `where:` on a constraint                                      | the row                                                                                                                |
-| `shift(x, along=d, offset=n)` without `edge=`                 | the vacated edge coordinate ([shift](operators.md#shift))                                                              |
-| a key combination a `missing: absent` relation has no row for | that combination's place in the relation ([relations](relations.md#a-missing-row))                                     |
-| a missing row of a `missing: absent` parameter                | the parameter, at that coordinate                                                                                      |
+| Construct                                                | What is absent                                                                                                         |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `where:` on a variable                                   | the variable, at the masked coordinates                                                                                |
+| `where:` on a parameter                                  | the parameter, at the masked coordinates ([a parameter's mask](parameters-variables-constraints.md#a-parameters-mask)) |
+| `where:` on a constraint                                 | the row                                                                                                                |
+| `shift(x, along=d, offset=n)` without `edge=`            | the vacated edge coordinate ([shift](operators.md#shift))                                                              |
+| a row a `missing: absent` set or property has no row for | that row's place in the set or the property ([sets](sets.md#a-missing-row))                                            |
+| a missing row of a `missing: absent` parameter           | the parameter, at that coordinate                                                                                      |
 
 Nothing else creates absence. Inside its mask, a missing row is the only gap
 a parameter can have, because a null or NaN value is
@@ -164,10 +164,10 @@ write `where: rel_max` on the constraint.
 | Operator                         | An output slot reads            | An absent input                      |
 | -------------------------------- | ------------------------------- | ------------------------------------ |
 | `sum(x, over=d)`                 | every position along `d`        | is one summand fewer; the row stands |
-| `sum(x, over=d, by=relation[c])` | every member of the group       | is one summand fewer; the row stands |
+| `sum(x, over=d, by=subject[p])`  | every member of the group       | is one summand fewer; the row stands |
 | `sum_back(x, along=d, window=w)` | the positions the window covers | is one summand fewer; the row stands |
 | `shift(x, along=d, offset=n)`    | one position, `n` back          | _is_ the output, so it spreads       |
-| `at(x, by=relation[c])`          | one position, through the map   | _is_ the output, so it spreads       |
+| `at(x, by=subject[p])`           | one position, through the map   | _is_ the output, so it spreads       |
 
 ## A table with gaps on purpose
 

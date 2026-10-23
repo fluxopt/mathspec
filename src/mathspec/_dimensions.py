@@ -78,7 +78,7 @@ def _check_sum(node: Sum, inner: frozenset[str], context: str) -> None:
     every one, and the join's own rules are the sum's.
     """
     if isinstance(node.operand, Join) and node.operand.columns.axes:
-        assert node.over == node.operand.columns.axes, 'a sum through a relation closes exactly the axes its join opens'
+        assert node.over == node.operand.columns.axes, 'a sum through a property closes exactly the axes its join opens'
         return
     for summed in node.over:
         if summed.dimension not in inner:
@@ -172,8 +172,8 @@ def _check_joined(call: str, use: JoinColumns | Partition, inner: frozenset[str]
         )
     if twice := sorted({d for d in dims if dims.count(d) > 1}):
         raise DimensionError(
-            f"{context}: {call} joins '{use.name}' on {twice} through more than one column. Join on "
-            f'different dimensions, or use a relation whose key columns are over different dimensions.'
+            f"{context}: {call} joins '{use.written}' on {twice} through more than one column. Join on "
+            f'different dimensions, or read a subject whose members are over different dimensions.'
         )
 
 
@@ -197,7 +197,7 @@ def _check_named_amount(
         raise DimensionError(
             f"{context}: {verb}({kwarg}={amount}): '{amount}' varies over {stray}, which the expression does "
             f"not carry (dims {sorted(inner)}). Declare '{amount}' over dims the expression carries, or group "
-            f'by a relation into one of {stray}.'
+            f'by a property into one of {stray}.'
         )
 
 
@@ -349,7 +349,7 @@ def _check_condition_dims(
             case DimensionComparison() | DimensionPosition():
                 leaf = f"where-dimension '{atom.name}'"
             case RelationComparison() | RelationPairComparison() | RelationDefined():
-                leaf = f"where-relation '{atom.name}'"
+                leaf = f"the read of '{atom.name.replace('.', '[', 1) + ']' if '.' in atom.name else atom.name}'"
             case ExpressionComparison():
                 leaf = 'a comparison of expressions'
             case CountComparison():

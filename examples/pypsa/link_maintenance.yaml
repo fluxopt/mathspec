@@ -27,15 +27,14 @@ dimensions:
   link:
     description: controllable connections, each from one bus to the buses it delivers to
 
-relations:
+sets:
   Link_maintenance_cover:
     description: >-
       the snapshots a maintenance event covers, by the snapshot it starts in —
-      in a scenario, the start and the snapshots after it, until their
-      generator weightings reach that scenario's `maintenance_duration`, data prep; no
-      rows for a link that is
-      not maintainable
-    key: { scenario: scenario, link: link, start: snapshot, covered: snapshot }
+      in a scenario, the start and the snapshots after it, until their generator
+      weightings reach that scenario's `maintenance_duration`, data prep; no
+      rows for a link that is not maintainable
+    dims: { scenario: scenario, link: link, start: snapshot, covered: snapshot }
     missing: absent
 
 parameters:

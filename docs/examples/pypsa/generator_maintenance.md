@@ -34,15 +34,14 @@ dimensions:
   generator:
     description: generating units, each on one bus
 
-relations:
+sets:
   Generator_maintenance_cover:
     description: >-
       the snapshots a maintenance event covers, by the snapshot it starts in —
-      in a scenario, the start and the snapshots after it, until their
-      generator weightings reach that scenario's `maintenance_duration`, data prep; no
-      rows for a generator that is
-      not maintainable
-    key: { scenario: scenario, generator: generator, start: snapshot, covered: snapshot }
+      in a scenario, the start and the snapshots after it, until their generator
+      weightings reach that scenario's `maintenance_duration`, data prep; no
+      rows for a generator that is not maintainable
+    dims: { scenario: scenario, generator: generator, start: snapshot, covered: snapshot }
     missing: absent
 
 parameters:

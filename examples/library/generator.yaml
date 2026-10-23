@@ -17,8 +17,10 @@ dimensions:
   snapshot: { dtype: datetime, description: dispatch periods }
   port: { dtype: str, description: "the connections components make, one label per connection" }
   generator: { dtype: str, description: "generating units, each on one port" }
-relations:
-  Generator_port: { key: generator, values: port }
+properties:
+  generator:
+    port: port
+
 parameters:
   Generator_p_nom: { dims: [generator], description: nominal power }
   Generator_marginal_cost: { dims: [generator], description: cost of one unit of output }
@@ -33,7 +35,7 @@ constraints:
       what a generator produces is what its port injects. No PyPSA row stands
       for this: PyPSA writes the generator into the balance instead
     dims: [snapshot, generator]
-    expression: at(Port_p, by=Generator_port[port]) == Generator_p
+    expression: at(Port_p, by=generator[port]) == Generator_p
 expressions:
   Generator_cost:
     expression: sum(Generator_p * Generator_marginal_cost)

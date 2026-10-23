@@ -80,8 +80,11 @@ dimensions:
   bus: { dtype: str }
   generator: { description: generating units }
 
-relations:
-  gen_bus: { key: generator, values: bus, description: the bus a generator sits on }
+properties:
+  generator:
+    bus:
+      description: the bus a generator sits on
+      into: bus
 
 parameters:
   capacity: { dims: [generator], description: installed capacity }
@@ -96,7 +99,7 @@ variables:
 expressions:
   generation:
     description: what the fleet puts into a bus
-    expression: sum(dispatch, over=generator, by=gen_bus[bus])
+    expression: sum(dispatch, over=generator, by=generator[bus])
     adds_to: injection
   generation_cost:
     description: what running the fleet costs
@@ -146,7 +149,7 @@ feasibility problem:
     **`generation`**
 
     ```math
-    \mathit{generation}_{b,t} = \sum_{g \in \mathcal{G} \,:\, \mathrm{gen\_bus}(g) = b} \mathit{dispatch}_{t,g} \qquad \forall\, b \in \mathcal{B},\ t \in \mathcal{T}
+    \mathit{generation}_{b,t} = \sum_{g \in \mathcal{G} \,:\, \mathrm{bus}(g) = b} \mathit{dispatch}_{t,g} \qquad \forall\, b \in \mathcal{B},\ t \in \mathcal{T}
     ```
 
     **`generation_cost`**
@@ -233,7 +236,7 @@ print(ms.to_markdown(spec, legend=False))
     **`generation`**
 
     ```math
-    \mathit{generation}_{b,t} = \sum_{g \in \mathcal{G} \,:\, \mathrm{gen\_bus}(g) = b} \mathit{dispatch}_{t,g} \qquad \forall\, b \in \mathcal{B},\ t \in \mathcal{T}
+    \mathit{generation}_{b,t} = \sum_{g \in \mathcal{G} \,:\, \mathrm{bus}(g) = b} \mathit{dispatch}_{t,g} \qquad \forall\, b \in \mathcal{B},\ t \in \mathcal{T}
     ```
 
     **`generation_cost`**
