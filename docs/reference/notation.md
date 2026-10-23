@@ -71,11 +71,11 @@ parameters:
 | Symbol | Meaning |
 |---|---|
 | $`\mathcal{T}`$ | index $`t`$ — `snapshot` (`int` coordinates) with $`\mathrm{season\_of}: \mathcal{T} \to \mathcal{S},\ \mathrm{gen\_zone}: \mathcal{G} \times \mathcal{T} \to \mathcal{Z},\ \mathrm{rep\_of}: \mathcal{T} \to \mathcal{T}`$ |
-| $`\mathcal{G}`$ | index $`g`$ — `generator` with $`\mathrm{gen\_bus}: \mathcal{G} \to \mathcal{B},\ \mathrm{gen\_zone}: \mathcal{G} \times \mathcal{T} \to \mathcal{Z},\ \mathrm{connection} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{gen\_bt}: \mathcal{G} \to \mathcal{B} \times \mathcal{E}`$, `connection` is `absent` where the data has no row |
-| $`\mathcal{B}`$ | index $`b`$ — `bus` with $`\mathrm{gen\_bus}: \mathcal{G} \to \mathcal{B},\ \mathrm{zone\_of}: \mathcal{B} \to \mathcal{Z},\ \mathrm{area\_of}: \mathcal{B} \to \mathcal{Z},\ \mathrm{connection} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{gen\_bt}: \mathcal{G} \to \mathcal{B} \times \mathcal{E}`$, `area_of` is `absent` where the data has no row, `connection` is `absent` where the data has no row |
-| $`\mathcal{Z}`$ | index $`z`$ — `zone` with $`\mathrm{zone\_of}: \mathcal{B} \to \mathcal{Z},\ \mathrm{area\_of}: \mathcal{B} \to \mathcal{Z},\ \mathrm{gen\_zone}: \mathcal{G} \times \mathcal{T} \to \mathcal{Z}`$, `area_of` is `absent` where the data has no row |
+| $`\mathcal{G}`$ | index $`g`$ — `generator` with $`\mathrm{gen\_bus}: \mathcal{G} \to \mathcal{B},\ \mathrm{gen\_zone}: \mathcal{G} \times \mathcal{T} \to \mathcal{Z},\ \mathrm{connection} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{gen\_bt}: \mathcal{G} \to \mathcal{B} \times \mathcal{E},\ \mathrm{dispatch\_pair} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{fuel}: \mathcal{G} \to \mathcal{E},\ \mathrm{area}: \mathrm{dispatch\_pair} \to \mathcal{Z}`$, `connection` is `absent` where the data has no row, `dispatch_pair` is `absent` where the data has no row, `generator[fuel]` is `absent` where the data has no row |
+| $`\mathcal{B}`$ | index $`b`$ — `bus` with $`\mathrm{gen\_bus}: \mathcal{G} \to \mathcal{B},\ \mathrm{zone\_of}: \mathcal{B} \to \mathcal{Z},\ \mathrm{area\_of}: \mathcal{B} \to \mathcal{Z},\ \mathrm{connection} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{gen\_bt}: \mathcal{G} \to \mathcal{B} \times \mathcal{E},\ \mathrm{dispatch\_pair} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{area}: \mathrm{dispatch\_pair} \to \mathcal{Z}`$, `area_of` is `absent` where the data has no row, `connection` is `absent` where the data has no row, `dispatch_pair` is `absent` where the data has no row |
+| $`\mathcal{Z}`$ | index $`z`$ — `zone` with $`\mathrm{zone\_of}: \mathcal{B} \to \mathcal{Z},\ \mathrm{area\_of}: \mathcal{B} \to \mathcal{Z},\ \mathrm{gen\_zone}: \mathcal{G} \times \mathcal{T} \to \mathcal{Z},\ \mathrm{area}: \mathrm{dispatch\_pair} \to \mathcal{Z}`$, `area_of` is `absent` where the data has no row |
 | $`\mathcal{S}`$ | index $`s`$ — `season` with $`\mathrm{season\_of}: \mathcal{T} \to \mathcal{S}`$ |
-| $`\mathcal{E}`$ | index $`e`$ — `technology` with $`\mathrm{gen\_bt}: \mathcal{G} \to \mathcal{B} \times \mathcal{E}`$ |
+| $`\mathcal{E}`$ | index $`e`$ — `technology` with $`\mathrm{gen\_bt}: \mathcal{G} \to \mathcal{B} \times \mathcal{E},\ \mathrm{fuel}: \mathcal{G} \to \mathcal{E}`$, `generator[fuel]` is `absent` where the data has no row |
 | $`\mathcal{A}`$ | index $`a`$ — `bp` |
 
 #### Parameters
@@ -510,6 +510,52 @@ constraints:
 
 ```math
 \sum_{t' \in \mathcal{T} \,:\, \mathrm{rep\_of}(t') = t} \mathit{spill}_{t'} \le \mathit{spill}_{\mathrm{rep\_of}(t)} \qquad \forall\, t \in \mathcal{T}
+```
+
+#### Sum through a property of a dimension
+
+a sum through a property of a dimension, read as the property's own name
+
+```yaml
+constraints:
+  by_fuel:
+    dims: [snapshot, technology]
+    expression: sum(p, over=generator, by=generator[fuel]) <= budget
+```
+
+```math
+\sum_{g \in \mathcal{G} \,:\, \mathrm{fuel}(g) = e} p_{t,g} \le \mathrm{budget} \qquad \forall\, t \in \mathcal{T},\ e \in \mathcal{E}
+```
+
+#### Sum through a property of a set
+
+a sum through a property of a set, over both of its members
+
+```yaml
+constraints:
+  by_area:
+    dims: [snapshot, zone]
+    expression: sum(p * link_eff, over=[generator, bus], by=dispatch_pair[area]) <= zone_cap
+```
+
+```math
+\sum_{g \in \mathcal{G},\ b \in \mathcal{B} \,:\, \mathrm{area}(g,\ b) = z} p_{t,g} \cdot \mathrm{link\_eff}_{g,b} \le \mathrm{zone\_cap}_{z} \qquad \forall\, t \in \mathcal{T},\ z \in \mathcal{Z}
+```
+
+#### Property as a condition
+
+a property alone as a where: the row has it
+
+```yaml
+constraints:
+  fuelled:
+    dims: [snapshot, generator]
+    where: "generator[fuel]"
+    expression: p <= budget
+```
+
+```math
+p_{t,g} \le \mathrm{budget} \qquad \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \,:\, \mathrm{fuel}(g) \text{ is defined}
 ```
 
 #### Sum through a two-key map

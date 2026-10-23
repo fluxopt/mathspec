@@ -11,7 +11,7 @@ from typing import Any
 import pytest
 
 from mathspec import to_spec
-from mathspec._typesetting import FORMATS, typeset
+from mathspec._typesetting import typeset
 from mathspec.errors import LanguageError
 from mathspec.program import (
     And,
@@ -304,17 +304,46 @@ def test_a_property_read_the_language_refuses(patch, fragment):
     assert fragment in _refusal(**patch)
 
 
-@pytest.mark.parametrize('fmt', FORMATS)
-def test_the_typesetter_prints_a_read_of_several_properties(fmt):
-    spec = varied(
-        CALLS,
-        **{
-            'variables.x.where': 'generator[bus, carrier]',
-            'constraints.c': {
-                'dims': ['bus', 'carrier', 'snapshot'],
-                'expression': 'sum(x, over=generator, by=generator[bus, carrier]) <= cap',
-            },
+PRINTED = varied(
+    CALLS,
+    **{
+        'variables.f.where': 'line[bus1]',
+        'variables.y': {'dims': ['generator', 'period']},
+        'constraints.c': {
+            'dims': ['bus', 'carrier', 'snapshot'],
+            'expression': 'sum(x, over=generator, by=generator[bus, carrier]) <= cap',
         },
-    )
-    printed = typeset(spec, fmt)
-    assert 'carrier' in printed
+        'constraints.d': {'dims': ['generator', 'period'], 'expression': 'y >= at(price, by=generator_period[zone])'},
+    },
+)
+
+
+@pytest.mark.parametrize(
+    ('fmt', 'fragment'),
+    [
+        pytest.param('latex', r'\mathrm{bus}(g) = b \wedge \mathrm{carrier}(g) = c', id='latex-two-properties'),
+        pytest.param('latex', r'\mathrm{bus1}(l) \text{ is defined}', id='latex-presence'),
+        pytest.param('latex', r'\mathrm{price}_{\mathrm{zone}(g,\ r),r}', id='latex-a-lookup'),
+        pytest.param('latex', r'\mathrm{bus}: \mathcal{G} \to \mathcal{B}', id='latex-legend-of-a-dimension'),
+        pytest.param('latex', r'\mathrm{zone}: \mathrm{generator\_period} \to \mathcal{Z}', id='latex-legend-of-a-set'),
+        pytest.param(
+            'latex', r'\texttt{line[bus1]} is \texttt{absent} where the data has no row', id='latex-legend-absent'
+        ),
+        pytest.param('typst', 'upright("bus")(g) = b and upright("carrier")(g) = c', id='typst-two-properties'),
+        pytest.param('typst', 'upright("bus1")(l) upright(" is defined")', id='typst-presence'),
+        pytest.param(
+            'typst', 'upright("zone"): upright("generator_period") arrow.r cal(Z)', id='typst-legend-of-a-set'
+        ),
+        pytest.param('typst', '`line[bus1]` is `absent` where the data has no row', id='typst-legend-absent'),
+        pytest.param('markdown', r'\mathrm{bus}(g) = b \wedge \mathrm{carrier}(g) = c', id='markdown-two-properties'),
+        pytest.param(
+            'markdown', r'\mathrm{zone}: \mathrm{generator\_period} \to \mathcal{Z}', id='markdown-legend-of-a-set'
+        ),
+        pytest.param('markdown', '`line[bus1]` is `absent` where the data has no row', id='markdown-legend-absent'),
+    ],
+)
+def test_the_typesetter_names_a_property_after_itself(fmt, fragment):
+    """A read printed as the table's name, such as `generator.bus(g)`, is a name the file never writes."""
+    printed = typeset(PRINTED, fmt)
+    assert fragment in printed
+    assert 'generator.bus' not in printed, 'no table name the file cannot write reaches the page'
