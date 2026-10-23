@@ -1627,7 +1627,8 @@ def _atom_names(atom: TypedCondition) -> frozenset[str]:
     """One leaf's entries, its dimension apart — the rule [`Mask.names_read`][] is the union of.
 
     A comparison on a dimension names no entry — a coordinate is not
-    data to feed — a relation pair names both maps it compares, and a
+    data to feed — unless a position counts within groups, which names the
+    tables the groups are read from. A relation pair names both maps it compares, and a
     comparison of expressions names every parameter and relation its sides
     read, answered on the program's form of it since only a program mask is
     asked. ``assert_never``-closed for the reason [`_atom_dims`][] is: a condition
@@ -1647,7 +1648,9 @@ def _atom_names(atom: TypedCondition) -> frozenset[str]:
             return atom.operand.names_read
         case JoinedCondition():
             return atom.operand.names_read | set(atom.columns.tables)
-        case DimensionComparison() | DimensionPosition():
+        case DimensionPosition():
+            return frozenset(atom.partition.tables if atom.partition is not None else ())
+        case DimensionComparison():
             return frozenset()
         case _:
             assert_never(atom)

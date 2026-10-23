@@ -199,6 +199,31 @@ def test_a_position_within_a_property_reads_its_table():
 
 
 @pytest.mark.parametrize(
+    ('patch', 'text', 'tables'),
+    [
+        pytest.param(
+            {'relations.period_of': {'key': 'snapshot', 'values': 'period'}},
+            'position(snapshot, within=period_of[period]) == 0',
+            {'period_of'},
+            id='a-relation',
+        ),
+        pytest.param({}, 'position(snapshot, within=snapshot[period]) == 0', {'snapshot.period'}, id='a-property'),
+        pytest.param(
+            {},
+            'position(snapshot, within=snapshot[period, season]) == 0',
+            {'snapshot.period', 'snapshot.season'},
+            id='two-properties',
+        ),
+    ],
+)
+def test_a_position_within_a_partition_reads_its_tables(patch, text, tables):
+    """A position counted within groups named no table, so a consumer attaching what a mask reads left the groups out."""
+    where = to_spec(varied(CALLS, **patch, **{'variables.x.where': text})).program.variables['x'].where
+    assert where is not None
+    assert where.names_read == tables, 'the data supplies the tables the groups are read from'
+
+
+@pytest.mark.parametrize(
     ('patch', 'fragment'),
     [
         pytest.param(
