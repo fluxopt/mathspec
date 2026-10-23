@@ -545,17 +545,26 @@ class ExpressionResolver:
         if (problem := self.not_a_relation(value.relation, operator, key)) is not None:
             self.errors.append(problem)
             return None
-        shape = self.ns.relations[value.relation]
-        if unknown := [c for c in value.columns if c not in shape.roles and c not in self.formals]:
+        admitted = self.ns.columns(value.relation)
+        assert admitted is not None, 'not_a_relation refuses a name that takes no brackets'
+        if unknown := [c for c in value.columns if c not in admitted and c not in self.formals]:
             self.errors.append(
-                f'{self.context}: {operator}({key}={value}) names {unknown}, which is no column of '
-                f"'{value.relation}'. Name one of its columns, {list(shape.roles)}."
+                f'{self.context}: {operator}({key}={value}) names {unknown}, which is no '
+                f"{_columns_noun(self.ns, value.relation)[0]} of '{value.relation}'. Name one of its "
+                f'{_columns_noun(self.ns, value.relation)[1]}, {_listed(self.ns, value.relation)}.'
             )
             return None
         if any(c in self.formals for c in value.columns):
             return None
         if len(set(value.columns)) < len(value.columns):
             self.errors.append(f'{self.context}: {operator}({key}={value}) names a column twice. Name each once.')
+            return None
+        if value.relation in self.ns.dimensions and not set(value.columns) & set(self.ns.properties[value.relation]):
+            self.errors.append(
+                f"{self.context}: {operator}({key}={value}) reads no property of '{value.relation}', and a dimension "
+                f'has no table of its own. Name one of its properties, '
+                f'{list(self.ns.properties[value.relation])}.'
+            )
             return None
         return value
 
@@ -566,12 +575,10 @@ class ExpressionResolver:
             return (
                 f'{context}: {operator}({key}={value.name}) names the relation and none of its columns. Write '
                 f"{key}={value.name}[<column>], with a column of '{value.name}': "
-                f'{list(ns.relations[value.name].roles)}.'
+                f'{list(ns.columns(value.name) or ())}.'
             )
         if isinstance(value, NameNode) and value.name in ns.dimensions:
-            over_here = [
-                f'{n}[{r}]' for n, shape in ns.relations.items() for r, dim in shape.columns if dim == value.name
-            ]
+            over_here = ns.reads_over(value.name)
             hint = (
                 f'Columns over {value.name!r}: {over_here}'
                 if over_here
@@ -596,25 +603,28 @@ class ExpressionResolver:
         so a relation may gain a column without changing what the call means.
         """
         name, into_roles = columns.relation, columns.columns
-        ns, shape = self.ns, self.ns.relations[name]
+        ns = self.ns
+        admitted = ns.columns(name) or ()
         call = f'sum(by={columns})'
-        from_roles = tuple(n for n in over if n in shape.roles)
-        plain = tuple(n for n in over if n not in shape.roles)
+        from_roles = tuple(n for n in over if n in admitted)
+        plain = tuple(n for n in over if n not in admitted)
+        noun, nouns = _columns_noun(ns, name)
         if unknown := [n for n in plain if n not in ns.dimensions]:
             self.errors.append(
-                f"{self.context}: {call}: over={unknown[0]} names no column of '{name}', whose columns are "
-                f'{list(shape.roles)}, and no dimension{_or_a_formal(self.formals)}. '
-                f'{did_you_mean(unknown[0], [*shape.roles, *ns.dimensions], label="Names")}'
+                f"{self.context}: {call}: over={unknown[0]} names no {noun} of '{name}', whose {nouns} are "
+                f'{list(admitted)}, and no dimension{_or_a_formal(self.formals)}. '
+                f'{did_you_mean(unknown[0], [*admitted, *ns.dimensions], label="Names")}'
             )
             return None
         if not from_roles:
             self.errors.append(
-                f"{self.context}: {call}: over={shown(over)} names no column of '{name}', so the sum reads nothing "
+                f"{self.context}: {call}: over={shown(over)} names no {noun} of '{name}', so the sum reads nothing "
                 f"through '{name}'. Name in over= the column that the operand is joined on: "
-                f'{_columns_over(shape, plain)}.'
+                f'{_columns_over(ns.table(name, admitted)[1], plain)}.'
             )
             return None
-        join = self._checked_join(name, call, from_roles, into_roles)
+        table, shape = ns.table(name, (*from_roles, *into_roles))
+        join = self._checked_join(table, shape, call, from_roles, into_roles)
         if join is None:
             return None
         if join.one_row_per_group:
@@ -635,7 +645,7 @@ class ExpressionResolver:
         joins on the value column alone, and the key column arrives.
         """
         name, call = columns.relation, f'at(by={columns})'
-        shape = self.ns.relations[name]
+        table, shape = self.ns.table(name, columns.columns)
         if not shape.values:
             self.errors.append(
                 f"{self.context}: {call}: '{name}' has every column in its key, so it has no value column for at() "
@@ -650,14 +660,13 @@ class ExpressionResolver:
             return None
         matched = inner - {shape.dim(r) for r in columns.columns}
         into = tuple(r for r in shape.key if shape.dim(r) not in matched)
-        return self._checked_join(name, call, columns.columns, into)
+        return self._checked_join(table, shape, call, columns.columns, into)
 
     def _checked_join(
-        self, name: str, call: str, from_roles: tuple[str, ...], into_roles: tuple[str, ...]
+        self, table: str, shape: Relation, call: str, from_roles: tuple[str, ...], into_roles: tuple[str, ...]
     ) -> JoinColumns | None:
-        """The join of relation *name* between the columns that leave the frame and the columns that arrive."""
+        """The join of *table*, shaped *shape*, between the columns that leave the frame and the columns that arrive."""
         context = self.context
-        shape = self.ns.relations[name]
         if both := sorted(set(from_roles) & set(into_roles)):
             self.errors.append(f'{context}: {call}: over= and by= both name {both}. Name different columns in each.')
             return None
@@ -670,7 +679,7 @@ class ExpressionResolver:
                 )
                 return None
         kept = tuple(r for r in shape.key if r not in from_roles and r not in into_roles)
-        return JoinColumns(name, shape, (*from_roles, *kept), (*into_roles, *kept))
+        return JoinColumns(table, shape, (*from_roles, *kept), (*into_roles, *kept))
 
     def partition(self, columns: ColumnsNode, operator: str, along_dim: str) -> Partition | None:
         """How a partition (``shift``, ``sum_back``, ``position``) steps along the relation *columns* names.
@@ -682,7 +691,7 @@ class ExpressionResolver:
         """
         context = self.context
         name, within_roles = columns.relation, columns.columns
-        shape = self.ns.relations[name]
+        table, shape = self.ns.table(name, within_roles)
         call = f'{operator}(within={columns})'
         if not shape.values:
             self.errors.append(
@@ -704,17 +713,18 @@ class ExpressionResolver:
             return None
         (along,) = over_keys
         joined = tuple(r for r in shape.key if r != along)
-        return Partition(name, shape, along, within_roles, joined)
+        return Partition(table, shape, along, within_roles, joined)
 
     def not_a_relation(self, name: str, operator: str, key: str) -> str | None:
         """Why *name*, written before the columns of a selection, is not a relation; ``None`` where it is one."""
         ns, context = self.ns, self.context
-        if name in ns.relations:
+        if name in ns.relations or name in ns.properties:
             return None
         if name in ns.dimensions:
             return (
-                f"{context}: {operator}({key}={name}[...]): '{name}' is a dimension, not a relation. Write the "
-                f'relation first and its columns after it: {key}=<relation>[<column>].'
+                f"{context}: {operator}({key}={name}[...]): '{name}' is a dimension with no properties. Declare "
+                f'one under properties: {name}: {{<property>: <dimension>}}, or write a relation first and its '
+                f'columns after it: {key}=<relation>[<column>].'
             )
         return (
             f'{context}: {operator}({key}={name}[...]) does not name a relation{_or_a_formal(self.formals)}. '
@@ -762,6 +772,22 @@ def _columns_over(shape: Relation, dims: tuple[str, ...]) -> str:
     if named := [f'the columns over {d!r} are {roles}' for d, roles in over.items() if roles]:
         return ', '.join(named)
     return f'its columns are {list(shape.roles)}, over {sorted(set(shape.dims))}'
+
+
+def _columns_noun(ns: Namespace, name: str) -> tuple[str, str]:
+    """What one name, and several, inside ``name[...]`` are called: a relation's columns, a dimension's properties, a set's members and properties."""
+    if name in ns.spec.relations:
+        return 'column', 'columns'
+    if name in ns.dimensions:
+        return 'property', 'properties'
+    return 'member or property', 'members and properties'
+
+
+def _listed(ns: Namespace, name: str) -> list[str]:
+    """What a refusal offers inside ``name[...]``: a dimension's properties, since its own name reads nothing there."""
+    if name in ns.dimensions:
+        return list(ns.properties.get(name, {}))
+    return list(ns.columns(name) or ())
 
 
 def _or_a_formal(formals: frozenset[str]) -> str:

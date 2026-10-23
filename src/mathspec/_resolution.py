@@ -86,8 +86,10 @@ class Namespace:
         'given_conditions',
         'leaf_dims',
         'parameters',
+        'properties',
         'relations',
         'spec',
+        'subjects',
         'tables',
         'variables',
     )
@@ -132,6 +134,16 @@ class Namespace:
         #: relation or set name -> its columns and key: the tables a file
         #: writes by name, which a property's dotted name is not.
         self.relations: dict[str, Relation] = {n: lk for n, lk in self.tables.items() if lk.subject is None}
+        #: dimension or set -> its key as ``(member, dimension)`` pairs: a
+        #: dimension is its own one member, and a set has its own.
+        self.subjects: dict[str, tuple[tuple[str, str], ...]] = {
+            **{d: ((d, d),) for d in spec.dimensions},
+            **{s: entry.pairs for s, entry in spec.sets.items()},
+        }
+        #: subject -> property name -> the dimension the property maps into.
+        self.properties: dict[str, dict[str, str]] = {
+            s: {p: prop.into for p, prop in group.items()} for s, group in spec.properties.items()
+        }
         #: parameter or variable name -> the ``dims`` it is read through. Stamped onto
         #: each leaf a condition names, the way a relation leaf carries ``over``.
         self.leaf_dims: dict[str, tuple[str, ...]] = {
@@ -286,6 +298,49 @@ class Namespace:
     def unordered(self, name: str) -> bool:
         """Whether the declared dimension *name* is one whose order the file does not declare part of the model."""
         return not self.spec.dimensions[name].ordered
+
+    def columns(self, name: str) -> tuple[str, ...] | None:
+        """What ``name[...]`` may name, or ``None`` where *name* takes no brackets.
+
+        A relation's columns; a set's members and properties; a dimension's
+        own name, which is its one member, and its properties.
+        """
+        if name in self.spec.relations:
+            return self.relations[name].roles
+        if name in self.subjects:
+            return (*(m for m, _ in self.subjects[name]), *self.properties.get(name, {}))
+        return None
+
+    def table(self, name: str, columns: Iterable[str]) -> tuple[str, Relation]:
+        """The table ``name[columns]`` reads: the name a program node carries, and its shape.
+
+        A relation, and a set where *columns* names none of its properties,
+        read their own table. One property is read from its own table,
+        ``subject.property``, which carries the subject's members too. Several
+        are read from their inner join, a relation named after the subject,
+        keyed by its members, with one value column per property in the order
+        *columns* names them, and with ``subject`` set. The program holds no
+        such table: a consumer builds it from the tables of its properties.
+        *columns* holds names [`columns`][] admits, and a dimension's hold a
+        property.
+        """
+        properties = self.properties.get(name, {})
+        read = [c for c in dict.fromkeys(columns) if c in properties]
+        if not read:
+            return name, self.relations[name]
+        if len(read) == 1:
+            return f'{name}.{read[0]}', self.tables[f'{name}.{read[0]}']
+        key = self.subjects[name]
+        missing = 'absent' if any(self.tables[f'{name}.{p}'].missing == 'absent' for p in read) else 'refused'
+        columns_read = (*key, *((p, properties[p]) for p in read))
+        return name, Relation(columns_read, tuple(m for m, _ in key), missing, None, name)
+
+    def reads_over(self, dimension: str) -> list[str]:
+        """Every ``name[column]`` a file may write whose column is over *dimension*, for the writer who named the dimension."""
+        return [
+            *(f'{n}[{r}]' for n, shape in self.relations.items() for r, dim in shape.columns if dim == dimension),
+            *(f'{s}[{p}]' for s, group in self.properties.items() for p, into in group.items() if into == dimension),
+        ]
 
     def kind(self, name: str) -> NameKind | None:
         """What *name* was declared as, or ``None`` where the file declares it nowhere."""

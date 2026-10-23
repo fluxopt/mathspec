@@ -1765,7 +1765,10 @@ class TestRulesDecidedWithoutData:
             ),
             pytest.param(
                 {'variables.p.where': "c[h] == 'x'"},
-                ("'c[h]' reads a column of 'c', which is a parameter", 'Only a relation has columns'),
+                (
+                    "'c[h]' reads a column of 'c', which is a parameter",
+                    'Only a relation, a set or a dimension has columns',
+                ),
                 id='where-a-column-of-a-parameter',
             ),
             pytest.param(

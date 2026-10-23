@@ -100,7 +100,7 @@ def join_dims(columns: JoinColumns, inner: frozenset[str], context: str, operand
     """
     lookup = columns.one_row_per_group
     named = columns.dropped if lookup else columns.added
-    call = f'{"at" if lookup else "sum"}(by={columns.name}[{", ".join(named)}])'
+    call = f'{"at" if lookup else "sum"}(by={columns.written}[{", ".join(named)}])'
     if missing := sorted(set(columns.dropped_dims) - inner):
         if lookup:
             raise DimensionError(
@@ -151,7 +151,7 @@ def _check_translation(node: Translate | WindowSum, inner: frozenset[str], spec:
         )
     _check_named_amount(node, verb, inner, spec, context)
     if node.partition is not None:
-        within = f'{node.partition.name}[{", ".join(node.partition.grouped)}]'
+        within = f'{node.partition.written}[{", ".join(node.partition.grouped)}]'
         _check_joined(f'{verb}(along={node.along}, within={within})', node.partition, inner, context)
 
 
@@ -357,7 +357,7 @@ def _check_condition_dims(
             case TranslatedCondition():
                 leaf = f"a condition translated along '{atom.along}'"
             case JoinedCondition():
-                leaf = f"a condition read through '{atom.columns.name}'"
+                leaf = f"a condition read through '{atom.columns.written}'"
             case _:
                 assert_never(atom)
         raise DimensionError(

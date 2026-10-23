@@ -142,3 +142,58 @@ The default `refused` refuses data that leaves a row out. For
 every one of those rows has a `zone`. For `connection`, only the listed pairs
 are rows, and a property of `connection` with `missing: refused` needs a value
 at each listed pair, not at every pair of a generator and a bus.
+
+## How a set or a property is read
+
+A call names a subject and what it reads of it as `subject[name, …]`. Each name
+is a member of the subject or a property of it. The call joins and groups by
+the rules of a [relation](relations.md#how-a-relation-is-used), where a member
+is a key column and a property is a value column.
+
+| kind              | written as                                                    |
+| ----------------- | ------------------------------------------------------------- |
+| join and group by | `sum(p, over=generator, by=generator[bus])`                   |
+| join              | `at(price, by=generator_period[zone])`                        |
+| partition         | `shift(x, along=snapshot, offset=1, within=snapshot[period])` |
+| test a value      | `generator[bus] == 'b1'`, or `line[bus0] != line[bus1]`       |
+| test a property   | `line[bus1]`, true where the line has the property            |
+
+```yaml
+dimensions:
+  generator: { dtype: str }
+  bus: { dtype: str }
+  carrier: { dtype: str }
+  snapshot: { dtype: int }
+properties:
+  generator:
+    bus: bus
+    carrier: { into: carrier, missing: absent }
+parameters:
+  limit: { dims: [bus, carrier] }
+variables:
+  p:
+    dims: [generator, snapshot]
+    where: generator[carrier]
+    bounds: { lower: 0 }
+constraints:
+  carrier_limit:
+    dims: [bus, carrier, snapshot]
+    expression: sum(p, over=generator, by=generator[bus, carrier]) <= limit
+```
+
+$$p_{g,t} \ge 0 \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T} \,:\, \mathrm{generator.carrier}(g) \text{ is defined}$$
+
+$$\sum_{g \in \mathcal{G} \,:\, \mathrm{generator.bus}(g) = b \wedge \mathrm{generator.carrier}(g) = c} p_{g,t} \le \mathrm{limit}_{b,c} \qquad \forall\, b \in \mathcal{B},\ c \in \mathcal{C},\ t \in \mathcal{T}$$
+
+- A call that names several properties reads their **inner join**. A generator
+  with no `carrier` has no row in it, so `carrier_limit` adds up only the
+  generators that have a bus and a carrier.
+- `subject[property]` alone in a condition is true where the row has the
+  property. `generator[bus, carrier]` is true where the row has both.
+- A call reads one subject. To read through two, nest the calls:
+  `sum(sum(p, over=generator, by=generator[bus]), over=bus, by=bus[zone])`.
+- A dimension is read by its properties, because it has no table of its own:
+
+  ```text
+  Constraint 'carrier_limit': sum(by=generator[generator]) reads no property of 'generator', and a dimension has no table of its own. Name one of its properties, ['bus', 'carrier'].
+  ```
