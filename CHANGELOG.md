@@ -12,6 +12,7 @@ it releases that version ([RELEASING.md](https://github.com/energy-models/mathsp
 
 ## Upcoming version
 
+- fix(typesetting): every section of a typeset page has its own heading, and the notation table writes the index of the dimension the page steps along ([#6](https://github.com/fluxopt/mathspec/pull/6))
 - feat(language)!: sets and properties replace relations, and a relations section is refused ([#5](https://github.com/fluxopt/mathspec/pull/5))
 - feat(typesetting): the math names a property after itself, and the reading page gives the tables of sets and properties ([#4](https://github.com/fluxopt/mathspec/pull/4))
 - feat(composition): fragments join the properties of a subject, and a set two fragments declare differently is refused ([#3](https://github.com/fluxopt/mathspec/pull/3))

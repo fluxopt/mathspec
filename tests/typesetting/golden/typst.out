@@ -51,7 +51,7 @@ every character a notation escapes, set as text: link\_to, 100% & \#1 costs \$5 
 / $italic("op_cost")$: `op_cost` over $cal(T) times cal(G)$
 / $italic("warm")$: `warm` over $cal(T) times cal(G)$
 
-== Definitions
+== Expressions
 / $upright("spend")^(upright("cap"))$: `spend_cap` over $cal(G)$
 / $italic("spend")$: `spend` over $cal(T)$ --- what a snapshot's dispatch costs
 / $upright("rating")$: `rating` over $cal(G) times cal(T)$
@@ -68,7 +68,7 @@ every character a notation escapes, set as text: link\_to, 100% & \#1 costs \$5 
 / $upright("pos")_(upright("property")(t))(t)$: `position(within=subject[...])` --- the position of $t$ inside its group
 / $abs(cal(T))$: the size of $cal(T)$; $abs(cal(T)) - 1$ is the last position
 
-== Conditions
+== Condition definitions
 #set math.equation(numbering: "(1)")
 $ upright("dispatchable") & upright("dispatchable")_(g) & arrow.l.r.double.long upright("p")^(upright("max"))_(g) > 0 and not upright("is_flexible")_(g) & forall g in cal(G) \
   upright("priced_dispatch") & upright("priced_dispatch")_(g) & arrow.l.r.double.long upright("dispatchable")_(g) and upright("spend")^(upright("cap"))_(g) > 0 & forall g in cal(G) $

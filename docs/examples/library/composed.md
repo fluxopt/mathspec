@@ -126,7 +126,7 @@ constraints:
     | $`f`$ | `Port_p` over $`\mathcal{T} \times \mathcal{J}`$ — what a port puts into its bus in a snapshot, negative for a withdrawal |
     | $`p`$ | `Generator_p` over $`\mathcal{T} \times \mathcal{G}`$ — `Generator-p` — what a generator produces in a snapshot |
 
-    #### Definitions
+    #### Expressions
 
     | Symbol | Meaning |
     |---|---|
@@ -236,7 +236,7 @@ constraints:
     | $`p`$ | `Generator_p` over $`\mathcal{T} \times \mathcal{G}`$ — `Generator-p` — what a generator produces in a snapshot |
     | $`u`$ | `Generator_status` over $`\mathcal{T} \times \mathcal{G}`$ — `Generator-status` — whether a unit is on in a snapshot |
 
-    #### Definitions
+    #### Expressions
 
     | Symbol | Meaning |
     |---|---|

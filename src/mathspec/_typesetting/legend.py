@@ -62,12 +62,16 @@ class Noticed:
         numeric_coordinates: Each dimension whose index is compared against a
             number, where "position 3" and "the coordinate 3" are both
             readings of a line.
+        along: The dimension the first translation or ``position()`` steps
+            along, whose index and set the notation rows are written in; ``None``
+            where the page steps along none.
     """
 
     policies: frozenset[TranslationPolicy]
     grouped: bool
     positions: frozenset[PositionForm]
     numeric_coordinates: frozenset[str]
+    along: str | None
 
 
 def notice(program: Program) -> Noticed:
@@ -76,6 +80,7 @@ def notice(program: Program) -> Noticed:
     grouped = False
     positions: set[PositionForm] = set()
     numeric: set[str] = set()
+    along: list[str] = []
 
     def expressions(*roots: Expression) -> None:
         nonlocal grouped
@@ -83,6 +88,7 @@ def notice(program: Program) -> Noticed:
             if isinstance(node, WindowSum) or (isinstance(node, Translate) and node.offset != 0):
                 policies.add(policy_of(node))
                 grouped = grouped or node.partition is not None
+                along.append(node.along)
             for region in regions:
                 masks(region)
 
@@ -97,6 +103,7 @@ def notice(program: Program) -> Noticed:
                 numeric.add(atom.name)
             elif isinstance(atom, DimensionPosition):
                 positions.add('grouped' if atom.partition is not None else 'plain')
+                along.append(atom.name)
                 if atom.position < 0:
                     positions.add('from_end')
             elif isinstance(atom, ExpressionComparison):
@@ -120,7 +127,7 @@ def notice(program: Program) -> Noticed:
         masks(assumption.holds)
         if assumption.where is not None:
             masks(assumption.where)
-    return Noticed(frozenset(policies), grouped, frozenset(positions), frozenset(numeric))
+    return Noticed(frozenset(policies), grouped, frozenset(positions), frozenset(numeric), along[0] if along else None)
 
 
 #: Where a parameter's or a relation's ``missing:`` applies, as the legend says it.
@@ -228,14 +235,15 @@ class Legend:
             self._item(self.symbols.name[m], f'{fmt.mono(m)}{self._over(list(entry.dims))}', entry.description)
             for m, entry in program.conditions.items()
         ]
+        notation: list[LegendItem] = self._notation(noticed, noticed.along) if noticed.along else []
         groups = (
             ('Given', given),
             ('Sets', sets),
             ('Parameters', parameters),
             ('Conditions', conditions),
             ('Variables', variables),
-            ('Definitions', definitions),
-            ('Notation', self._notation(noticed)),
+            ('Expressions', definitions),
+            ('Notation', notation),
         )
         return [(title, items) for title, items in groups if items]
 
@@ -301,54 +309,59 @@ class Legend:
             )
         return ''.join(clauses)
 
-    def _notation(self, noticed: Noticed) -> list[LegendItem]:
-        """A row for each translation and position symbol printed; plain ``t-k`` needs none.
+    def _notation(self, noticed: Noticed, along: str) -> list[LegendItem]:
+        """A row for each translation and position symbol printed, in *along*'s index; plain ``t-k`` needs none.
 
         The meaning is the spec spelling the symbol stands for, so the row
         holds no claim the language reference does not already make.
         """
         fmt, dash = self.format, self.format.dash
-        group = fmt.apply(fmt.upright('property'), 't')
-        shifted, t = fmt.math('t-k'), fmt.math('t')
+        i, steps = self.symbols.index[along], self.symbols.set[along]
+        k, v = _apart(i, 'k', 'n', 'm'), _apart(i, 'v', 'w', 'u')
+        group = fmt.apply(fmt.upright('property'), i)
+        shifted, at = fmt.math(f'{i}-{k}'), fmt.math(i)
         items = []
         if 'wrap' in noticed.policies:
             cyclic = fmt.mono("edge='wrap'")
-            items.append(LegendItem(f't {self._op("cyclic_minus")} k', f'{cyclic} {dash} {shifted}, cyclic'))
+            items.append(LegendItem(f'{i} {self._op("cyclic_minus")} {k}', f'{cyclic} {dash} {shifted}, cyclic'))
         if 'edge' in noticed.policies:
             items.append(
                 LegendItem(
-                    f't {fmt.subscript(self._op("edge_minus"), ["v"])} k',
-                    f'{fmt.mono("edge=v")} {dash} {shifted}, and {fmt.math("v")} past the edge',
+                    f'{i} {fmt.subscript(self._op("edge_minus"), [v])} {k}',
+                    f'{fmt.mono("edge=v")} {dash} {shifted}, and {fmt.math(v)} past the edge',
                 )
             )
         if noticed.grouped:
             items.append(
                 LegendItem(
-                    f't {fmt.superscript(self._op("cyclic_minus"), group)} k',
-                    f'{fmt.mono("within=subject[...]")} {dash} {shifted} inside the group of {t}',
+                    f'{i} {fmt.superscript(self._op("cyclic_minus"), group)} {k}',
+                    f'{fmt.mono("within=subject[...]")} {dash} {shifted} inside the group of {at}',
                 )
             )
         if noticed.positions:
             items.append(
                 LegendItem(
-                    fmt.apply(self._op('position'), 't'),
-                    f'{fmt.mono("position()")} {dash} the position of {t}, counted from {fmt.math("0")}; {t} is the label',
+                    fmt.apply(self._op('position'), i),
+                    f'{fmt.mono("position()")} {dash} the position of {at}, counted from {fmt.math("0")}; {at} is the label',
                 )
             )
         if 'grouped' in noticed.positions:
             items.append(
                 LegendItem(
-                    fmt.apply(fmt.subscript(self._op('position'), [group]), 't'),
-                    f'{fmt.mono("position(within=subject[...])")} {dash} the position of {t} inside its group',
+                    fmt.apply(fmt.subscript(self._op('position'), [group]), i),
+                    f'{fmt.mono("position(within=subject[...])")} {dash} the position of {at} inside its group',
                 )
             )
         if 'from_end' in noticed.positions:
-            size = fmt.cardinality(fmt.script('T'))
+            size = fmt.cardinality(steps)
             last = f'{size} {self._op("minus")} 1'
-            items.append(
-                LegendItem(size, f'the size of {fmt.math(fmt.script("T"))}; {fmt.math(last)} is the last position')
-            )
+            items.append(LegendItem(size, f'the size of {fmt.math(steps)}; {fmt.math(last)} is the last position'))
         return items
+
+
+def _apart(index: str, *letters: str) -> str:
+    """The first of *letters* that is not *index*: the notation rows write an offset and a fill beside the index."""
+    return next(letter for letter in letters if letter != index)
 
 
 def _spelled(name: str, lk: Relation) -> str:

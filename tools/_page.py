@@ -52,9 +52,8 @@ def inlined(markdown: str) -> str:
 def split_math(spec: Source, **options: Any) -> tuple[str, str]:
     """*spec*'s Markdown page cut where its equations start: the description and legend, then the math.
 
-    The legend and the math share section titles (Conditions, Definitions), so no
-    heading marks the cut. The page without its legend is the description, then
-    the math from its first heading on, and that math ends the whole page.
+    The page without its legend is the description, then the math from its first
+    heading on, and that math ends the whole page.
     """
     page = to_markdown(spec, **options)
     bare = to_markdown(spec, **{**options, 'legend': False})
