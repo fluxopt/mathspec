@@ -46,10 +46,11 @@ a flag. The [Python API](api.md#typesetting) gives each signature.
 `-o FILE` writes to a file instead of stdout.
 
 - The spec's `description:` opens the document.
-- The legend lists Given, Sets, Parameters, Conditions, Variables, Definitions and
+- The legend lists Given, Sets, Parameters, Conditions, Variables, Expressions and
   Notation. Notation has a row for each translation or position symbol that
-  the equations print, with the spec spelling that it stands for. The math
-  follows under Conditions, Variable domains, Definitions, Objective,
+  the equations print, with the spec spelling that it stands for, written in
+  the index of the dimension the equations step along. The math
+  follows under Condition definitions, Variable domains, Definitions, Objective,
   Subject to and Assumptions. Under Subject to, the constraints come first,
   then the special ordered sets, then the curves. Each part keeps the order of
   the file's sections.
@@ -68,8 +69,8 @@ a flag. The [Python API](api.md#typesetting) gives each signature.
   and a [term](language/parameters-variables-constraints.md#terms) keep their definition line
   under either `inline_expressions` setting.
 - A [named condition](language/named.md#conditions) prints its upright symbol
-  where a file reads it, and its condition once, under a **Conditions**
-  heading, with ⟺. It
+  where a file reads it, and its condition once, under a **Condition
+  definitions** heading, with ⟺. It
   prints as its symbol under either `inline_expressions` setting.
 - Wherever the math moves an index, which every `shift` does, the document
   prints a line saying what that notation means.

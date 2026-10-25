@@ -644,7 +644,7 @@ def test_inlining_keeps_the_definition_of_a_term():
     it as read by the math, and the page named a term it never defined."""
     inlined = to_markdown(DEMAND, inline_expressions=True)
     assert '#### Definitions' in inlined, 'the term is the one definition the file has'
-    assert '`demand_injection` over' in inlined.split('#### Definitions')[1], (
+    assert '`demand_injection` over' in inlined.split('#### Expressions')[1], (
         'the term prints under its own name, as the legend says it does'
     )
 

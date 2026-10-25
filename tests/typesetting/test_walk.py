@@ -1075,3 +1075,59 @@ def test_a_set_is_labelled_by_the_entry_that_declares_it(name: FormatName, fmt: 
 
     assert 'pick' in text, 'the set carries the key it was declared under'
     assert 'p sos' not in text
+
+
+#: How each format writes a section heading, as a pattern that captures its title.
+HEADINGS = {'markdown': r'^#### (.+)$', 'latex': r'^\\paragraph\{(.+)\}$', 'typst': r'^== (.+)$'}
+
+
+@pytest.mark.parametrize('name', list(HEADINGS))
+def test_no_section_heading_prints_twice(name: FormatName):
+    """The symbol table and the equations each had a `Conditions` and a `Definitions` section.
+
+    A page then carried two headings with one title, which a reader cannot
+    tell apart and a markdown linter refuses. The golden model declares both.
+    """
+    titles = re.findall(HEADINGS[name], typeset(golden.MODEL, name), flags=re.MULTILINE)
+    twice = sorted({title for title in titles if titles.count(title) > 1})
+    assert not twice, f'{twice} head two sections of one page'
+
+
+@EVERY_FORMAT
+@pytest.mark.parametrize(
+    ('shift', 'row'),
+    [
+        pytest.param("offset=1, edge='wrap'", 'cyclic_minus', id='wrap'),
+        pytest.param('offset=1, edge=0', 'edge_minus', id='fill'),
+    ],
+)
+def test_the_notation_table_writes_the_index_of_the_dimension_the_page_steps_along(
+    name: FormatName, fmt: Format, shift: str, row: str
+):
+    """The table explained every translation with `t`, the index of no dimension on a page that steps along `hour`."""
+    model = {
+        'dimensions': {'hour': {'dtype': 'int', 'ordered': True}},
+        'variables': {'soc': {'dims': ['hour'], 'bounds': {'lower': 0, 'upper': 100}}},
+        'constraints': {'balance': {'dims': ['hour'], 'expression': f'soc == shift(soc, along=hour, {shift})'}},
+    }
+    symbols = symbols_for(to_spec(model).program, fmt, SymbolTable(fmt.notation))
+    index = symbols.index['hour']
+    text = typeset(model, name)
+    notation = text[text.index('Notation') :]
+    assert index != 't', 'the case needs a dimension whose index is not t'
+    assert f'{index} {fmt.operators[row]}' in notation, 'the row writes the index of the dimension stepped along'
+    assert f't {fmt.operators[row]}' not in notation, 'the row still writes t, the index of no dimension here'
+
+
+@EVERY_FORMAT
+def test_the_size_row_writes_the_set_of_the_dimension_the_page_counts(name: FormatName, fmt: Format):
+    """The size row named `T`, the set of no dimension on a page that counts the positions of `hour`."""
+    model = {
+        'dimensions': {'hour': {'dtype': 'int', 'ordered': True}},
+        'variables': {'x': {'dims': ['hour'], 'bounds': {'lower': 0, 'upper': 1}, 'where': 'position(hour) == -1'}},
+    }
+    symbols = symbols_for(to_spec(model).program, fmt, SymbolTable(fmt.notation))
+    text = typeset(model, name)
+    notation = text[text.index('Notation') :]
+    assert fmt.cardinality(symbols.set['hour']) in notation, 'the size row names the set of the dimension counted'
+    assert fmt.cardinality(fmt.script('T')) not in notation, 'the size row still names T, the set of no dimension here'

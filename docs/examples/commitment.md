@@ -125,7 +125,7 @@ Unit commitment with a start-up ramp, the formulation `cases:` exists for. The s
 | $`\mathit{dispatch}`$ | `dispatch` over $`\mathcal{T} \times \mathcal{G}`$ — output of a generator in a snapshot |
 | $`\mathit{status}`$ | `status` over $`\mathcal{T} \times \mathcal{G}`$ — whether the unit is running in a snapshot |
 
-#### Definitions
+#### Expressions
 
 | Symbol | Meaning |
 |---|---|

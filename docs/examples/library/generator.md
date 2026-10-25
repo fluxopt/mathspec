@@ -98,7 +98,7 @@ PyPSA's `Generator`, wired to a port rather than straight to a bus, and cut to w
 |---|---|
 | $`p`$ | `Generator_p` over $`\mathcal{T} \times \mathcal{G}`$ — `Generator-p` — what a generator produces in a snapshot |
 
-#### Definitions
+#### Expressions
 
 | Symbol | Meaning |
 |---|---|

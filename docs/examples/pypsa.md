@@ -5840,7 +5840,7 @@ A plain `n.optimize()`, and its multi-period and stochastic classes, in one file
 | $`\theta`$ | `CVaR_theta` (scalar), $`0`$ where the mask leaves it out — `CVaR-theta` — where the tail starts, the value at risk |
 | $`CVaR`$ | `CVaR` (scalar), $`0`$ where the mask leaves it out — `CVaR` — the tail's average cost, what the objective prices at `omega` |
 
-#### Definitions
+#### Expressions
 
 | Symbol | Meaning |
 |---|---|

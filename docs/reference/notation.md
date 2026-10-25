@@ -137,7 +137,7 @@ parameters:
 | $`\mathit{op\_cost}`$ | `op_cost` over $`\mathcal{T} \times \mathcal{G}`$ |
 | $`\mathit{warm}`$ | `warm` over $`\mathcal{T} \times \mathcal{G}`$ |
 
-#### Definitions
+#### Expressions
 
 | Symbol | Meaning |
 |---|---|
