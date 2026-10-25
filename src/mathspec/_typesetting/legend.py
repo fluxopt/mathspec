@@ -317,23 +317,24 @@ class Legend:
         """
         fmt, dash = self.format, self.format.dash
         i, steps = self.symbols.index[along], self.symbols.set[along]
+        k, v = _apart(i, 'k', 'n', 'm'), _apart(i, 'v', 'w', 'u')
         group = fmt.apply(fmt.upright('property'), i)
-        shifted, at = fmt.math(f'{i}-k'), fmt.math(i)
+        shifted, at = fmt.math(f'{i}-{k}'), fmt.math(i)
         items = []
         if 'wrap' in noticed.policies:
             cyclic = fmt.mono("edge='wrap'")
-            items.append(LegendItem(f'{i} {self._op("cyclic_minus")} k', f'{cyclic} {dash} {shifted}, cyclic'))
+            items.append(LegendItem(f'{i} {self._op("cyclic_minus")} {k}', f'{cyclic} {dash} {shifted}, cyclic'))
         if 'edge' in noticed.policies:
             items.append(
                 LegendItem(
-                    f'{i} {fmt.subscript(self._op("edge_minus"), ["v"])} k',
-                    f'{fmt.mono("edge=v")} {dash} {shifted}, and {fmt.math("v")} past the edge',
+                    f'{i} {fmt.subscript(self._op("edge_minus"), [v])} {k}',
+                    f'{fmt.mono("edge=v")} {dash} {shifted}, and {fmt.math(v)} past the edge',
                 )
             )
         if noticed.grouped:
             items.append(
                 LegendItem(
-                    f'{i} {fmt.superscript(self._op("cyclic_minus"), group)} k',
+                    f'{i} {fmt.superscript(self._op("cyclic_minus"), group)} {k}',
                     f'{fmt.mono("within=subject[...]")} {dash} {shifted} inside the group of {at}',
                 )
             )
@@ -356,6 +357,11 @@ class Legend:
             last = f'{size} {self._op("minus")} 1'
             items.append(LegendItem(size, f'the size of {fmt.math(steps)}; {fmt.math(last)} is the last position'))
         return items
+
+
+def _apart(index: str, *letters: str) -> str:
+    """The first of *letters* that is not *index*: the notation rows write an offset and a fill beside the index."""
+    return next(letter for letter in letters if letter != index)
 
 
 def _spelled(name: str, lk: Relation) -> str:

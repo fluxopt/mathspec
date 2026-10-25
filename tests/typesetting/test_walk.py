@@ -1131,3 +1131,23 @@ def test_the_size_row_writes_the_set_of_the_dimension_the_page_counts(name: Form
     notation = text[text.index('Notation') :]
     assert fmt.cardinality(symbols.set['hour']) in notation, 'the size row names the set of the dimension counted'
     assert fmt.cardinality(fmt.script('T')) not in notation, 'the size row still names T, the set of no dimension here'
+
+
+@EVERY_FORMAT
+@pytest.mark.parametrize('index', ['k', 'v'])
+def test_a_notation_row_never_writes_the_index_for_the_offset_or_the_fill(name: FormatName, fmt: Format, index: str):
+    """The rows wrote the offset as `k` and the fill as `v`, so a page stepping along an index `k` read `k ⊟ k`."""
+    model = {
+        'dimensions': {'hour': {'dtype': 'int', 'ordered': True}},
+        'variables': {'soc': {'dims': ['hour'], 'bounds': {'lower': 0, 'upper': 100}}},
+        'constraints': {
+            'wrapped': {'dims': ['hour'], 'expression': "soc == shift(soc, along=hour, offset=1, edge='wrap')"},
+            'filled': {'dims': ['hour'], 'expression': 'soc >= shift(soc, along=hour, offset=1, edge=0)'},
+        },
+    }
+    text = typeset(model, name, symbols={'notation': fmt.notation, 'dimensions': {'hour': {'index': index}}})
+    notation = text[text.index('Notation') :]
+    rows = [line for line in notation.splitlines() if ', cyclic' in line or 'past the edge' in line]
+    assert len(rows) == 2, 'one row for the wrap and one for the fill'
+    assert all(f'{index} {fmt.operators["cyclic_minus"]} {index}' not in row for row in rows), 'the offset is the index'
+    assert all(fmt.subscript(fmt.operators['edge_minus'], [index]) not in row for row in rows), 'the fill is the index'
