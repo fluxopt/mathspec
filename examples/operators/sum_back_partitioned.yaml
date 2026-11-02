@@ -12,8 +12,9 @@ dimensions:
   hour: { dtype: int, ordered: true }
   day: { dtype: str }
 
-relations:
-  day_of: { key: hour, values: day }
+properties:
+  hour:
+    day: day
 
 variables:
   started:
@@ -26,6 +27,6 @@ variables:
 constraints:
   stays_up_inside_its_day:
     dims: [unit, hour]
-    expression: sum_back(started, along=hour, window=3, within=day_of[day]) <= on
+    expression: sum_back(started, along=hour, window=3, within=hour[day]) <= on
 
 objective: { sense: minimize, expression: sum(on) }

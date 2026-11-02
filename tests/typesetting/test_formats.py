@@ -57,7 +57,7 @@ def test_markdown_keeps_names_out_of_the_math():
 def test_markdown_delimits_math_the_one_way_github_hands_over_verbatim():
     r"""GitHub runs Markdown's escape pass inside a `$…$` span, so the math has to be delimited out of its reach.
 
-    `\mathrm{gen\_bus}` reached MathJax as `\mathrm{gen_bus}` — a subscript,
+    `\mathrm{dispatch\_pair}` reached MathJax as `\mathrm{dispatch_pair}` — a subscript,
     and a *Double subscripts* refusal where the name had two underscores — and
     `\{0, 1\}` as `{0, 1}`, a binary domain printed with no braces. The
     verbatim pair is handed over untouched, which is what lets this format
@@ -66,7 +66,7 @@ def test_markdown_delimits_math_the_one_way_github_hands_over_verbatim():
     md = typeset(golden.MODEL, 'markdown', standalone=True)
     assert _math_spans(md), 'the golden model prints math to scan'
     assert r'$\mathrm' not in md and '$$' not in md, 'no span is left in the pair GitHub reaches into'
-    assert r'\mathrm{gen\_bus}' in md, 'the escape TeX needs survives, because nothing is going to eat it'
+    assert r'\mathrm{dispatch\_pair}' in md, 'the escape TeX needs survives, because nothing is going to eat it'
 
 
 @pytest.mark.parametrize('entry', sorted(_ENTRIES), ids=sorted(_ENTRIES))

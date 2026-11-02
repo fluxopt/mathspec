@@ -201,12 +201,6 @@ def test_a_position_within_a_property_reads_its_table():
 @pytest.mark.parametrize(
     ('patch', 'text', 'tables'),
     [
-        pytest.param(
-            {'relations.period_of': {'key': 'snapshot', 'values': 'period'}},
-            'position(snapshot, within=period_of[period]) == 0',
-            {'period_of'},
-            id='a-relation',
-        ),
         pytest.param({}, 'position(snapshot, within=snapshot[period]) == 0', {'snapshot.period'}, id='a-property'),
         pytest.param(
             {},
@@ -267,8 +261,7 @@ def test_a_position_within_a_partition_reads_its_tables(patch, text, tables):
         ),
         pytest.param(
             {'variables.x.where': 'cap[bus]'},
-            "'cap[bus]' reads a column of 'cap', which is a parameter. Only a relation, a set or a dimension has "
-            'columns.',
+            "'cap[bus]' reads a column of 'cap', which is a parameter. Only a set or a dimension has properties.",
             id='a-presence-test-of-a-parameter',
         ),
         pytest.param(
@@ -295,7 +288,7 @@ def test_a_position_within_a_partition_reads_its_tables(patch, text, tables):
         ),
         pytest.param(
             {'variables.x.where': "x[bus] == 'b1'"},
-            "'x[bus]' reads a column of 'x', which is a variable. Only a relation, a set or a dimension has columns.",
+            "'x[bus]' reads a column of 'x', which is a variable. Only a set or a dimension has properties.",
             id='a-column-of-a-variable',
         ),
     ],

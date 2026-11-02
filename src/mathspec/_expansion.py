@@ -152,7 +152,7 @@ def _names(name: str, listed: NameListNode, bindings: dict[str, ArithmeticNode],
 
 
 def _substitute_columns(node: ColumnsNode, bindings: dict[str, ArithmeticNode], caller: str) -> ColumnsNode:
-    """``relation[column, …]`` with each formal in it replaced by the bare name bound to it.
+    """``subject[name, …]`` with each formal in it replaced by the bare name bound to it.
 
     A selection holds names only, so a formal there takes a name and nothing
     else: a number or an expression has no place between the brackets.
@@ -163,7 +163,7 @@ def _substitute_columns(node: ColumnsNode, bindings: dict[str, ArithmeticNode], 
         if bound is not None and not isinstance(bound, NameNode):
             msg = (
                 f"{caller}: the formal '{name}' is inside {node}, where only a name is allowed, and the call "
-                f'passes {bound}. Pass the name of a relation or of one of its columns.'
+                f'passes {bound}. Pass the name of a set or a dimension, or of one of its members or properties.'
             )
             raise SchemaError(msg)
         names.append(name if bound is None else bound.name)

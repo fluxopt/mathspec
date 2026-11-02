@@ -50,7 +50,8 @@ if TYPE_CHECKING:
 SOURCE = Path('examples/pypsa.yaml')
 SECTIONS = (
     'dimensions',
-    'relations',
+    'sets',
+    'properties',
     'parameters',
     'variables',
     'expressions',
@@ -58,7 +59,7 @@ SECTIONS = (
     'constraints',
     'assumptions',
 )
-FRAME = ('dimensions', 'relations')
+FRAME = ('dimensions', 'sets', 'properties')
 IDENT = re.compile(r'[A-Za-z_][A-Za-z0-9_]*')
 HEADER = '# SPDX-FileCopyrightText: mathspec Contributors\n#\n# SPDX-License-Identifier: MIT\n'
 
@@ -198,7 +199,10 @@ class Model:
         text = path.read_text()
         self.data: dict[str, Any] = yaml.safe_load(text)
         self.entries = _sliced(text)
-        self.kind = {n: s for s in SECTIONS if s not in ('constraints', 'assumptions') for n in self.data.get(s, {})}
+        self.kind: dict[str, str] = {}
+        for s in SECTIONS:
+            if s not in ('constraints', 'assumptions', 'properties'):
+                self.kind |= dict.fromkeys(self.data.get(s, {}), s)
         #: hub -> the topic of each term -> the term, in the order the topics sort in.
         self.shares: dict[str, dict[str, str]] = {}
         for hub in HUBS:
@@ -273,9 +277,20 @@ def fragments(model: Model) -> dict[str, str]:
         }
         frame_reads = read | set().union(*(model.names_in(dims) for dims in stated.values()))
         frame = {model.key(n) for n in frame_reads if model.key(n)[0] in FRAME}
+        frame |= _properties_read(model, mine | frame)
         frame |= {model.key(n) for key in list(frame) for n in model.names_in(model.data[key[0]][key[1]])}
         written[name] = _fragment(model, mine | frame, given, stated, adds, homes_here)
     return written
+
+
+def _properties_read(model: Model, keys: set[Key]) -> set[Key]:
+    """The properties of each subject that the entries *keys* read as ``subject[...]``, with the whole subject's map.
+
+    A subject's properties are one entry of the source, so a fragment that
+    reads one of them carries them all, and `merge` joins the copies.
+    """
+    text = '\n'.join(model.entries[key] for key in keys)
+    return {('properties', s) for s in model.data.get('properties', {}) if re.search(rf'\b{s}\[', text)}
 
 
 def _dumped(name: str, entry: Mapping[str, object], indent: str = '  ') -> str:

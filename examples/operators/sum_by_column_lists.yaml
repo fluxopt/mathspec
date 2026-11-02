@@ -12,8 +12,13 @@ dimensions:
   bus: { dtype: str }
   technology: { dtype: str }
 
-relations:
-  slot_of: { key: [generator, period], values: [bus, technology] }
+sets:
+  generator_period: { dims: [generator, period] }
+
+properties:
+  generator_period:
+    bus: bus
+    technology: technology
 
 parameters:
   cap: { dims: [bus, technology] }
@@ -26,6 +31,6 @@ variables:
 constraints:
   slot_cap:
     dims: [bus, technology]
-    expression: sum(p, over=[generator, period], by=slot_of[bus, technology]) <= cap
+    expression: sum(p, over=[generator, period], by=generator_period[bus, technology]) <= cap
 
 objective: { sense: minimize, expression: sum(p) }

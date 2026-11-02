@@ -82,21 +82,21 @@ TINY = {
     'constraints': {'c': {'dims': [], 'expression': 'sum(p, over=g) >= 1'}},
 }
 
-#: `lk` as `sum` joins it: joined on the key, grouped by the value, no key column left unnamed.
-LK = Relation((('g', 'g'), ('h', 'h')), ('g',))
-LK2 = Relation((('g', 'g'), ('z', 'z')), ('g',))
-LK_JOIN = JoinColumns('lk', LK, ('g',), ('h',))
+#: `g[h]` as `sum` joins it: joined on the key, grouped by the value, no key column left unnamed.
+LK = Relation((('g', 'g'), ('h', 'h')), ('g',), subject='g')
+LK2 = Relation((('g', 'g'), ('z', 'z')), ('g',), subject='g')
+LK_JOIN = JoinColumns('g.h', LK, ('g',), ('h',))
 AT_BUS = Relation((('g', 'g'), ('bus', 'bus')), ('g',))
 
-#: `fixtures.SMALL_MODEL` plus a second relation and an integer
+#: `fixtures.SMALL_MODEL` plus a second property and an integer
 #: offset. Which node a construct becomes is mostly a claim about the dim it
 #: joins on and the dim it groups by, and stating that needs a third dimension
-#: and two relations over one of them.
+#: and two properties of one of them.
 SHAPES_MODEL = varied(
     SMALL_MODEL,
     **{
         'dimensions.z': {'dtype': 'str'},
-        'relations.lk2': {'key': 'g', 'values': 'z'},
+        'properties.g.z': 'z',
         'parameters.lead': {'dims': [], 'dtype': 'int'},
     },
 )
@@ -281,11 +281,11 @@ def test_a_lowered_where_is_a_mask_that_answers_from_its_root(dispatch_program):
     [
         pytest.param(
             'q',
-            "lk == 'east' and position(h) == 0",
+            "g[h] == 'east' and position(h) == 0",
             {'g', 'h'},
             2,
             2,
-            id='a-relation-is-read-at-the-dim-it-maps-out-of-and-a-position-at-its-own',
+            id='a-property-is-read-at-its-subject-and-a-position-at-its-own',
         ),
         pytest.param('p', 'k > 0', set(), 1, 1, id='a-scalar-parameter-is-read-at-no-coordinate'),
         pytest.param(
@@ -413,7 +413,7 @@ def test_a_comparison_of_expressions_lowers_to_program_expressions_on_both_sides
                 'variables.p.where': 'c <= 0.5 * k',
                 'constraints.w': {
                     'dims': ['g'],
-                    'where': 'c <= at(zc, by=lk2[z]) + sum_back(c, along=g, window=2, within=lk2[z])',
+                    'where': 'c <= at(zc, by=g[z]) + sum_back(c, along=g, window=2, within=g[z])',
                     'expression': 'p <= c',
                 },
             },
@@ -430,8 +430,8 @@ def test_a_comparison_of_expressions_lowers_to_program_expressions_on_both_sides
     mask = program.constraints['w'].where
     assert mask is not None and isinstance(mask.root, ExpressionComparison)
     assert isinstance(mask.root.right, Add) and isinstance(mask.root.right.left, Join)
-    assert mask.names_read == frozenset({'c', 'zc', 'lk2'}), (
-        'the relation a lookup and a partition read through is data the consumer attaches too'
+    assert mask.names_read == frozenset({'c', 'zc', 'g.z'}), (
+        'the property a lookup and a partition read through is data the consumer attaches too'
     )
 
 
@@ -474,8 +474,8 @@ def test_a_translated_condition_keeps_what_it_reads_in_reach():
     assert sorted(mask.dims) == ['g']
 
 
-def test_a_condition_read_through_a_relation_is_lowered_and_keeps_the_relation_in_reach():
-    """The comparison under the read is rebuilt, and the relation is data the consumer attaches as well as the operand."""
+def test_a_condition_read_through_a_property_is_lowered_and_keeps_its_table_in_reach():
+    """The comparison under the read is rebuilt, and the property is data the consumer attaches as well as the operand."""
     program = to_spec(
         varied(
             SHAPES_MODEL,
@@ -483,7 +483,7 @@ def test_a_condition_read_through_a_relation_is_lowered_and_keeps_the_relation_i
                 'parameters.zcap': {'dims': ['z']},
                 'constraints.w': {
                     'dims': ['g'],
-                    'where': 'at(zcap <= 0.5 * k, by=lk2[z])',
+                    'where': 'at(zcap <= 0.5 * k, by=g[z])',
                     'expression': 'p <= c',
                 },
             },
@@ -497,8 +497,8 @@ def test_a_condition_read_through_a_relation_is_lowered_and_keeps_the_relation_i
         Multiply(Constant(0.5, dims=()), ParameterReference('k', dims=()), dims=()),
         ('z',),
     ), 'the read condition is rebuilt, not handed through with the resolved comparison still in it'
-    assert mask.names_read == frozenset({'zcap', 'k', 'lk2'})
-    assert sorted(mask.dims) == ['g'], 'z is read at lk2(g), so the mask is over g alone'
+    assert mask.names_read == frozenset({'zcap', 'k', 'g.z'})
+    assert sorted(mask.dims) == ['g'], 'z is read at z(g), so the mask is over g alone'
 
 
 def test_assumptions_carry_the_file_s_entries_and_the_curves_behind_them():
@@ -560,7 +560,7 @@ def test_an_assumption_refuses_in_the_words_the_file_wrote():
 
 
 def test_a_cased_side_reads_the_data_its_regions_are_decided_by():
-    """`names_read` promised every parameter and relation the sides read, and dropped the
+    """`names_read` promised every parameter and table the sides read, and dropped the
     `when:` of a cased entry: the walk descends a `Cases` by its values alone."""
     program = to_spec(
         varied(
@@ -568,7 +568,7 @@ def test_a_cased_side_reads_the_data_its_regions_are_decided_by():
             **{
                 'expressions.e': {
                     'dims': ['g'],
-                    'cases': {'linked': {'when': 'flag AND lk2', 'expression': 'c'}},
+                    'cases': {'linked': {'when': 'flag AND g[z]', 'expression': 'c'}},
                     'otherwise': 'k',
                 },
                 'variables.p.where': 'e > 0',
@@ -577,8 +577,8 @@ def test_a_cased_side_reads_the_data_its_regions_are_decided_by():
     ).program
     where = program.variables['p'].where
     assert where is not None
-    assert where.names_read == frozenset({'c', 'k', 'flag', 'lk2'}), (
-        'the flag and the relation decide which region applies, so the consumer attaches them too'
+    assert where.names_read == frozenset({'c', 'k', 'flag', 'g.z'}), (
+        'the flag and the property decide which region applies, so the consumer attaches them too'
     )
 
 
@@ -605,17 +605,17 @@ def test_a_power_resolves_to_a_node_of_its_own(dispatch_spec):
             id='an-over-sums-away-the-dim-it-names',
         ),
         pytest.param(
-            'sum(p, over=g, by=lk[h])',
+            'sum(p, over=g, by=g[h])',
             Sum(
                 Join(VariableReference('p', dims=('g',)), LK_JOIN, dims=('h',)),
-                (Axis('g', Column('lk', 'g')),),
+                (Axis('g', Column('g.h', 'g')),),
                 dims=('h',),
             ),
             id='a-grouped-sum-is-a-sum-over-the-axis-its-join-opens',
         ),
         pytest.param(
-            'at(r, by=lk[h])',
-            Join(VariableReference('r', dims=('h',)), JoinColumns('lk', LK, ('h',), ('g',)), dims=('g',)),
+            'at(r, by=g[h])',
+            Join(VariableReference('r', dims=('h',)), JoinColumns('g.h', LK, ('h',), ('g',)), dims=('g',)),
             id='an-at-is-the-same-join-the-other-way-with-no-sum-over-it',
         ),
         pytest.param(
@@ -639,17 +639,17 @@ def test_a_power_resolves_to_a_node_of_its_own(dispatch_spec):
             id='a-named-offset-written-with-a-plus-is-the-parameter',
         ),
         pytest.param(
-            'shift(p, along=g, offset=1, within=lk[h], edge=0)',
+            'shift(p, along=g, offset=1, within=g[h], edge=0)',
             Translate(
                 VariableReference('p', dims=('g',)),
                 'g',
                 offset=1,
                 wrap=False,
                 fill=0.0,
-                partition=Partition('lk', LK, 'g', ('h',), ()),
+                partition=Partition('g.h', LK, 'g', ('h',), ()),
                 dims=('g',),
             ),
-            id='a-translation-stops-at-the-edges-of-the-relation-it-names',
+            id='a-translation-stops-at-the-edges-of-the-group-it-names',
         ),
         pytest.param(
             'sum_back(p, along=g, window=3)',
@@ -662,16 +662,16 @@ def test_a_power_resolves_to_a_node_of_its_own(dispatch_spec):
             id='a-named-width-crosses-as-the-parameter-name',
         ),
         pytest.param(
-            'sum_back(p, along=g, window=2, within=lk[h])',
+            'sum_back(p, along=g, window=2, within=g[h])',
             WindowSum(
                 VariableReference('p', dims=('g',)),
                 'g',
                 width=2,
                 wrap=False,
-                partition=Partition('lk', LK, 'g', ('h',), ()),
+                partition=Partition('g.h', LK, 'g', ('h',), ()),
                 dims=('g',),
             ),
-            id='a-window-stops-at-the-edges-of-the-relation-it-names',
+            id='a-window-stops-at-the-edges-of-the-group-it-names',
         ),
     ],
 )
@@ -680,31 +680,31 @@ def test_a_construct_resolves_to_its_node(shapes_spec, expression, expected):
     assert resolved(expression, shapes_spec) == expected, 'the whole frozen node, so no field is asserted by omission'
 
 
-def test_a_partition_keeps_its_group_when_the_relation_gains_a_value_column():
-    """`within=` is what the call groups by, so a calendar that gains a `week` column regroups no `shift` through it (#538).
+def test_a_partition_keeps_its_group_when_the_subject_gains_a_property():
+    """`within=` is what the call groups by, so an hour that gains a `week` property regroups no `shift` through it (#538).
 
     With `within=` optional, an omitted one meant every value column, and the
     same call grouped by `('day',)` on one calendar and `('day', 'week')` on the
     next.
     """
     grouping = {}
-    for values in ('day', ['day', 'week']):
+    for values in ({'day': 'day'}, {'day': 'day', 'week': 'week'}):
         program = to_spec(
             {
                 'dimensions': {'hour': {'dtype': 'int', 'ordered': True}, 'day': {}, 'week': {}},
-                'relations': {'cal': {'key': 'hour', 'values': values}},
+                'properties': {'hour': values},
                 'variables': {'p': {'dims': ['hour']}},
                 'constraints': {
                     'k': {
                         'dims': ['hour'],
-                        'expression': 'p >= shift(p, along=hour, offset=1, edge=0, within=cal[day])',
+                        'expression': 'p >= shift(p, along=hour, offset=1, edge=0, within=hour[day])',
                     }
                 },
             }
         ).program
-        grouping[str(values)] = _partition_of(program.constraints['k']).grouped
-    assert grouping == {'day': ('day',), "['day', 'week']": ('day',)}, (
-        'the group is the columns the call named, on both calendars'
+        grouping[str(sorted(values))] = _partition_of(program.constraints['k']).grouped
+    assert grouping == {"['day']": ('day',), "['day', 'week']": ('day',)}, (
+        'the group is the properties the call named, with one property and with two'
     )
 
 
@@ -715,45 +715,47 @@ def _partition_of(row):
     return partition
 
 
-def test_a_relation_lowers_with_the_join_each_call_names():
-    """Every node reading a relation carries its columns, its key and the join, so a consumer joins on the right columns."""
+def test_a_property_of_a_set_lowers_with_the_join_each_call_names():
+    """Every node reading a property carries its columns, its key and the join, so a consumer joins on the right columns."""
     program = to_spec(
         {
             'dimensions': {'snapshot': {'dtype': 'int', 'ordered': True}, 'generator': {'ordered': True}, 'zone': {}},
-            'relations': {'zone_of': {'key': ['generator', 'snapshot'], 'values': 'zone'}},
+            'sets': {'gs': {'dims': ['generator', 'snapshot']}},
+            'properties': {'gs': {'zone': 'zone'}},
             'parameters': {'price': {'dims': ['snapshot', 'zone']}},
             'variables': {
-                'p': {'dims': ['snapshot', 'generator'], 'where': "zone_of == 'A' AND zone_of"},
+                'p': {'dims': ['snapshot', 'generator'], 'where': "gs[zone] == 'A' AND gs[zone]"},
                 'first': {
                     'dims': ['snapshot', 'generator'],
-                    'where': 'position(generator, within=zone_of[zone]) == 0',
+                    'where': 'position(generator, within=gs[zone]) == 0',
                 },
             },
             'constraints': {
                 'zonal': {
                     'dims': ['snapshot', 'zone'],
-                    'expression': 'sum(p, over=generator, by=zone_of[zone]) <= 1',
+                    'expression': 'sum(p, over=generator, by=gs[zone]) <= 1',
                 },
                 'priced': {
                     'dims': ['snapshot', 'generator'],
-                    'expression': 'p <= at(price, by=zone_of[zone])',
+                    'expression': 'p <= at(price, by=gs[zone])',
                 },
                 'history': {
                     'dims': ['generator', 'zone'],
-                    'expression': 'sum(p, over=snapshot, by=zone_of[zone]) <= 1',
+                    'expression': 'sum(p, over=snapshot, by=gs[zone]) <= 1',
                 },
             },
         }
     ).program
 
     columns = (('generator', 'generator'), ('snapshot', 'snapshot'), ('zone', 'zone'))
-    declared = Relation(columns, ('generator', 'snapshot'))
-    assert program.relations == {'zone_of': declared}, 'the relation sits once in the program, under its name'
+    declared = Relation(columns, ('generator', 'snapshot'), subject='gs')
+    rows = Relation((('generator', 'generator'), ('snapshot', 'snapshot')), ('generator', 'snapshot'))
+    assert program.relations == {'gs': rows, 'gs.zone': declared}, 'the set and its property, each once, under its name'
     zonal = program.constraints['zonal'].lhs
-    columns = JoinColumns('zone_of', declared, ('generator', 'snapshot'), ('zone', 'snapshot'))
+    columns = JoinColumns('gs.zone', declared, ('generator', 'snapshot'), ('zone', 'snapshot'))
     assert zonal == Sum(
         Join(VariableReference('p', dims=('generator', 'snapshot')), columns, dims=('snapshot', 'zone')),
-        (Axis('generator', Column('zone_of', 'generator')),),
+        (Axis('generator', Column('gs.zone', 'generator')),),
         dims=('snapshot', 'zone'),
     ), (
         'a grouped sum is a sum over a join: the join names the column over the over= dim and the unnamed key '
@@ -766,22 +768,22 @@ def test_a_relation_lowers_with_the_join_each_call_names():
         ('zone',),
         ('snapshot',),
     ), 'the dims a consumer reads are read off the join: dropped, added, and the key columns kept'
-    assert zonal.operand.columns.relation is program.relations['zone_of'], (
+    assert zonal.operand.columns.relation is program.relations['gs.zone'], (
         'the join holds the one entry the program holds, not an equal copy built again'
     )
     assert program.constraints['history'].lhs == Sum(
         Join(
             VariableReference('p', dims=('generator', 'snapshot')),
-            JoinColumns('zone_of', declared, ('snapshot', 'generator'), ('zone', 'generator')),
+            JoinColumns('gs.zone', declared, ('snapshot', 'generator'), ('zone', 'generator')),
             dims=('generator', 'zone'),
         ),
-        (Axis('snapshot', Column('zone_of', 'snapshot')),),
+        (Axis('snapshot', Column('gs.zone', 'snapshot')),),
         dims=('generator', 'zone'),
     ), 'the same table joined on its other key column'
     priced = program.constraints['priced'].rhs
     assert priced == Join(
         ParameterReference('price', dims=('snapshot', 'zone')),
-        JoinColumns('zone_of', declared, ('zone', 'snapshot'), ('generator', 'snapshot')),
+        JoinColumns('gs.zone', declared, ('zone', 'snapshot'), ('generator', 'snapshot')),
         dims=('generator', 'snapshot'),
     ), 'and an at is the bare join, on the value column, grouped by the key columns'
     assert isinstance(priced, Join)
@@ -795,7 +797,7 @@ def test_a_relation_lowers_with_the_join_each_call_names():
     assert [(type(a).__name__, a.dims) for a in p_where.atoms] == [
         ('RelationComparison', ('generator', 'snapshot')),
         ('RelationDefined', ('generator', 'snapshot')),
-    ], 'a comparison and an existence are both read at the key of a keyed relation'
+    ], 'a comparison and a presence test are both read at the members of the set'
     first_where = program.variables['first'].where
     assert first_where is not None
     assert first_where.dims == {'generator', 'snapshot'}, 'a position within a group is read at every key column'
@@ -873,25 +875,22 @@ def test_walk_is_the_node_column_of_walk_regions():
     assert list(walk(NESTED)) == [node for node, _ in walk_regions(NESTED)]
 
 
-def test_a_relation_is_declared_as_the_file_declares_it():
-    """One group keyed by name, each entry its columns and its key, and nothing nested under a dimension."""
+def test_a_property_is_declared_as_the_file_declares_it():
+    """One group keyed by table name, each entry its columns and its key, and nothing nested under a dimension."""
     program = to_spec(
         varied(
             TINY,
             dimensions={'g': {}, 'bus': {}, 'season': {}},
-            relations={
-                'season_of': {'key': 'g', 'values': 'season'},
-                'at_bus': {'key': 'g', 'values': 'bus'},
-            },
+            properties={'g': {'season': 'season', 'bus': 'bus'}},
         )
     ).program
 
     assert program.relations == {
-        'season_of': Relation((('g', 'g'), ('season', 'season')), ('g',)),
-        'at_bus': Relation((('g', 'g'), ('bus', 'bus')), ('g',)),
-    }, 'every relation under its own name, in file order'
-    assert program.relations['season_of'].values == ('season',), 'and each says what its key determines'
-    assert program.dimensions['g'] == Dimension(dtype='str'), 'a dimension carries its dtype and no relation'
+        'g.season': Relation((('g', 'g'), ('season', 'season')), ('g',), subject='g'),
+        'g.bus': Relation((('g', 'g'), ('bus', 'bus')), ('g',), subject='g'),
+    }, 'every property under its table name, in file order'
+    assert program.relations['g.season'].values == ('season',), 'and each says what its key determines'
+    assert program.dimensions['g'] == Dimension(dtype='str'), 'a dimension carries its dtype and no property'
 
 
 @pytest.mark.parametrize('ordered', [pytest.param(True, id='ordered'), pytest.param(False, id='unordered')])

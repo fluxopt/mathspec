@@ -36,23 +36,21 @@ if TYPE_CHECKING:
 #: each is a spec on its own as well as a piece of the composition.
 SURFACE = {
     'dimensions': {'snapshot': {'dtype': 'int'}, 'port': {'dtype': 'str'}, 'bus': {'dtype': 'str'}},
-    'relations': {'port_bus': {'key': 'port', 'values': 'bus'}},
+    'properties': {'port': {'bus': 'bus'}},
     'variables': {'flow': {'dims': ['snapshot', 'port']}},
-    'constraints': {
-        'balance': {'dims': ['snapshot', 'bus'], 'expression': 'sum(flow, over=port, by=port_bus[bus]) == 0'}
-    },
+    'constraints': {'balance': {'dims': ['snapshot', 'bus'], 'expression': 'sum(flow, over=port, by=port[bus]) == 0'}},
 }
 
 SUPPLY = {
     'dimensions': {'snapshot': {'dtype': 'int'}, 'port': {'dtype': 'str'}, 'generator': {'dtype': 'str'}},
-    'relations': {'gen_port': {'key': 'generator', 'values': 'port'}},
+    'properties': {'generator': {'port': 'port'}},
     'given': {'variables': {'flow': {'dims': ['snapshot', 'port']}}},
     'parameters': {'gen_cost': {'dims': ['generator']}, 'gen_p_max': {'dims': ['generator']}},
     'variables': {'gen_p': {'dims': ['snapshot', 'generator'], 'bounds': {'lower': 0, 'upper': 'gen_p_max'}}},
     'constraints': {
         'gen_injects': {
             'dims': ['snapshot', 'generator'],
-            'expression': 'at(flow, by=gen_port[port]) == gen_p',
+            'expression': 'at(flow, by=generator[port]) == gen_p',
         }
     },
     'objective': {'sense': 'minimize', 'expression': 'sum(gen_p * gen_cost)'},
@@ -60,13 +58,13 @@ SUPPLY = {
 
 DEMAND = {
     'dimensions': {'snapshot': {'dtype': 'int'}, 'port': {'dtype': 'str'}, 'demand': {'dtype': 'str'}},
-    'relations': {'dem_port': {'key': 'demand', 'values': 'port'}},
+    'properties': {'demand': {'port': 'port'}},
     'given': {'variables': {'flow': {'dims': ['snapshot', 'port']}}},
     'parameters': {'dem_load': {'dims': ['snapshot', 'demand']}},
     'constraints': {
         'dem_withdraws': {
             'dims': ['snapshot', 'demand'],
-            'expression': 'at(flow, by=dem_port[port]) == -dem_load',
+            'expression': 'at(flow, by=demand[port]) == -dem_load',
         }
     },
 }
@@ -119,14 +117,14 @@ def test_the_balance_does_not_grow_when_a_component_type_is_added():
     three = merge(LIBRARY).constraints['balance'].expression
     storage = {
         'dimensions': {'snapshot': {'dtype': 'int'}, 'port': {'dtype': 'str'}, 'store': {'dtype': 'str'}},
-        'relations': {'st_port': {'key': 'store', 'values': 'port'}},
+        'properties': {'store': {'port': 'port'}},
         'given': {'variables': {'flow': {'dims': ['snapshot', 'port']}}},
         'parameters': {'st_capacity': {'dims': ['store']}},
         'variables': {'st_p': {'dims': ['snapshot', 'store'], 'bounds': {'lower': 0, 'upper': 'st_capacity'}}},
         'constraints': {
             'st_injects': {
                 'dims': ['snapshot', 'store'],
-                'expression': 'at(flow, by=st_port[port]) == st_p',
+                'expression': 'at(flow, by=store[port]) == st_p',
             }
         },
     }
@@ -225,9 +223,9 @@ def test_a_dimension_one_fragment_declares_ordered_is_ordered_in_the_composition
 
 
 def _mapped(missing: str | None) -> dict[str, object]:
-    """A fragment that declares only `port_bus`, with *missing* written, or no `missing:` where it is ``None``."""
-    relation = {'key': 'port', 'values': 'bus'} | ({} if missing is None else {'missing': missing})
-    return {'dimensions': {'port': {'dtype': 'str'}, 'bus': {'dtype': 'str'}}, 'relations': {'port_bus': relation}}
+    """A fragment that declares only `port[bus]`, with *missing* written, or no `missing:` where it is ``None``."""
+    bus = {'into': 'bus'} | ({} if missing is None else {'missing': missing})
+    return {'dimensions': {'port': {'dtype': 'str'}, 'bus': {'dtype': 'str'}}, 'properties': {'port': {'bus': bus}}}
 
 
 @pytest.mark.parametrize(
@@ -235,13 +233,15 @@ def _mapped(missing: str | None) -> dict[str, object]:
     [
         pytest.param([SURFACE, _mapped('refused')], 'refused', id='the-default-written-out'),
         pytest.param(
-            [varied(SURFACE, **{'relations.port_bus.missing': 'absent'}), _mapped('absent')], 'absent', id='both-absent'
+            [varied(SURFACE, **{'properties.port.bus': {'into': 'bus', 'missing': 'absent'}}), _mapped('absent')],
+            'absent',
+            id='both-absent',
         ),
     ],
 )
 def test_two_fragments_that_say_one_missing_agree(fragments, missing):
     """A written `missing: refused` was refused against an omitted one, as two fragments saying different things."""
-    assert merge(fragments).relations['port_bus'].missing == missing
+    assert merge(fragments).properties['port']['bus'].missing == missing
 
 
 @pytest.mark.parametrize(
@@ -253,7 +253,7 @@ def test_two_fragments_that_say_one_missing_agree(fragments, missing):
 )
 def test_two_fragments_that_read_a_missing_key_apart_are_refused(fragments):
     """Neither reading settles the other: a key left out is refused under one, and belongs to no group under the other."""
-    with pytest.raises(LanguageError, match=r"say different things about the relation 'port_bus'") as raised:
+    with pytest.raises(LanguageError, match=r"say different things about the property 'port.bus'") as raised:
         merge(fragments)
     assert 'Make the two identical' in str(raised.value), 'the refusal names the rewrite'
 
@@ -600,24 +600,24 @@ def test_a_patch_that_rewrites_a_dimension_is_refused(patch, says):
     assert says in str(raised.value), 'the refusal names the rewrite rather than only what is wrong'
 
 
-#: `SURFACE` with `port_bus` declared `missing: absent`.
-ABSENT_SURFACE = varied(SURFACE, **{'relations.port_bus.missing': 'absent'})
+#: `SURFACE` with `port[bus]` declared `missing: absent`.
+ABSENT_SURFACE = varied(SURFACE, **{'properties.port.bus': {'into': 'bus', 'missing': 'absent'}})
 
 
 @pytest.mark.parametrize(
-    ('base', 'relation', 'missing'),
+    ('base', 'written', 'missing'),
     [
         pytest.param(SURFACE, {'missing': 'absent'}, 'absent', id='the-reading-alone'),
-        pytest.param(SURFACE, {'key': 'port', 'values': 'bus', 'missing': 'absent'}, 'absent', id='restated-absent'),
+        pytest.param(SURFACE, {'into': 'bus', 'missing': 'absent'}, 'absent', id='restated-absent'),
         pytest.param(ABSENT_SURFACE, {'missing': 'refused'}, 'refused', id='back-to-the-default'),
         pytest.param(ABSENT_SURFACE, {'missing': None}, 'refused', id='null-puts-back-the-default'),
-        pytest.param(SURFACE, {'key': 'port', 'values': 'bus', 'missing': 'refused'}, 'refused', id='default-written'),
-        pytest.param(ABSENT_SURFACE, {'key': 'port', 'values': 'bus'}, 'absent', id='restated-without-one'),
+        pytest.param(SURFACE, {'into': 'bus', 'missing': 'refused'}, 'refused', id='default-written'),
+        pytest.param(ABSENT_SURFACE, {'into': 'bus'}, 'absent', id='restated-without-one'),
     ],
 )
-def test_a_patch_changes_what_a_key_the_map_leaves_out_means(base, relation, missing):
+def test_a_patch_changes_what_a_key_the_map_leaves_out_means(base, written, missing):
     """`missing:` is a claim about the data, not the coordinate space, and a patch that wrote it was refused as one."""
-    assert override(base, [{'relations': {'port_bus': relation}}]).relations['port_bus'].missing == missing
+    assert override(base, [{'properties': {'port': {'bus': written}}}]).properties['port']['bus'].missing == missing
 
 
 @pytest.mark.parametrize(
@@ -640,7 +640,7 @@ def test_a_patch_changes_what_a_missing_row_of_a_parameter_means(base, written, 
     ('section', 'name', 'declared'),
     [
         pytest.param('parameters', 'c', {'dims': ['g']}, id='a-parameter'),
-        pytest.param('relations', 'lk', {'key': 'g', 'values': 'h'}, id='a-relation'),
+        pytest.param('sets', 'pair', {'dims': ['g', 'h']}, id='a-set'),
     ],
 )
 def test_the_default_missing_written_out_is_the_spec_that_leaves_it_out(section, name, declared):

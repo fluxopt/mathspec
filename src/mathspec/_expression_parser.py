@@ -80,7 +80,7 @@ class NameListNode:
 
 @dataclass(frozen=True)
 class ColumnsNode:
-    """Columns of one relation in a kwarg value — ``sum(x, over=g, by=gen_bus[bus])``.
+    """The members and properties of one subject in a kwarg value — ``sum(x, over=g, by=generator[bus])``.
 
     The relation is written once and its columns after it, so one call cannot
     name columns of two tables. Unresolved: which columns the kwarg admits is
@@ -444,7 +444,7 @@ def parse_expression(text: str) -> ParsedNode:
 
 
 def names_in(value: ArithmeticNode) -> tuple[str, ...]:
-    """The names a relation kwarg carries: one bare, several bracketed, none otherwise."""
+    """The names a ``by=`` or ``within=`` kwarg carries: one bare, several bracketed, none otherwise."""
     if isinstance(value, NameNode):
         return (value.name,)
     return value.names if isinstance(value, NameListNode) else ()

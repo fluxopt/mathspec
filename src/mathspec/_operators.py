@@ -24,10 +24,10 @@ class Builtin:
 
     Keyword arguments come in four kinds, and the kind decides what resolution
     turns the value into: ``dimension_kwargs`` name a dimension or a list of
-    them (``sum(x, over=generator)``); ``column_kwargs`` name columns of one
-    relation, written ``relation[column, …]`` (``sum(x, over=generator,
-    by=gen_bus[bus])``), and beside one a ``dimension_kwargs`` name is a
-    column of that relation where it has one; ``edge_kwargs`` take a closed
+    them (``sum(x, over=generator)``); ``column_kwargs`` name what one subject
+    reads, written ``subject[name, …]`` (``sum(x, over=generator,
+    by=generator[bus])``), and beside one a ``dimension_kwargs`` name is a
+    column of that subject's table where it has one; ``edge_kwargs`` take a closed
     keyword or a number;
     ``required_value_kwargs`` are ordinary values that must be present — a
     number, never a name to resolve (``shift(..., offset=1)``).
@@ -71,26 +71,26 @@ class Builtin:
         return None
 
 
-#: The closed operator set. ``relation[column, …]`` is the one form that
-#: addresses a relation, and a relation carries its own dimensions, so no
+#: The closed operator set. ``subject[name, …]`` is the one form that
+#: reads a set or a property, and its table carries its own dimensions, so no
 #: sibling kwarg restates them. ``by=`` on ``sum`` names the columns a sum
 #: groups by, and on ``at`` the columns a lookup reads. ``within=`` on
 #: ``shift`` and ``sum_back`` partitions the axis the operator steps along: it
 #: says which rows are neighbours, not which group a term is added to.
 BUILTINS: dict[str, Builtin] = {
     'sum': Builtin(
-        'sum(<expr>), sum(<expr>, over=<dim>) or sum(<expr>, over=<column>, by=<relation>[<column>])',
+        'sum(<expr>), sum(<expr>, over=<dim>) or sum(<expr>, over=<member>, by=<subject>[<property>])',
         dimension_kwargs=('over',),
         column_kwargs=('by',),
         optional_kwargs=('over', 'by'),
         with_columns=('over',),
     ),
     'at': Builtin(
-        'at(<expr>, by=<relation>[<column>])',
+        'at(<expr>, by=<subject>[<property>])',
         column_kwargs=('by',),
     ),
     'sum_back': Builtin(
-        "sum_back(<expr>, along=<dim>, window=<n|parameter>[, edge='wrap'][, within=<relation>[<column>]])",
+        "sum_back(<expr>, along=<dim>, window=<n|parameter>[, edge='wrap'][, within=<subject>[<property>]])",
         dimension_kwargs=('along',),
         column_kwargs=('within',),
         required_value_kwargs=('window',),
@@ -98,7 +98,7 @@ BUILTINS: dict[str, Builtin] = {
         optional_kwargs=('within',),
     ),
     'shift': Builtin(
-        "shift(<expr>, along=<dim>, offset=<n>[, edge='wrap'|<number>][, within=<relation>[<column>]])",
+        "shift(<expr>, along=<dim>, offset=<n>[, edge='wrap'|<number>][, within=<subject>[<property>]])",
         dimension_kwargs=('along',),
         column_kwargs=('within',),
         required_value_kwargs=('offset',),
@@ -160,8 +160,8 @@ def call_shape_error(name: str, positional: int, kwargs: Iterable[str]) -> str |
     optional = {*builtin.edge_kwargs, *builtin.optional_kwargs}
     if keys & set(builtin.column_kwargs) and (unsaid := sorted(frozenset(builtin.with_columns) - keys)):
         return (
-            f'{name}() through a relation does not name {", ".join(f"{k}=" for k in unsaid)}. A sum through a '
-            f'relation names in over= the columns it sums away.\n'
+            f'{name}() through a set or a property does not name {", ".join(f"{k}=" for k in unsaid)}. A sum '
+            f'through a set or a property names in over= the members it sums away.\n'
             f'Write: {builtin.usage}'
         )
     fits = positional == 1 and keys - optional == builtin.required

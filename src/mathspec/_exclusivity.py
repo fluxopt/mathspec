@@ -154,18 +154,24 @@ class Subject:
     kind: Literal['param', 'expression', 'dim', 'rank', 'relation', 'relation_pair', 'variable']
     name: str
     qualifier: str | None = None
-    #: A rank's group columns: two positions by one relation into different columns are two subjects.
+    #: A rank's group columns: two positions within one subject by different properties are two subjects.
     group: tuple[str, ...] = ()
 
     def __str__(self) -> str:
         if self.kind == 'rank':
-            within = f' within {self.qualifier}' if self.qualifier else ''
+            within = f' within {_written(self.qualifier)}' if self.qualifier else ''
             return f'the position of {self.name}{within}'
         if self.kind == 'relation_pair':
-            return f'{self.name} vs {self.qualifier}'
+            return f'{_written(self.name)} vs {_written(self.qualifier or "")}'
         if self.kind == 'relation' and self.qualifier:
-            return f'{self.name}[{self.qualifier}]'
-        return self.name
+            return f'{self.name.partition(".")[0]}[{self.qualifier}]'
+        return _written(self.name)
+
+
+def _written(table: str) -> str:
+    """A table as the file reads it: ``generator.bus`` as ``generator[bus]``, a set by its name."""
+    subject, _, prop = table.partition('.')
+    return f'{subject}[{prop}]' if prop else subject
 
 
 @dataclass(frozen=True)
@@ -280,7 +286,7 @@ def _observe(node: TypedCondition, subject: Subject, values: set[_Literal]) -> N
         if node.op not in ('==', '!='):
             msg = (
                 f'{subject} uses {node.op!r}, and this analysis does not decide an inequality between two '
-                'relation columns. Compare them with == or !=, or precompute the comparison as a boolean '
+                'properties. Compare them with == or !=, or precompute the comparison as a boolean '
                 'parameter and test that'
             )
             raise Undecidable(msg)
@@ -313,7 +319,7 @@ def _subject_of(node: TypedCondition) -> Subject:
         case TranslatedCondition():
             return Subject('expression', 'a condition read at a neighbouring coordinate')
         case JoinedCondition():
-            return Subject('expression', 'a condition read through a relation')
+            return Subject('expression', 'a condition read through a property')
         case _:
             assert_never(node)
 
@@ -434,7 +440,7 @@ def _rank_cells(subject: Subject, positions_seen: set[int]) -> list[Cell]:
     """
     positions = sorted(positions_seen)
     if positions and positions[0] < 0 <= positions[-1]:
-        within = f' within each {subject.qualifier} group' if subject.qualifier else ''
+        within = f' within each {_written(subject.qualifier)} group' if subject.qualifier else ''
         msg = (
             f'{subject.name} is split at positions counted from both ends{within} '
             f'({", ".join(str(position) for position in positions)}), which name the same row when it '
@@ -516,7 +522,7 @@ def _atom(node: TypedCondition, cell: dict[Subject, Cell], grid: _Grid) -> bool:
             raise AssertionError(msg)
         case CountComparison() | TranslatedCondition() | JoinedCondition():
             msg = (
-                'a condition read as a count, at a neighbour or through a relation is refused as undecidable '
+                'a condition read as a count, at a neighbour or through a property is refused as undecidable '
                 'before any cell is read'
             )
             raise AssertionError(msg)

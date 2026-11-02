@@ -276,7 +276,7 @@ class Column:
     name: str
 
     def __str__(self) -> str:
-        """The column as a file writes it, ``relation[column]``."""
+        """The column as a file writes it, ``subject[property]``."""
         return f'{self.relation}[{self.name}]'
 
 
@@ -521,7 +521,7 @@ class Relation:
     missing: RelationMissing = 'refused'
     description: str | None = None
     #: The dimension or set whose rows the key ranges over, on a relation
-    #: lowered from a property; ``None`` on a set and on a relation. Every row
+    #: lowered from a property; ``None`` on a set. Every row
     #: here is a row of the subject, and ``missing`` asks whether every row of
     #: the subject is a row here, rather than every combination of the key's
     #: dimensions.

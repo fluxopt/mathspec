@@ -31,8 +31,8 @@ and the data sets the number of flows.
      on_one_segment: { variable: weight, along: bp, type: 2 }
    ```
 
-3. **Write the convexity row, and one row per flow.** The relation
-   `converter_of` maps each flow to its converter, so the data sets how many
+3. **Write the convexity row, and one row per flow.** The property
+   `flow[converter]` maps each flow to its converter, so the data sets how many
    flows a converter has:
 
    ```yaml
@@ -42,7 +42,7 @@ and the data sets the number of flows.
        expression: sum(weight, over=bp) == 1
      on_the_curve: # one row per flow
        dims: [flow, time]
-       expression: rate == sum(at(weight, by=converter_of[converter]) * bp_rate, over=bp)
+       expression: rate == sum(at(weight, by=flow[converter]) * bp_rate, over=bp)
    ```
 
 A converter with a fourth flow is then one more row in the data.

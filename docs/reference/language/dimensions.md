@@ -7,7 +7,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 A **dimension** is a set of labels that entries are indexed by, such as
 `snapshot` or `generator`. `sum` reduces over a dimension. A map from one
-dimension onto another is a [relation](relations.md).
+dimension onto another is a [property](sets.md#properties).
 
 ## `dimensions`
 
@@ -54,5 +54,5 @@ A `dtype` does not make a dimension ordered: an `int` dimension may number
 things that have no order. An `sos` entry with `type: 1` reads no order, and
 `edge='wrap'` makes one `shift` cyclic without changing the dimension.
 
-To decide whether a column of data is a dimension, a relation or a parameter,
+To decide whether a column of data is a dimension, a property or a parameter,
 read [declare a column of data](../../howto/declare-a-column.md).

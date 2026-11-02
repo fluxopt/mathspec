@@ -122,8 +122,8 @@ dimensions:
   entity: { dtype: str }
   bus: { dtype: str }
   snapshot: { dtype: int }
-relations:
-  connection: { key: [entity, bus], missing: absent } # the pairs that are wired
+sets:
+  connection: { dims: [entity, bus], missing: absent } # the pairs that are wired
 parameters:
   efficiency: { dims: [entity, bus, snapshot], where: connection, missing: 1 }
 variables:
@@ -158,8 +158,9 @@ A row outside the mask is not an error. To refuse such a row, state it as an
 `{holds: "connection", where: "efficiency"}`.
 
 A mask reads what comes before the parameters. [Dimensions](dimensions.md)
-say which labels exist, and [relations](relations.md) say which combinations of
-labels exist. A relation has no `where:`, so a mask can read any relation. A
+say which labels exist, [sets](sets.md#sets) say which combinations of labels
+exist, and [properties](sets.md#properties) map one label to another. Neither
+has a `where:`, so a mask can read any set or property. A
 parameter that has no mask comes before the masked ones too. So the mask is read
 from the data alone, before the parameter itself, and four masks are refused at
 load:
@@ -170,7 +171,7 @@ load:
 - a mask over a dimension that the parameter does not have.
 
 ```text
-Parameter 'efficiency': its `where:` reads variable 'p', and a parameter's mask is evaluated from the data alone, before any variable has a value. Test a parameter or a relation instead.
+Parameter 'efficiency': its `where:` reads variable 'p', and a parameter's mask is evaluated from the data alone, before any variable has a value. Test a parameter, a set or a property instead.
 ```
 
 The typeset legend prints the mask beside the dimensions, as `only where` and
@@ -272,14 +273,15 @@ dimensions:
   snapshot: { dtype: int }
   port: { dtype: str }
   generator: { dtype: str }
-relations:
-  gen_port: { key: generator, values: port }
+properties:
+  generator:
+    port: port
 variables:
   gen_p: { dims: [snapshot, generator], bounds: { lower: 0 } }
 constraints:
   gen_injects:
     dims: [snapshot, generator]
-    expression: at(flow, by=gen_port[port]) == gen_p
+    expression: at(flow, by=generator[port]) == gen_p
 ```
 
 | Field         |                                                   |                      |
@@ -394,14 +396,15 @@ dimensions:
   snapshot: { dtype: int }
   bus: { dtype: str }
   generator: { dtype: str }
-relations:
-  gen_bus: { key: generator, values: bus }
+properties:
+  generator:
+    bus: bus
 variables:
   gen_p: { dims: [snapshot, generator], bounds: { lower: 0 } }
 expressions:
   generation:
     description: what the fleet puts into a bus
-    expression: sum(gen_p, over=generator, by=gen_bus[bus])
+    expression: sum(gen_p, over=generator, by=generator[bus])
     adds_to: injection
 ```
 

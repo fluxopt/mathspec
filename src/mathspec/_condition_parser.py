@@ -55,7 +55,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class ColumnNode:
-    """``relation[column]`` on a side of a comparison, which reads one column at the frame's coordinates."""
+    """``subject[property]`` on a side of a comparison, which reads one column at the frame's coordinates."""
 
     relation: str
     column: str
@@ -246,7 +246,7 @@ def _named_rewrite(text: str, loc: int) -> str | None:
 
     ``!=``, ``<`` and ``>`` are legal here, so only the tokens no condition
     admits are diagnosed. A comparison reads one column, so the grammar gives
-    up at the bracket of ``relation[a, b]`` inside a comparison, and at the
+    up at the bracket of ``subject[a, b]`` inside a comparison, and at the
     comparator after ``subject[a, b]``, which alone is a test of presence.
     """
     rest = text[loc:].lstrip()
@@ -276,7 +276,7 @@ def _named_rewrite(text: str, loc: int) -> str | None:
 #: The rewrite for a condition that nests too deep. The file can carry part
 #: of a long chain of conditions as data, so this rewrite comes first.
 _DEEP_REWRITE = (
-    'Declare a parameter or relation carrying part of the test and name that here, or split the '
+    'Declare a parameter or a set carrying part of the test and name that here, or split the '
     'entry into two, each masked by one half.'
 )
 

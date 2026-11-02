@@ -141,7 +141,7 @@ class ConditionResolver:
         return cast('Condition', self.build(node))
 
     def _bare_name(self, node: NameNode) -> Condition | UnresolvedConditionNode:
-        """A bare name: a named condition's body, a parameter's or relation's definedness, or a variable's existence."""
+        """A bare name: a named condition's body, a parameter's or a set's definedness, or a variable's existence."""
         ns, context = self.ns, self.context
         if node.name in ns.conditions:
             try:
@@ -180,14 +180,14 @@ class ConditionResolver:
                     f'name is true at every coordinate. '
                     f'Remove it, or compare it: where: "{node.name} > 0".'
                 )
-            case 'relation':
-                shape = ns.relations[node.name]
+            case 'set':
+                shape = ns.sets[node.name]
                 dims = tuple(shape.dim(k) for k in shape.key)
                 if len(set(dims)) < len(dims):
                     self.errors.append(
-                        f"{context}: '{node.name}' has two columns over one dimension ({list(shape.roles)}), so a "
-                        f'bare name is ambiguous. Compare a column: '
-                        f'{node.name}[{shape.values[0] if shape.values else shape.roles[-1]}] == ....'
+                        f"{context}: '{node.name}' has two members over one dimension ({list(shape.roles)}), so the "
+                        f"bare name cannot say which one the frame's coordinate is. Read it through a sum: "
+                        f'sum(..., over={shape.roles[0]}, by={node.name}[{shape.roles[-1]}]).'
                     )
                     return node
                 return RelationDefined(node.name, dims)
@@ -202,7 +202,7 @@ class ConditionResolver:
         return node
 
     def _condition_call(self, node: UnresolvedConditionCallNode) -> Condition | UnresolvedConditionNode:
-        """``shift(<condition>, along=, offset=)`` or ``at(<condition>, by=relation[column])`` — the two operators that read a condition and answer one.
+        """``shift(<condition>, along=, offset=)`` or ``at(<condition>, by=subject[property])`` — the two operators that read a condition and answer one.
 
         ``count`` answers a number, so it stands on a comparison's side and
         [`_count`][] reads it there. Anything else naming a condition is
@@ -258,7 +258,7 @@ class ConditionResolver:
         return TranslatedCondition(mask, along.name, int(offset.value), tuple(sorted(mask.dims)))
 
     def _joined(self, node: UnresolvedConditionCallNode, mask: Mask) -> Condition | UnresolvedConditionNode:
-        """``at(<condition>, by=relation[column])`` — the condition read through a relation, as ``at`` reads an array.
+        """``at(<condition>, by=subject[property])`` — the condition read through a property, as ``at`` reads an array.
 
         The columns are read by the rules an expression's ``at`` is, so the one
         refusal a file meets for a bad read is the same in a ``where:`` and in
@@ -333,7 +333,7 @@ class ConditionResolver:
         ns, context = self.ns, self.context
         subject, named = node.columns.relation, node.columns.columns
         properties = ns.properties.get(subject, {})
-        if subject in ns.relations and not set(named) & set(properties):
+        if subject in ns.sets and not set(named) & set(properties):
             self.errors.append(
                 f"{context}: '{node.columns}' alone tests no property of '{subject}'. Test whether '{subject}' has "
                 f"a row with its bare name, '{subject}'."
@@ -344,7 +344,7 @@ class ConditionResolver:
                 ns.unknown(subject, context, allow_dims=True)
                 if ns.kind(subject) is None
                 else f"{context}: '{node.columns}' reads a column of '{subject}', which is "
-                f'{_declared_as(ns, subject)}. Only a relation, a set or a dimension has columns.'
+                f'{_declared_as(ns, subject)}. Only a set or a dimension has properties.'
             )
             return node
         if unknown := [c for c in named if c not in properties]:
@@ -473,13 +473,13 @@ class ConditionResolver:
     def _position(
         self, call: FunctionCallNode, node: UnresolvedComparisonNode
     ) -> DimensionPosition | UnresolvedComparisonNode:
-        """``position(dim[, within=relation[column]]) <op> i``: the name a dimension, the relation keyed over it."""
+        """``position(dim[, within=subject[property]]) <op> i``: the name a dimension, the property it counts within."""
         ns, context = self.ns, self.context
         shape = _position_shape(call)
         if shape is None:
             self.errors.append(
                 f'{context}: this position() call is not of the form '
-                f'position(<dim>[, within=<relation>[<column>]]). Write it in that form.'
+                f'position(<dim>[, within=<subject>[<property>]]). Write it in that form.'
             )
             return node
         dimension, within = shape
@@ -539,7 +539,7 @@ class ConditionResolver:
         if left_column and ns.columns(left_name) is None:
             self.errors.append(
                 f"{context}: '{plain.name}' reads a column of '{left_name}', which is {_declared_as(ns, left_name)}. "
-                f'Only a relation, a set or a dimension has columns.'
+                f'Only a set or a dimension has properties.'
             )
             return node
         read: tuple[str, str] | None = None
@@ -566,8 +566,8 @@ class ConditionResolver:
                 return ParameterComparison(left_name, plain.op, value, ns.leaf_dims[left_name])
             case 'dimension':
                 return DimensionComparison(left_name, plain.op, value)
-            case 'relation':
-                raise AssertionError('a relation is read as a table above, with or without a column')
+            case 'set':
+                raise AssertionError('a set is read as a table above, with or without a column')
             case 'variable' if left_name in ns.spec.given.expressions:
                 self.errors.append(
                     f"{context}: where references the given expression '{left_name}'. {GIVEN_IN_A_CONDITION}"
@@ -582,57 +582,30 @@ class ConditionResolver:
     def _read(self, name: str, column: str | None, spelling: str, op: ComparisonOperator) -> tuple[str, str] | None:
         """The table and the column a side of a where-comparison reads, or ``None`` with the refusal appended.
 
-        A property is read from its own table, ``subject.property``, and a
-        relation's or a set's own column from the relation or the set.
+        A property is read from its own table, ``subject.property``. A set
+        holds no value, and a member is a coordinate, so neither is compared.
         """
         ns, context = self.ns, self.context
         properties = ns.properties.get(name, {})
         if column is not None and column in properties:
             return f'{name}.{column}', column
-        if name in ns.relations:
-            read = self._relation_column(name, column, spelling, op)
-            return None if read is None else (name, read)
+        if column is None and name in ns.sets:
+            self.errors.append(
+                f"{context}: '{spelling}' compares the set '{name}', which holds no value. Compare one of its "
+                f"properties, {name}[<property>] {op} ..., or test the bare name '{name}' for whether a row exists."
+            )
+            return None
+        if column is not None and column in dict(ns.subjects.get(name, ())):
+            self.errors.append(
+                f"{context}: '{spelling}': '{column}' is a member of '{name}'. Compare the coordinate itself, "
+                f'{dict(ns.subjects[name])[column]} {op} ..., or a property.'
+            )
+            return None
         self.errors.append(
             f"{context}: '{spelling}' reads '{column}', which is no property of '{name}'. "
             f'{did_you_mean(column or "", properties, label="Properties")}'
         )
         return None
-
-    def _relation_column(self, name: str, column: str | None, spelling: str, op: ComparisonOperator) -> str | None:
-        """The value column a where-comparison on relation *name* reads, or the refusal.
-
-        A comparison reads one value per coordinate, so the relation is keyed
-        and the column is one the key determines; unsaid, it is the one value
-        column where there is exactly one.
-        """
-        ns, context = self.ns, self.context
-        shape = ns.relations[name]
-        if not shape.values:
-            self.errors.append(
-                f"{context}: '{spelling}' compares a column of '{name}', which has every column in its key. "
-                f"Declare that column under values:, or test the bare name '{name}' for whether a row exists."
-            )
-            return None
-        if column is None:
-            if len(shape.values) != 1:
-                self.errors.append(
-                    f"{context}: '{spelling}': '{name}' has {len(shape.values)} value columns ({list(shape.values)}), "
-                    f'so name one: {name}[{shape.values[0]}].'
-                )
-                return None
-            return shape.values[0]
-        if column not in shape.roles:
-            self.errors.append(
-                f"{context}: '{spelling}': '{column}' is not a column of '{name}', whose columns are {list(shape.roles)}."
-            )
-            return None
-        if column in shape.key:
-            self.errors.append(
-                f"{context}: '{spelling}': '{column}' is a key column of '{name}'. Compare the coordinate itself, "
-                f'{shape.dim(column)} {op} ..., or a value column.'
-            )
-            return None
-        return column
 
     def _inequality_rewrite(self, node: _Plain, dtype: DeclaredDtype) -> str:
         """What to write in place of an inequality on a value whose dtype does not define one.
@@ -643,8 +616,8 @@ class ConditionResolver:
         """
         if dtype == 'bool':
             return f"Test the bare name, '{node.name}' or 'not {node.name}'"
-        name = _split_column(node.name)[0]
-        if self.ns.kind(name) == 'dimension' and not self.ns.unordered(name):
+        name, column = _split_column(node.name)
+        if not column and self.ns.kind(name) == 'dimension' and not self.ns.unordered(name):
             return f'Select members by their place with position({name}) {node.op} n, or compare it with == or !='
         return 'Compare it with == or !=, or precompute the comparison as a boolean parameter'
 
@@ -736,7 +709,7 @@ def _side_name_or_none(side: ArithmeticNode | ColumnNode | KeywordNode) -> str |
 
 
 def _side_name(side: ArithmeticNode | ColumnNode) -> str | None:
-    """The name a side of a where-comparison spells — bare or ``relation[column]`` — or ``None`` where it is arithmetic."""
+    """The name a side of a where-comparison spells — bare or ``subject[property]`` — or ``None`` where it is arithmetic."""
     if isinstance(side, NameNode):
         return side.name
     if isinstance(side, ColumnNode):
@@ -746,11 +719,11 @@ def _side_name(side: ArithmeticNode | ColumnNode) -> str | None:
 
 def _reads(ns: Namespace, name: str, column: str) -> bool:
     """Whether a side spelled *name* or ``name[column]`` reads a table: a relation or a set by its bare name, or any subject with a column."""
-    return ns.kind(name) == 'relation' or (bool(column) and ns.columns(name) is not None)
+    return ns.kind(name) == 'set' or (bool(column) and ns.columns(name) is not None)
 
 
 def _split_column(name: str) -> tuple[str, str]:
-    """``relation[column]`` as its two names, and a bare name with an empty column: the one reader of a side's spelling."""
+    """``subject[property]`` as its two names, and a bare name with an empty column: the one reader of a side's spelling."""
     relation, _, column = name.partition('[')
     return relation, column.removesuffix(']')
 
@@ -813,8 +786,8 @@ def _not_arithmetic(context: str, side: ColumnNode | KeywordNode) -> str:
     """Why a relation column or a quoted label may not stand on a side of a comparison of expressions."""
     if isinstance(side, ColumnNode):
         return (
-            f"{context}: '{side.shown}' is a relation column in arithmetic. Compare it alone against a literal "
-            f'or a column, or carry the value in a parameter.'
+            f"{context}: '{side.shown}' is a property in arithmetic. Compare it alone against a literal "
+            f'or a property, or carry the value in a parameter.'
         )
     return (
         f"{context}: '{side.value}' is a quoted label, which is compared against one name. Put the name alone on "
@@ -823,7 +796,7 @@ def _not_arithmetic(context: str, side: ColumnNode | KeywordNode) -> str:
 
 
 def _declared_rhs_error(context: str, node: _Plain, value: str, kind: str, *, given: bool = False) -> str:
-    """Why the right-hand side of a where-comparison may not name a variable, a relation or a dimension.
+    """Why the right-hand side of a where-comparison may not name a variable, a set or a dimension.
 
     A given expression is filed with the variables, and *given* says the name is one.
     """
@@ -835,10 +808,10 @@ def _declared_rhs_error(context: str, node: _Plain, value: str, kind: str, *, gi
             f'{context}: {comparison} compares against variable {value!r}. '
             f'Test only parameters and dimension coordinates.'
         )
-    if kind == 'relation':
+    if kind == 'set':
         return (
-            f'{context}: {comparison} compares {node.name!r} against relation {value!r}. Compare against a '
-            f'literal, or put a relation over the same dimensions on the left.'
+            f'{context}: {comparison} compares {node.name!r} against the set {value!r}, which holds no value. '
+            f'Compare against a literal, or against a property over the same dimensions.'
         )
     return (
         f'{context}: {comparison} compares against dimension {value!r}, and two dimensions cannot be '
@@ -865,19 +838,19 @@ def _relation_pair_error(
     left_keys, right_keys = {ls.dim(k) for k in ls.key}, {rs.dim(k) for k in rs.key}
     if left_keys != right_keys:
         return (
-            f'{context}: {comparison} compares relations keyed over different dimensions '
-            f"('{left_name}' by {sorted(left_keys)}, '{right_name}' by {sorted(right_keys)}). Compare relations "
-            f'whose keys are over the same dimensions.'
+            f'{context}: {comparison} compares properties of subjects over different dimensions '
+            f"('{left_name}' over {sorted(left_keys)}, '{right_name}' over {sorted(right_keys)}). Compare "
+            f'properties whose subjects are over the same dimensions.'
         )
     if ls.dim(left) != rs.dim(right):
         return (
-            f"{context}: {comparison} compares '{node.name}' (a column over '{ls.dim(left)}') with "
-            f"'{other}' (a column over '{rs.dim(right)}'). Compare two columns over the same dimension."
+            f"{context}: {comparison} compares '{node.name}' (into '{ls.dim(left)}') with "
+            f"'{other}' (into '{rs.dim(right)}'). Compare two properties into the same dimension."
         )
     dtype = ns.dtypes[ls.dim(left)]
     if node.op not in ('==', '!=') and dtype not in _INEQUALITY_DTYPES:
         return (
-            f"{context}: {comparison} compares two columns over '{ls.dim(left)}', of dtype '{dtype}', "
+            f"{context}: {comparison} compares two properties into '{ls.dim(left)}', of dtype '{dtype}', "
             f'on which {node.op} is not defined. Compare them with == or !=, or precompute the comparison as a '
             'boolean parameter.'
         )

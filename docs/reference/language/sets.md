@@ -151,18 +151,111 @@ declares `missing: absent`, and prints nothing for `refused`.
 
 ## How a set or a property is read
 
-A call names a subject and what it reads of it as `subject[name, …]`. Each name
-is a member of the subject or a property of it. The call joins and groups by
-the rules of a [relation](relations.md#how-a-relation-is-used), where a member
-is a key column and a property is a value column.
+A call reads one subject and names what it reads as `subject[name, …]`. Each
+name is a member of the subject or a property of it. The call **joins** the
+operand to the subject's table on the columns they share, and **groups** what
+the join produces. A member is a key column of that table, and a property is a
+value column.
 
-| kind              | written as                                                    |
-| ----------------- | ------------------------------------------------------------- |
-| join and group by | `sum(p, over=generator, by=generator[bus])`                   |
-| join              | `at(price, by=generator_period[zone])`                        |
-| partition         | `shift(x, along=snapshot, offset=1, within=snapshot[period])` |
-| test a value      | `generator[bus] == 'b1'`, or `line[bus0] != line[bus1]`       |
-| test a property   | `line[bus1]`, true where the line has the property            |
+| kind              | what it does                                                              | written as                                                         |
+| ----------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| join and group by | rows of the operand match rows of the table, and each group is added up   | `sum(p, over=generator, by=generator[bus])`                        |
+| join              | each row of the operand matches one row of the table, and reads its value | `at(price, by=generator_period[zone])`                             |
+| partition         | the dimensions stay, and the rows are grouped                             | `shift(x, along=snapshot, offset=1, within=snapshot[period])`      |
+| test              | a row's value or its presence keeps or cuts a coordinate                  | `generator[bus] == 'b1'`, `line[bus0] != line[bus1]`, `line[bus1]` |
+
+Four rules hold for every call:
+
+1. A call names every column it reads, so `at(price, by=generator)` is
+   refused. Write `at(price, by=generator[bus])`.
+2. A property the call does not name is not read.
+3. A call reads one subject. To read through two, nest the calls:
+   `sum(sum(p, over=generator, by=generator[bus]), over=bus, by=bus[zone])`.
+4. A dimension the subject does not name passes through to the result.
+
+### Sums
+
+`sum(x, over=d, by=s[c])` sums `x` over the columns in `over=`, grouped by the
+columns in `by=`. As in `sum(x, over=d)`, `over=` names what the result loses,
+and `by=` names what the result gains. Either may be a list.
+
+Each column of the subject's table is either **joined on** or not, and either
+**grouped by** or not. The call decides both:
+
+| column of the table               | joined on | grouped by | in the result |
+| --------------------------------- | --------- | ---------- | ------------- |
+| a column in `over=`               | yes       | no         | removed       |
+| a column in `by=`                 | no        | yes        | added         |
+| a member the call does not name   | yes       | yes        | kept          |
+| a property the call does not name | no        | no         | not read      |
+
+With the set `generator_period: { dims: [generator, period] }` and its
+property `zone`, the set `connection: { dims: [generator, bus] }`, and `p`
+over `[generator, period]`:
+
+| call                                                | joins on            | groups by         | result              |
+| --------------------------------------------------- | ------------------- | ----------------- | ------------------- |
+| `sum(p, over=generator, by=generator_period[zone])` | `generator, period` | `zone, period`    | `[period, zone]`    |
+| `sum(p, over=period, by=generator_period[zone])`    | `period, generator` | `zone, generator` | `[generator, zone]` |
+| `sum(p, over=generator, by=connection[bus])`        | `generator`         | `bus`             | `[bus, period]`     |
+
+- The result is the operand, less the dimensions in `over=`, plus the columns
+  in `by=`. The operand carries every column joined on, and none that the call
+  groups by. With `load` over `bus`, `sum(load * p, over=generator, by=generator[bus])`
+  is refused. Write `load * sum(p, over=generator, by=generator[bus])`.
+- A name in `over=` is a column of the subject's table, or else a dimension.
+  With `snapshot: {rep: snapshot}`, `sum(x, over=snapshot, by=snapshot[rep])`
+  joins on the member `snapshot` and groups by `rep`. A name in both `over=` and
+  `by=` is refused.
+- A dimension in `over=` that no column is named after is summed away after the
+  group-by. `sum(p, over=[generator, period], by=generator[bus])` adds up each
+  bus over every period.
+- A sum adds up several rows per group. Where the columns grouped by are every
+  member of the subject, every group is one row. That is a join with no
+  group-by, which is `at`, so `to_spec` refuses the sum and names `at`:
+
+  ```text
+  Named expression 'e': sum(by=generator_period[generator, period]): the columns this sum groups by, ['generator', 'period'], hold the whole key ['generator', 'period'], so every group is one row and the sum adds nothing. Write at(..., by=generator_period[zone]), or group by a property.
+  ```
+
+### Lookups
+
+`at(x, by=s[c])` reads `x` at the value of property `c`, once for every row of
+the subject. It joins `x` on the properties in `by=` and groups by the members,
+so every group is one row.
+
+- A lookup reads properties. A member in `by=` is refused, and so is a set read
+  by its members alone, where a row is its own key. Sum through it instead.
+- The result gains the members, except where the operand carries them already.
+  A member over a dimension the operand carries is joined on too, unless a
+  property in `by=` already maps into that dimension. With `price` over
+  `[zone, period]`, `at(price, by=generator_period[zone])` joins on `zone` and
+  `period`, and its result is `[generator, period]`.
+- No two properties in `by=` map into one dimension, because the operand
+  carries each dimension once.
+
+### Partitions
+
+`shift(x, along=d, within=s[c])`, `sum_back(x, along=d, within=s[c])` and
+`position(d, within=s[c])` step along the member over `d`, join on the other
+members, and partition the rows by the properties in `within=`. The
+dimensions do not change. A set read by its members alone partitions nothing,
+and a coordinate with no value for the property is in no group.
+
+### Tests
+
+A condition reads a subject at the coordinates of its own entry:
+
+- `generator[bus] == 'b1'` compares a property against a label, and
+  `line[bus0] != line[bus1]` compares two properties into one dimension. A
+  comparison reads one property, and it is false where the row lacks it,
+  whatever the operator.
+- `line[bus1]` alone is true where the line has the property, and
+  `generator[bus, carrier]` is true where the row has both.
+- A set's bare name is true where the set has a row
+  ([entries over a set](#entries-over-a-set)).
+
+### Several properties
 
 ```yaml
 dimensions:
@@ -191,15 +284,11 @@ $$p_{g,t} \ge 0 \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T} \,:\, \ma
 
 $$\sum_{g \in \mathcal{G} \,:\, \mathrm{bus}(g) = b \wedge \mathrm{carrier}(g) = c} p_{g,t} \le \mathrm{limit}_{b,c} \qquad \forall\, b \in \mathcal{B},\ c \in \mathcal{C},\ t \in \mathcal{T}$$
 
-- A call that names several properties reads their **inner join**. A generator
-  with no `carrier` has no row in it, so `carrier_limit` adds up only the
-  generators that have a bus and a carrier.
-- `subject[property]` alone in a condition is true where the row has the
-  property. `generator[bus, carrier]` is true where the row has both.
-- A call reads one subject. To read through two, nest the calls:
-  `sum(sum(p, over=generator, by=generator[bus]), over=bus, by=bus[zone])`.
-- A dimension is read by its properties, because it has no table of its own:
+A call that names several properties reads their **inner join**. A generator
+with no `carrier` has no row in it, so `carrier_limit` adds up only the
+generators that have a bus and a carrier. A dimension is read by its
+properties, because it has no table of its own:
 
-  ```text
-  Constraint 'carrier_limit': sum(by=generator[generator]) reads no property of 'generator', and a dimension has no table of its own. Name one of its properties, ['bus', 'carrier'].
-  ```
+```text
+Constraint 'carrier_limit': sum(by=generator[generator]) reads no property of 'generator', and a dimension has no table of its own. Name one of its properties, ['bus', 'carrier'].
+```

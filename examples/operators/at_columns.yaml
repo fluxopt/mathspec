@@ -10,8 +10,10 @@ dimensions:
   line: { dtype: str }
   bus: { dtype: str }
 
-relations:
-  ends: { key: line, values: { bus0: bus, bus1: bus } }
+properties:
+  line:
+    bus0: bus
+    bus1: bus
 
 parameters:
   cap: { dims: [bus] }
@@ -24,6 +26,6 @@ variables:
 constraints:
   sending_cap:
     dims: [line]
-    expression: f <= at(cap, by=ends[bus0])
+    expression: f <= at(cap, by=line[bus0])
 
 objective: { sense: minimize, expression: sum(f) }

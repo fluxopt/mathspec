@@ -59,7 +59,7 @@ def test_no_definition_refers_only_to_itself():
         pytest.param('ObjectiveSpec', 'sense', spec.ObjectiveSense, id='sense'),
         pytest.param('VariableSpec', 'domain', spec.VariableDomain, id='domain'),
         pytest.param('VariableSpec', 'missing', Literal['absent'], id='variable-missing'),
-        pytest.param('RelationSpec', 'missing', spec.RelationMissing, id='relation-missing'),
+        pytest.param('SetSpec', 'missing', spec.RelationMissing, id='set-missing'),
         pytest.param('ParameterSpec', 'missing', spec.RelationMissing, id='parameter-missing'),
         pytest.param('ParameterSpec', 'dtype', spec.ParameterDtype, id='parameter-dtype'),
         pytest.param('DimensionSpec', 'dtype', spec.DimensionDtype, id='dimension-dtype'),
@@ -80,12 +80,12 @@ def test_a_closed_vocabulary_is_published_as_an_enum(entry, field, alias):
     ('entry', 'default'),
     [
         pytest.param('ParameterSpec', 'refused', id='parameter'),
-        pytest.param('RelationSpec', 'refused', id='relation'),
+        pytest.param('SetSpec', 'refused', id='set'),
         pytest.param('VariableSpec', 'absent', id='variable'),
     ],
 )
 def test_the_schema_publishes_the_reading_a_file_gets_by_leaving_missing_out(entry, default):
-    """The parameter and the relation hold `None` until read, and the schema published that `null`, not `refused`."""
+    """The parameter and the set hold `None` until read, and the schema published that `null`, not `refused`."""
     published = json.loads(schema.PATH.read_text())['$defs'][entry]['properties']['missing']
     assert published['default'] == default
 

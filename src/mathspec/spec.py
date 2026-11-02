@@ -77,7 +77,6 @@ __all__ = [
     'PiecewiseLinkSpec',
     'PiecewiseSpec',
     'PropertySpec',
-    'RelationSpec',
     'SetSpec',
     'SosSpec',
     'Spec',
@@ -174,7 +173,7 @@ def _refused_or_absent(v: object, kind: str, may: str, outcome: str) -> object:
     """*v* where it is ``refused`` or ``absent``, the two words a ``missing:`` on a table takes.
 
     A label is data, so no value fills a gap in a map: the ``missing:`` of a
-    relation, a set or a property reads a key, never a value.
+    set or a property reads a key, never a value.
     """
     if v is None:
         raise _missing_null(kind, f'Write absent where {may}, or leave the key out for refused.')
@@ -208,94 +207,16 @@ def _also_written_as(
 
 
 def side_columns(written: str | list[str] | dict[str, str] | None) -> tuple[tuple[str, str], ...]:
-    """``(role, dimension)`` per column of one side of a relation, in written order.
+    """``(member, dimension)`` per member of a set, in written order.
 
-    A bare name or a list names each column after the dimension it is over; a
-    mapping names the roles, which is what two columns over one dimension need.
+    A bare name or a list names each member after the dimension it is over; a
+    mapping names the members, which is what two members over one dimension need.
     """
     if written is None:
         return ()
     if isinstance(written, dict):
         return tuple(written.items())
     return tuple((d, d) for d in ((written,) if isinstance(written, str) else written))
-
-
-class RelationSpec(_StrictSpec):
-    """A named relation between dimensions: the columns a row is keyed by, and the columns that key determines.
-
-    Each side is a dimension, a list of them, or a mapping of column name to
-    dimension where two columns share one. ``key:`` is the claim the language
-    checks when the data is attached: one row per key tuple, so every ``values:`` column is a
-    function of it. A relation with no ``values:`` is **bare** — every column is
-    in its key, a row is its own identity, and nothing reads it::
-
-        relations:
-          gen_bus: {key: generator, values: bus}
-          gen_bt: {key: [generator], values: [bus, technology]}
-          zone_of: {key: [generator, period], values: zone}
-          ends: {key: line, values: {bus0: bus, bus1: bus}}
-          connection: {key: [generator, bus]}
-
-    A sum joins the table on the columns ``over=`` names and every other key
-    column, and groups by the columns ``by=relation[...]`` names. A lookup
-    joins on the columns it names. The entry fixes no direction. A
-    column is named after its own dimension or after none, so a name in a
-    call reads the same as a column and as a dimension. The map itself is
-    data, and arrives with the rest of it, under the relation's name, one
-    column per role.
-    """
-
-    _label: ClassVar[str] = 'a relation entry'
-
-    key: str | list[str] | dict[str, str]
-    values: str | list[str] | dict[str, str] | None = None
-    #: Whether every combination of the key's dimensions needs a row:
-    #: ``refused`` refuses data that leaves one out, and ``absent`` reads it
-    #: as no row.
-    missing: RelationMissing = 'refused'
-    description: str | None = None
-
-    @field_validator('missing', mode='before')
-    @classmethod
-    def _refused_or_absent(cls, v: object) -> object:
-        return _refused_or_absent(
-            v,
-            'a relation',
-            'a key combination may have no row',
-            'A key combination with no row is refused, or is not in the relation.',
-        )
-
-    @model_serializer(mode='wrap')
-    def _as_written(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
-        """``missing`` is written where it is not ``refused``: refused is what leaving it out says."""
-        return _without_refused(cast('dict[str, object]', handler(self)))
-
-    @property
-    def pairs(self) -> tuple[tuple[str, str], ...]:
-        """``(role, dimension)`` per column, the key's columns first.
-
-        The program calls the same thing [`columns`][mathspec.program.Relation.columns];
-        here the table has no field of its own, being what the two sides make.
-        """
-        return (*side_columns(self.key), *side_columns(self.values))
-
-    @property
-    def roles(self) -> tuple[str, ...]:
-        return tuple(role for role, _ in self.pairs)
-
-    @property
-    def dims(self) -> tuple[str, ...]:
-        return tuple(dim for _, dim in self.pairs)
-
-    @property
-    def key_roles(self) -> tuple[str, ...]:
-        """The key roles, however ``key:`` was written."""
-        return tuple(role for role, _ in side_columns(self.key))
-
-    @property
-    def value_roles(self) -> tuple[str, ...]:
-        """The roles the key determines; empty for a bare relation."""
-        return tuple(role for role, _ in side_columns(self.values))
 
 
 class SetSpec(_StrictSpec):
@@ -418,8 +339,9 @@ class DimensionSpec(_StrictSpec):
     A dimension is an axis and nothing else: it declares that the axis exists
     and what its coordinates are typed as, never which coordinates there are —
     those are data, and arrive when the data is attached. The maps its members carry — a
-    generator's bus, a snapshot's period — are top-level ``relations:``
-    ([`RelationSpec`][]), keyed by their own name.
+    generator's bus, a snapshot's period — are its ``properties:``
+    ([`PropertySpec`][]), and the combinations of its labels with another
+    dimension's that exist are ``sets:`` ([`SetSpec`][]).
     """
 
     _label: ClassVar[str] = 'a dimension entry'
@@ -1173,7 +1095,7 @@ class Spec(_StrictSpec):
     [`LanguageError`][mathspec.errors.LanguageError] on a spec the language refuses.
     Holding one is the proof, so nothing downstream checks it again.
 
-    The API is the fifteen sections plus ``version`` and
+    The API is the fourteen sections plus ``version`` and
     ``description``, three ways back out — [`to_dict`][] for the spec as
     data, [`to_yaml`][] for the file a reviewer reads, [`expand`][] for the
     spec with its formulations written out as plain rows — and [`program`][], the
@@ -1194,7 +1116,6 @@ class Spec(_StrictSpec):
     #: What this file reads and does not build ([`GivenSpec`][]). Empty in a file that stands alone.
     given: GivenSpec = GivenSpec()
     dimensions: dict[str, DimensionSpec] = {}
-    relations: dict[str, RelationSpec] = {}
     sets: dict[str, SetSpec] = {}
     #: subject -> property name -> the property, where the subject is a
     #: dimension or a set.

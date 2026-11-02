@@ -19,18 +19,17 @@ such as ``'#2'``.
 [`merge`][] writes nothing a fragment did not write, except a ``+``. It
 joins fragments' text in one place, a named expression that terms add to;
 every other entry is copied as written, refused where two fragments own it,
-or held identical where it is a dimension, a relation, a set or a property.
+or held identical where it is a dimension, a set or a property.
 What that means for each section:
 
-* **A dimension, a relation, a set or a property every fragment may
-  declare**, and the ones that do have to say the same thing about it. The
+* **A dimension, a set or a property every fragment may declare**, and the ones that do have to say the same thing about it. The
   properties of one subject are joined, so two fragments may each give
   ``generator`` a property of its own. Prose is not a claim, so two
   descriptions of one dimension agree, and the first one given is carried.
   ``ordered`` is a claim about the space, not the space, so a dimension one
   fragment declares ordered is ordered.
-  The ``missing:`` of a relation, a set or a property is a claim about the
-  data, and the fragments agree on it: ``absent`` and ``refused`` change the result differently, so
+  The ``missing:`` of a set or a property is a claim about the data, and
+  the fragments agree on it: ``absent`` and ``refused`` change the result differently, so
   neither folds into the other. ``missing: refused`` is the same as none.
 * **Every other entry is owned.** A name two fragments declare is refused,
   both named.
@@ -82,11 +81,11 @@ What a patch may say, and what is refused:
   earlier patch laid on it, so a later patch wins a field an earlier one
   writes, and edits or removes an entry an earlier one creates.
 * **A patch adjusts the math, not the coordinate space.** A dimension, a
-  relation, a set or a property may be added or restated as the schema reads
-  its base, never changed and never removed. A restated dimension may add
+  set or a property may be added or restated as the schema reads its base,
+  never changed and never removed. A restated dimension may add
   ``ordered: true``, and may not write it false over a base that makes it.
-  The ``missing:`` of a relation, a set or a property is a claim about the
-  data, not the space: a patch may change it as it changes a parameter's, and
+  The ``missing:`` of a set or a property is a claim about the data, not the
+  space: a patch may change it as it changes a parameter's, and
   may name it alone.
 * ``null`` **makes what it names absent.** An entry set to ``null`` is
   removed, and a removal of what the base does not declare is refused. A field
@@ -117,7 +116,7 @@ if TYPE_CHECKING:
 
     from mathspec.program import Program
 
-SHARED_SECTIONS = ('dimensions', 'relations', 'sets')
+SHARED_SECTIONS = ('dimensions', 'sets')
 
 #: Every section a fragment owns. ``properties:`` is shared too, one property
 #: at a time, which [`_flat`][] lays out for the rules of a shared entry.
@@ -162,7 +161,7 @@ def merge(fragments: Sequence[Source], description: str | None = None) -> Spec:
     Raises:
         LanguageError: A fragment does not load on its own; two fragments
             declare one name; two fragments say different things about one
-            dimension, relation, set, property or given entry; a fragment reads a name as
+            dimension, set, property or given entry; a fragment reads a name as
             something other than what its sibling introduces, as another kind
             of thing, or over fewer dimensions than its body carries; a fragment
             adds a term to a variable, a parameter, a constraint or a
@@ -345,7 +344,7 @@ def _flat(properties: object) -> dict[str, object]:
     """``properties:`` as one entry per property, keyed ``subject.property`` and in the long form.
 
     The rules for a shared entry then read each property as they read a
-    relation. A subject and a property are names, so neither holds a dot, and
+    set. A subject and a property are names, so neither holds a dot, and
     [`_nested`][] splits the key back without doubt.
     """
     return {
@@ -733,7 +732,7 @@ def override(base: Source, patches: Sequence[Source]) -> Spec:
         LanguageError: The base does not load; the patched spec does not
             load; a patch edits or removes an entry its base does not
             declare; a patch creates one that is not whole; a patch redeclares
-            or removes a dimension or a relation; or a patch sets a whole
+            or removes a dimension, a set or a property; or a patch sets a whole
             section to ``null``.
         FileNotFoundError: A ``str`` with no newline that names no file.
         TypeError: *patches* is one path rather than a list.
@@ -898,7 +897,7 @@ def _shared(
 ) -> dict[str, object]:
     """One shared section: a patch adds an entry or restates one, never changes or drops it.
 
-    The section is ``dimensions``, ``relations`` or ``sets``, or the properties
+    The section is ``dimensions`` or ``sets``, or the properties
     as [`_flat`][] lays them out, which pass their *label* and *cls*.
 
     The restatement is compared as the schema reads both sides rather than
@@ -975,7 +974,7 @@ def _owned(
 
 
 def _properties(declared: dict[str, object], patch: dict[str, object], name: str) -> dict[str, object]:
-    """The ``properties:`` section, each property laid over as a relation is: added, restated, or its ``missing:`` changed.
+    """The ``properties:`` section, each property laid over as a set is: added, restated, or its ``missing:`` changed.
 
     Both sides are read in the long form first, so a patch that writes only
     a property's ``missing:`` changes that field of a property the base

@@ -72,21 +72,21 @@ a square.
 
 ## Name resolution
 
-One flat namespace covers dimensions, relations, parameters, variables, named
+One flat namespace covers dimensions, sets, parameters, variables, named
 expressions, named conditions, macros and the built-in operators. Two entries with one
 name are a load error, and the message names both, so no name hides another.
 
 The place where a name stands decides which kinds of name are legal:
 
-| Position                               | Legal kinds                                                                                                          |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| expression (`p * cost`)                | a variable, or a parameter whose values are numbers ([dtype](parameters-variables-constraints.md#parameters))        |
-| dimension argument (`over=`, `along=`) | a dimension, or a list of them for `over=`. With `by=`, a name in `over=` is a column of the relation, if it has one |
-| column argument (`by=`, `within=`)     | columns of one relation, or members and properties of one dimension or set, written `name[column, …]`                |
-| condition                              | a parameter, variable, dimension, relation, set or named condition ([conditions](#conditions))                       |
-| `bounds.lower` / `bounds.upper`        | a parameter name, or a number                                                                                        |
-| the `edge` key of `shift`              | `'wrap'` in quotes, or a bare number                                                                                 |
-| `dual` argument (`dual(c)`)            | a constraint. It resolves against the constraints alone ([named expressions](named.md#reading-a-constraints-dual))   |
+| Position                               | Legal kinds                                                                                                         |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| expression (`p * cost`)                | a variable, or a parameter whose values are numbers ([dtype](parameters-variables-constraints.md#parameters))       |
+| dimension argument (`over=`, `along=`) | a dimension, or a list of them for `over=`. With `by=`, a name in `over=` is a column of the subject, if it has one |
+| column argument (`by=`, `within=`)     | members and properties of one dimension or set, written `subject[property, …]`                                      |
+| condition                              | a parameter, variable, dimension, set, property or named condition ([conditions](#conditions))                      |
+| `bounds.lower` / `bounds.upper`        | a parameter name, or a number                                                                                       |
+| the `edge` key of `shift`              | `'wrap'` in quotes, or a bare number                                                                                |
+| `dual` argument (`dual(c)`)            | a constraint. It resolves against the constraints alone ([named expressions](named.md#reading-a-constraints-dual))  |
 
 A bare word in the value of a keyword argument is a name to resolve, but a
 keyword's key is never a name.
@@ -103,18 +103,18 @@ constraint of the same name.
 `to_spec` knows the dimension set of every expression before any data is
 attached:
 
-| Node                             | Dim set                        | Error                                                                            |
-| -------------------------------- | ------------------------------ | -------------------------------------------------------------------------------- |
-| number                           | `{}`                           |                                                                                  |
-| parameter / variable             | its `dims`                     |                                                                                  |
-| `-x`, `+x`                       | `dims(x)`                      |                                                                                  |
-| `a + b`, `a * b`, `a / b`        | `dims(a) ∪ dims(b)`            |                                                                                  |
-| `sum(x)`                         | `{}`                           | error if `dims(x)` is already empty                                              |
-| `sum(x, over=d)`                 | `dims(x) − {d}`                | error if `d ∉ dims(x)`                                                           |
-| `sum(x, over=d, by=l[c])`        | `(dims(x) − joined) ∪ grouped` | the refusals under [how a relation is used](relations.md#how-a-relation-is-used) |
-| `at(x, by=l[c])`                 | `(dims(x) − joined) ∪ grouped` | the same                                                                         |
-| `shift(x, along=d, offset=n)`    | `dims(x)`                      | error if `d ∉ dims(x)`                                                           |
-| `sum_back(x, along=d, window=n)` | `dims(x)`                      | error if `d ∉ dims(x)`                                                           |
+| Node                             | Dim set                        | Error                                   |
+| -------------------------------- | ------------------------------ | --------------------------------------- |
+| number                           | `{}`                           |                                         |
+| parameter / variable             | its `dims`                     |                                         |
+| `-x`, `+x`                       | `dims(x)`                      |                                         |
+| `a + b`, `a * b`, `a / b`        | `dims(a) ∪ dims(b)`            |                                         |
+| `sum(x)`                         | `{}`                           | error if `dims(x)` is already empty     |
+| `sum(x, over=d)`                 | `dims(x) − {d}`                | error if `d ∉ dims(x)`                  |
+| `sum(x, over=d, by=s[c])`        | `(dims(x) − joined) ∪ grouped` | the refusals under [sums](sets.md#sums) |
+| `at(x, by=s[c])`                 | `(dims(x) − joined) ∪ grouped` | the same                                |
+| `shift(x, along=d, offset=n)`    | `dims(x)`                      | error if `d ∉ dims(x)`                  |
+| `sum_back(x, along=d, window=n)` | `dims(x)`                      | error if `d ∉ dims(x)`                  |
 
 An outer product is allowed. The dimensions an entry ranges over are its
 **frame**, and an entry may not disagree with its expression:
@@ -153,22 +153,20 @@ QUOTED     ::= "'" chars "'" | '"' chars '"'
 | ---------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `name` (bare)                            | parameter                  | The value is defined here. A `bool` is its own answer. A `str` is defined wherever the table has a row. A number has to have a row and be finite, and `0.0` is a row: write `inflow != 0` for non-zero. An `int` or `str` under `missing: refused` is a load error: it has a row at every coordinate |
 | `name` (bare)                            | variable                   | The variable exists at this coordinate                                                                                                                                                                                                                                                               |
-| `name` (bare)                            | relation                   | A row exists, read at the relation's key. A `missing: absent` relation is [partial](relations.md#the-data-contract), and this selects the labels that do map                                                                                                                                         |
 | `name` (bare)                            | set                        | A row exists, read at the set's members ([sets](sets.md#entries-over-a-set))                                                                                                                                                                                                                         |
 | `name[p, …]`                             | dimension or set           | The row has every property named ([reading a property](sets.md#how-a-set-or-a-property-is-read))                                                                                                                                                                                                     |
-| `name[p] OP value`, `name[a] OP name[b]` | property                   | As for a relation column, read from the property's own table                                                                                                                                                                                                                                         |
+| `name[p] OP value`                       | property                   | A filter on the value of the property, read at its subject's members. A comparison reads one property. Where the row lacks the property, the comparison is false for every operator, `!=` included, so `NOT` of it is true there                                                                     |
 | `name` (bare)                            | dimension                  | A load error. It would be true everywhere                                                                                                                                                                                                                                                            |
 | `name` (bare)                            | named condition            | Its condition ([conditions](named.md#conditions)). A given condition is true or false at each coordinate, as a `bool` parameter is                                                                                                                                                                   |
 | `name OP value`                          | parameter                  | Element-wise. A missing row with no `missing:` value compares false                                                                                                                                                                                                                                  |
 | `name OP value`                          | dimension                  | A filter on the frame's own coordinate column                                                                                                                                                                                                                                                        |
-| `name OP value`, `name[col] OP value`    | relation                   | A filter on a value column, read at the relation's key. Name the column where the key determines several. A comparison reads one column. Where the relation has no row, the comparison is false for every operator, `!=` included, so `NOT` of it is true there                                      |
-| `name OP name`, `name[a] OP name[b]`     | two relation columns       | Legal where both relations are keyed over the same dimensions and both columns are over one dimension. `ends[bus0] != ends[bus1]` excludes a self-loop. Where either relation has no row, the comparison is false                                                                                    |
+| `name[a] OP name[b]`                     | two properties             | Legal where both subjects are over the same dimensions and both properties map into one dimension. `line[bus0] != line[bus1]` excludes a self-loop. Where either row lacks its property, the comparison is false                                                                                     |
 | `expression OP expression`               | arithmetic over parameters | Coordinate by coordinate, over every dimension either side carries ([arithmetic in a comparison](#arithmetic-in-a-comparison)). A side with no value at a coordinate compares false                                                                                                                  |
 | `position(name) OP i`                    | dimension                  | Where the row sits along the dimension's own order. `0` is first, and a negative number counts from the end                                                                                                                                                                                          |
-| `position(name, within=relation[c])`     | dimension                  | The same, counted within each group the relation makes                                                                                                                                                                                                                                               |
+| `position(name, within=s[p])`            | dimension                  | The same, counted within each group the property makes                                                                                                                                                                                                                                               |
 | `count(condition, over=name) OP i`       | a condition                | How many coordinates along the dimension the condition admits ([counting what a condition admits](#counting-what-a-condition-admits))                                                                                                                                                                |
 | `shift(condition, along=name, offset=i)` | a condition                | The condition read `i` coordinates back, and false where that vacates                                                                                                                                                                                                                                |
-| `at(condition, by=relation[c])`          | a condition                | The condition read through the relation ([reading a condition through a relation](#reading-a-condition-through-a-relation)), and false where the relation has no row                                                                                                                                 |
+| `at(condition, by=s[p])`                 | a condition                | The condition read through the property ([reading a condition through a property](#reading-a-condition-through-a-property)), and false where the row lacks the property                                                                                                                              |
 | `AND` `OR` `NOT`                         | —                          | Case-insensitive. `NOT` binds tighter than `AND`, and `AND` tighter than `OR`                                                                                                                                                                                                                        |
 | `True` / `False`                         | —                          | `True` is the same as no `where`; `False` gives an entry with no rows                                                                                                                                                                                                                                |
 
@@ -230,39 +228,40 @@ A negative `offset` reads forwards. This form accepts neither `within=` nor
 `edge='wrap'`. For a grouped or cyclic translation, compare the arithmetic
 `shift`.
 
-### Reading a condition through a relation
+### Reading a condition through a property
 
-`at(<condition>, by=<relation>[<column>])` reads a condition over
+`at(<condition>, by=<subject>[<property>])` reads a condition over
 coarse coordinates at fine ones, as [`at`](operators.md#at) reads an array. It
-is true where the relation has a row and the condition holds at the coordinate
-that row maps to, and **false** where the relation has no row.
+is true where the row has the property and the condition holds at the
+coordinate the property maps it to, and **false** where the row lacks it.
 
 ```yaml
 dimensions:
   converter: { dtype: str }
   flow: { dtype: str }
-relations:
-  converter_of: { key: flow, values: converter }
+properties:
+  flow:
+    converter: converter
 parameters:
   has_curve: { dims: [converter], dtype: bool }
   cap: { dims: [flow] }
 variables:
   rate:
     dims: [flow]
-    where: "at(has_curve, by=converter_of[converter])"
+    where: "at(has_curve, by=flow[converter])"
     bounds: { lower: 0, upper: cap }
 objective:
   sense: minimize
   expression: sum(rate, over=flow)
 ```
 
-$$0 \le \mathit{rate}_{f} \le \mathrm{cap}_{f} \qquad \forall\thinspace f \in \mathcal{F} \thinspace : \thinspace \mathrm{has\_curve}_{\mathrm{converter\_of}(f)}$$
+$$0 \le \mathit{rate}_{f} \le \mathrm{cap}_{f} \qquad \forall\thinspace f \in \mathcal{F} \thinspace : \thinspace \mathrm{has\_curve}_{\mathrm{converter}(f)}$$
 
-The read removes the column it reads, `converter`, and adds the key, `flow`,
+The read removes the dimension it reads, `converter`, and adds the subject, `flow`,
 so the condition above is over `flow` alone. The rules are those of
-[`at`](relations.md#lookups) in an expression. `by=` names a value column, or
-several as `relation[a, …]`. The read groups by the key of the relation, and
-the condition carries every dimension that the read joins on.
+[`at`](sets.md#lookups) in an expression. `by=` names a property, or several
+as `subject[a, …]`. The read groups by the members of the subject, and the
+condition carries every dimension that the read joins on.
 
 ### The right-hand side of a comparison
 
@@ -278,7 +277,7 @@ compared against a quoted ISO date such as `'2030-01-01'` or
 
 Only a number or a `datetime` compares with `<`, `<=`, `>` and `>=`. A `str`
 or `bool` compares with `==` and `!=`, and an inequality on it is a load error.
-A relation column reads the dtype of its target dimension, so the rule holds
+A property reads the dtype of the dimension it maps into, so the rule holds
 there too. `generator < 'b9'` is refused, because it would compare the labels
 byte by byte, and `'b10'` would come before `'b9'` whatever the dimension's
 order. To compare along the order of a dimension declared `ordered: true`, use
@@ -293,9 +292,9 @@ instead.
 
 Either side of a comparison may be an expression over parameters:
 `p_min <= 0.5 * p_max`, or
-`p_max <= at(bus_cap, by=bus_of[bus])`. The side is read as an
+`p_max <= at(bus_cap, by=generator[bus])`. The side is read as an
 [expression](#expressions) is, macros and named expressions included. A
-variable and a `dual()` are refused. A relation column and a quoted label are
+variable and a `dual()` are refused. A property and a quoted label are
 compared on their own, and are not read in arithmetic.
 
 A side absent at a coordinate compares false there, but under a summing
@@ -341,15 +340,16 @@ constraints:
 
 A position that no coordinate occupies is an error when the data is attached.
 
-`within=` counts inside each group a [partition](relations.md#partitions)
+`within=` counts inside each group a [partition](sets.md#partitions)
 makes, so each period gets one seeded row:
 
 ```yaml
 dimensions:
   snapshot: { dtype: int, ordered: true }
   period: { dtype: int }
-relations:
-  period_of: { key: snapshot, values: period }
+properties:
+  snapshot:
+    period: period
 parameters:
   soc_initial: { dims: [period] }
 variables:
@@ -357,6 +357,6 @@ variables:
 constraints:
   soc_start:
     dims: [snapshot]
-    where: "position(snapshot, within=period_of[period]) == 0"
-    expression: soc == at(soc_initial, by=period_of[period])
+    where: "position(snapshot, within=snapshot[period]) == 0"
+    expression: soc == at(soc_initial, by=snapshot[period])
 ```

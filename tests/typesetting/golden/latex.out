@@ -9,12 +9,12 @@
 
 \paragraph{Sets}
 \begin{description}
-\item[{$\mathcal{T}$}] index $t$ --- \texttt{snapshot} (\texttt{int} coordinates) with $\mathrm{season\_of}: \mathcal{T} \to \mathcal{S},\ \mathrm{gen\_zone}: \mathcal{G} \times \mathcal{T} \to \mathcal{Z},\ \mathrm{rep\_of}: \mathcal{T} \to \mathcal{T}$
-\item[{$\mathcal{G}$}] index $g$ --- \texttt{generator} with $\mathrm{gen\_bus}: \mathcal{G} \to \mathcal{B},\ \mathrm{gen\_zone}: \mathcal{G} \times \mathcal{T} \to \mathcal{Z},\ \mathrm{connection} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{gen\_bt}: \mathcal{G} \to \mathcal{B} \times \mathcal{E},\ \mathrm{dispatch\_pair} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{fuel}: \mathcal{G} \to \mathcal{E},\ \mathrm{area}: \mathrm{dispatch\_pair} \to \mathcal{Z}$, \texttt{connection} is \texttt{absent} where the data has no row, \texttt{dispatch\_pair} is \texttt{absent} where the data has no row, \texttt{generator[fuel]} is \texttt{absent} where the data has no row
-\item[{$\mathcal{B}$}] index $b$ --- \texttt{bus} with $\mathrm{gen\_bus}: \mathcal{G} \to \mathcal{B},\ \mathrm{zone\_of}: \mathcal{B} \to \mathcal{Z},\ \mathrm{area\_of}: \mathcal{B} \to \mathcal{Z},\ \mathrm{connection} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{gen\_bt}: \mathcal{G} \to \mathcal{B} \times \mathcal{E},\ \mathrm{dispatch\_pair} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{area}: \mathrm{dispatch\_pair} \to \mathcal{Z}$, \texttt{area\_of} is \texttt{absent} where the data has no row, \texttt{connection} is \texttt{absent} where the data has no row, \texttt{dispatch\_pair} is \texttt{absent} where the data has no row
-\item[{$\mathcal{Z}$}] index $z$ --- \texttt{zone} with $\mathrm{zone\_of}: \mathcal{B} \to \mathcal{Z},\ \mathrm{area\_of}: \mathcal{B} \to \mathcal{Z},\ \mathrm{gen\_zone}: \mathcal{G} \times \mathcal{T} \to \mathcal{Z},\ \mathrm{area}: \mathrm{dispatch\_pair} \to \mathcal{Z}$, \texttt{area\_of} is \texttt{absent} where the data has no row
-\item[{$\mathcal{S}$}] index $s$ --- \texttt{season} with $\mathrm{season\_of}: \mathcal{T} \to \mathcal{S}$
-\item[{$\mathcal{E}$}] index $e$ --- \texttt{technology} with $\mathrm{gen\_bt}: \mathcal{G} \to \mathcal{B} \times \mathcal{E},\ \mathrm{fuel}: \mathcal{G} \to \mathcal{E}$, \texttt{generator[fuel]} is \texttt{absent} where the data has no row
+\item[{$\mathcal{T}$}] index $t$ --- \texttt{snapshot} (\texttt{int} coordinates) with $\mathrm{generator\_snapshot} \subseteq \mathcal{G} \times \mathcal{T},\ \mathrm{season}: \mathcal{T} \to \mathcal{S},\ \mathrm{rep}: \mathcal{T} \to \mathcal{T},\ \mathrm{zone}: \mathrm{generator\_snapshot} \to \mathcal{Z}$
+\item[{$\mathcal{G}$}] index $g$ --- \texttt{generator} with $\mathrm{dispatch\_pair} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{generator\_snapshot} \subseteq \mathcal{G} \times \mathcal{T},\ \mathrm{connection} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{fuel}: \mathcal{G} \to \mathcal{E},\ \mathrm{bus}: \mathcal{G} \to \mathcal{B},\ \mathrm{technology}: \mathcal{G} \to \mathcal{E},\ \mathrm{zone}: \mathrm{generator\_snapshot} \to \mathcal{Z},\ \mathrm{area}: \mathrm{dispatch\_pair} \to \mathcal{Z}$, \texttt{dispatch\_pair} is \texttt{absent} where the data has no row, \texttt{connection} is \texttt{absent} where the data has no row, \texttt{generator[fuel]} is \texttt{absent} where the data has no row
+\item[{$\mathcal{B}$}] index $b$ --- \texttt{bus} with $\mathrm{dispatch\_pair} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{connection} \subseteq \mathcal{G} \times \mathcal{B},\ \mathrm{bus}: \mathcal{G} \to \mathcal{B},\ \mathrm{zone}: \mathcal{B} \to \mathcal{Z},\ \mathrm{area}: \mathcal{B} \to \mathcal{Z},\ \mathrm{area}: \mathrm{dispatch\_pair} \to \mathcal{Z}$, \texttt{dispatch\_pair} is \texttt{absent} where the data has no row, \texttt{connection} is \texttt{absent} where the data has no row, \texttt{bus[area]} is \texttt{absent} where the data has no row
+\item[{$\mathcal{Z}$}] index $z$ --- \texttt{zone} with $\mathrm{zone}: \mathcal{B} \to \mathcal{Z},\ \mathrm{area}: \mathcal{B} \to \mathcal{Z},\ \mathrm{zone}: \mathrm{generator\_snapshot} \to \mathcal{Z},\ \mathrm{area}: \mathrm{dispatch\_pair} \to \mathcal{Z}$, \texttt{bus[area]} is \texttt{absent} where the data has no row
+\item[{$\mathcal{S}$}] index $s$ --- \texttt{season} with $\mathrm{season}: \mathcal{T} \to \mathcal{S}$
+\item[{$\mathcal{E}$}] index $e$ --- \texttt{technology} with $\mathrm{fuel}: \mathcal{G} \to \mathcal{E},\ \mathrm{technology}: \mathcal{G} \to \mathcal{E}$, \texttt{generator[fuel]} is \texttt{absent} where the data has no row
 \item[{$\mathcal{A}$}] index $a$ --- \texttt{bp}
 \end{description}
 
@@ -78,9 +78,9 @@
 \begin{description}
 \item[{$t \ominus k$}] \texttt{edge='wrap'} --- $t-k$, cyclic
 \item[{$t \boxminus_{v} k$}] \texttt{edge=v} --- $t-k$, and $v$ past the edge
-\item[{$t \ominus^{\mathrm{relation}(t)} k$}] \texttt{within=relation[...]} --- $t-k$ inside the group of $t$
+\item[{$t \ominus^{\mathrm{property}(t)} k$}] \texttt{within=subject[...]} --- $t-k$ inside the group of $t$
 \item[{$\mathrm{pos}(t)$}] \texttt{position()} --- the position of $t$, counted from $0$; $t$ is the label
-\item[{$\mathrm{pos}_{\mathrm{relation}(t)}(t)$}] \texttt{position(within=relation[...])} --- the position of $t$ inside its group
+\item[{$\mathrm{pos}_{\mathrm{property}(t)}(t)$}] \texttt{position(within=subject[...])} --- the position of $t$ inside its group
 \item[{$\lvert \mathcal{T} \rvert$}] the size of $\mathcal{T}$; $\lvert \mathcal{T} \rvert - 1$ is the last position
 \end{description}
 
@@ -116,7 +116,7 @@
 \text{lcoe} && \mathit{lcoe} & = \frac{\sum_{t \in \mathcal{T},\ g \in \mathcal{G}} p_{t,g} \cdot \mathrm{cost}_{g}}{\sum_{t \in \mathcal{T},\ g \in \mathcal{G}} p_{t,g}} \\
 \text{net} && \mathit{net}_{t} & = -\mathit{spill}_{t} + \mathit{slack}_{t} && \forall\, t \in \mathcal{T} \\
 \text{marginal\_price} && \mathit{marginal\_price}_{b,t} & = \lambda_{\mathrm{balance},t,b} && \forall\, b \in \mathcal{B},\ t \in \mathcal{T} \\
-\text{startup\_cost} && \mathrm{startup\_cost}_{t,g} & = \begin{cases} \mathrm{cost}_{g} & \text{if } \mathrm{pos}(t) = 0 \\ \mathrm{cost}_{g} \cdot 2 & \text{if } \mathrm{pos}(t) > 0 \wedge \mathrm{season\_of}(t) = \text{'}\mathrm{winter}\text{'} \\ 0 & \text{otherwise} \end{cases} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G}
+\text{startup\_cost} && \mathrm{startup\_cost}_{t,g} & = \begin{cases} \mathrm{cost}_{g} & \text{if } \mathrm{pos}(t) = 0 \\ \mathrm{cost}_{g} \cdot 2 & \text{if } \mathrm{pos}(t) > 0 \wedge \mathrm{season}(t) = \text{'}\mathrm{winter}\text{'} \\ 0 & \text{otherwise} \end{cases} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G}
 \end{align}
 
 \paragraph{Objective}
@@ -129,8 +129,8 @@
 \text{budgeted} && \mathit{spend}_{t} & \le \mathrm{budget} && \forall\, t \in \mathcal{T} \\
 \text{starts} && p_{t,g} & \le \mathrm{startup\_cost}_{t,g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \\
 \text{under\_rating} && p_{t,g} & \le \mathrm{rating}_{g,t} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \\
-\text{balance} && \sum_{g \in \mathcal{G} \,:\, \mathrm{gen\_bus}(g) = b} p_{t,g} + \mathit{spill}_{t} - \mathit{slack}_{t} & = \mathrm{load}_{t,b} && \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \\
-\text{netted} && \sum_{g \in \mathcal{G} \,:\, \mathrm{gen\_bus}(g) = b} p_{t,g} + \mathit{net}_{t} & = \mathrm{load}_{t,b} && \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \\
+\text{balance} && \sum_{g \in \mathcal{G} \,:\, \mathrm{bus}(g) = b} p_{t,g} + \mathit{spill}_{t} - \mathit{slack}_{t} & = \mathrm{load}_{t,b} && \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \\
+\text{netted} && \sum_{g \in \mathcal{G} \,:\, \mathrm{bus}(g) = b} p_{t,g} + \mathit{net}_{t} & = \mathrm{load}_{t,b} && \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \\
 \text{ramp} && p_{t,g} - p_{t \ominus 1,g} & \le p_{t - 1,g} + \mathrm{p}^{\mathrm{max}}_{g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \\
 \text{edges} && p_{t \boxminus_{0} 1,g} & \le p_{t \boxplus_{0} 1,g} + \mathrm{p}^{\mathrm{max}}_{g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \\
 \text{ahead} && p_{t,g} & \le p_{t \oplus 1,g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \\
@@ -138,44 +138,44 @@
 \text{uncomposed} && p_{\left( t - 1 \right) \boxminus_{0} \mathrm{lead},g} & \le \mathrm{p}^{\mathrm{max}}_{g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \\
 \text{crossed} && p_{t \ominus 1,g + 1} & \le \mathrm{p}^{\mathrm{max}}_{g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \\
 \text{lead\_time} && p_{t \boxminus_{0} \mathrm{lead},g} & \le \mathrm{p}^{\mathrm{max}}_{g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \\
-\text{in\_season} && p_{t,g} & \le p_{t \ominus^{\mathrm{season\_of}(t)} 1,g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \\
-\text{held\_in\_season} && p_{t,g} & \le p_{t \boxminus_{0}^{\mathrm{season\_of}(t)} 1,g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \\
+\text{in\_season} && p_{t,g} & \le p_{t \ominus^{\mathrm{season}(t)} 1,g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \\
+\text{held\_in\_season} && p_{t,g} & \le p_{t \boxminus_{0}^{\mathrm{season}(t)} 1,g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \\
 \text{window} && \sum_{t' \in \mathcal{T} \,:\, 0 \le t - t' < 3} \mathit{on}_{t',g} & \le \mathit{units}_{g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \\
 \text{history} && \sum_{t' \in \mathcal{T} \,:\, 0 \le t \ominus t' < \mathrm{min\_up}} \mathit{on}_{t',g} & \le \mathit{units}_{g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \\
-\text{seasonal\_window} && \sum_{t' \in \mathcal{T} \,:\, 0 \le t -^{\mathrm{season\_of}(t)} t' < 3} \mathit{on}_{t',g} & \le \mathit{units}_{g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \\
-\text{lookup} && \mathit{spill}_{t} & \le \mathrm{zone\_cap}_{\mathrm{zone\_of}(b)} && \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \\
-\text{grouped\_once} && \sum_{g \in \mathcal{G} \,:\, \mathrm{gen\_bt.bus}(g) = b \wedge \mathrm{gen\_bt.technology}(g) = e} p_{t,g} & \le \mathrm{tech\_cap}_{b,e} && \forall\, t \in \mathcal{T},\ b \in \mathcal{B},\ e \in \mathcal{E} \\
-\text{looked\_up\_once} && \mathit{units}_{g} & \le \mathrm{tech\_cap}_{\mathrm{gen\_bt.bus}(g),\mathrm{gen\_bt.technology}(g)} && \forall\, g \in \mathcal{G} \\
-\text{within\_bus} && \mathit{units}_{g} & \le \mathit{units}_{g \boxminus_{0}^{\mathrm{gen\_bt.bus}(g)} 1} && \forall\, g \in \mathcal{G} \,:\, \mathrm{pos}_{\left( \mathrm{gen\_bt.bus}(g),\ \mathrm{gen\_bt.technology}(g) \right)}(g) = 0 \\
+\text{seasonal\_window} && \sum_{t' \in \mathcal{T} \,:\, 0 \le t -^{\mathrm{season}(t)} t' < 3} \mathit{on}_{t',g} & \le \mathit{units}_{g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \\
+\text{lookup} && \mathit{spill}_{t} & \le \mathrm{zone\_cap}_{\mathrm{zone}(b)} && \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \\
+\text{grouped\_once} && \sum_{g \in \mathcal{G} \,:\, \mathrm{bus}(g) = b \wedge \mathrm{technology}(g) = e} p_{t,g} & \le \mathrm{tech\_cap}_{b,e} && \forall\, t \in \mathcal{T},\ b \in \mathcal{B},\ e \in \mathcal{E} \\
+\text{looked\_up\_once} && \mathit{units}_{g} & \le \mathrm{tech\_cap}_{\mathrm{bus}(g),\mathrm{technology}(g)} && \forall\, g \in \mathcal{G} \\
+\text{within\_bus} && \mathit{units}_{g} & \le \mathit{units}_{g \boxminus_{0}^{\mathrm{bus}(g)} 1} && \forall\, g \in \mathcal{G} \,:\, \mathrm{pos}_{\left( \mathrm{bus}(g),\ \mathrm{technology}(g) \right)}(g) = 0 \\
 \text{relational} && \sum_{g \in \mathcal{G} \,:\, \left( g,\ b \right) \in \mathrm{connection}} p_{t,g} & \le \mathrm{load}_{t,b} && \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \\
 \text{connected} && p_{t,g} & \le \mathrm{load}_{t,b} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G},\ b \in \mathcal{B} \,:\, \left( g,\ b \right) \in \mathrm{connection} \\
-\text{representative} && \sum_{t' \in \mathcal{T} \,:\, \mathrm{rep\_of}(t') = t} \mathit{spill}_{t'} & \le \mathit{spill}_{\mathrm{rep\_of}(t)} && \forall\, t \in \mathcal{T} \\
+\text{representative} && \sum_{t' \in \mathcal{T} \,:\, \mathrm{rep}(t') = t} \mathit{spill}_{t'} & \le \mathit{spill}_{\mathrm{rep}(t)} && \forall\, t \in \mathcal{T} \\
 \text{by\_fuel} && \sum_{g \in \mathcal{G} \,:\, \mathrm{fuel}(g) = e} p_{t,g} & \le \mathrm{budget} && \forall\, t \in \mathcal{T},\ e \in \mathcal{E} \\
 \text{by\_area} && \sum_{g \in \mathcal{G},\ b \in \mathcal{B} \,:\, \mathrm{area}(g,\ b) = z} p_{t,g} \cdot \mathrm{link\_eff}_{g,b} & \le \mathrm{zone\_cap}_{z} && \forall\, t \in \mathcal{T},\ z \in \mathcal{Z} \\
 \text{fuelled} && p_{t,g} & \le \mathrm{budget} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \,:\, \mathrm{fuel}(g) \text{ is defined} \\
-\text{zonal} && \sum_{g \in \mathcal{G} \,:\, \mathrm{gen\_zone}(g,\ t) = z} p_{t,g} & \le \mathrm{zone\_cap}_{z} && \forall\, t \in \mathcal{T},\ z \in \mathcal{Z} \\
-\text{zonal\_history} && \sum_{t \in \mathcal{T} \,:\, \mathrm{gen\_zone}(g,\ t) = z} p_{t,g} & \le \mathrm{zone\_cap}_{z} && \forall\, g \in \mathcal{G},\ z \in \mathcal{Z} \\
-\text{zonal\_membership} && \sum_{g \in \mathcal{G} \,:\, \mathrm{gen\_zone}(g,\ t) \text{ is defined}} \mathit{units}_{g} & \le \mathrm{budget} && \forall\, t \in \mathcal{T} \\
-\text{zonal\_lookup} && p_{t,g} & \le \mathit{spill}_{t} \cdot \mathrm{zone\_cap}_{\mathrm{gen\_zone}(g,\ t)} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \,:\, \mathrm{gen\_zone}(g,\ t) = \text{'}\mathrm{north}\text{'} \wedge \mathrm{pos}_{\mathrm{gen\_zone}(g,\ t)}(g) = 0 \\
+\text{zonal} && \sum_{g \in \mathcal{G} \,:\, \mathrm{zone}(g,\ t) = z} p_{t,g} & \le \mathrm{zone\_cap}_{z} && \forall\, t \in \mathcal{T},\ z \in \mathcal{Z} \\
+\text{zonal\_history} && \sum_{t \in \mathcal{T} \,:\, \mathrm{zone}(g,\ t) = z} p_{t,g} & \le \mathrm{zone\_cap}_{z} && \forall\, g \in \mathcal{G},\ z \in \mathcal{Z} \\
+\text{zonal\_membership} && \sum_{g \in \mathcal{G} \,:\, \left( g,\ t \right) \in \mathrm{generator\_snapshot}} \mathit{units}_{g} & \le \mathrm{budget} && \forall\, t \in \mathcal{T} \\
+\text{zonal\_lookup} && p_{t,g} & \le \mathit{spill}_{t} \cdot \mathrm{zone\_cap}_{\mathrm{zone}(g,\ t)} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \,:\, \mathrm{zone}(g,\ t) = \text{'}\mathrm{north}\text{'} \wedge \mathrm{pos}_{\mathrm{zone}(g,\ t)}(g) = 0 \\
 \text{arithmetic} && \sum_{g \in \mathcal{G}} \left( \frac{p_{t,g}}{2} - \mathrm{cost}_{g} + 10^{-5} \cdot p_{t,g} + 2.5 \times 10^{-7} \cdot \mathrm{cost}_{g} + 0.5 \cdot p_{t,g} \right) & \ge -\left( \sum_{g \in \mathcal{G}} p_{t,g} \right) \cdot \left( -3 \right) && \forall\, t \in \mathcal{T} \\
 \text{total} && \sum_{t \in \mathcal{T},\ g \in \mathcal{G}} p_{t,g} & \le \mathrm{budget} \\
 \text{scalar} && \mathit{units}_{g} & \le \mathrm{budget} && \forall\, g \in \mathcal{G} \,:\, \mathrm{cost}_{g} \text{ is defined} \\
 \text{running} && \theta_{b} & \le \mathrm{load}_{t,b} && \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \,:\, \theta_{b} \text{ exists} \wedge t \ge 3 \\
-\text{first} && \mathit{on}_{t,g} & = 1 && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \,:\, \mathrm{pos}(t) = 0 \vee \mathrm{pos}_{\mathrm{season\_of}(t)}(t) = 0 \\
-\text{last} && \mathit{on}_{t,g} & = 0 && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \,:\, \mathrm{pos}(t) = \lvert \mathcal{T} \rvert - 1 \vee \mathrm{pos}_{\mathrm{season\_of}(t)}(t) = \lvert \mathcal{T}_{\mathrm{season\_of}(t)} \rvert - 1 \\
-\text{northern} && \mathit{slack}_{t} & \le \mathrm{load}_{t,b} && \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \,:\, \mathrm{zone\_of}(b) = \text{'}\mathrm{north}\text{'} \wedge \mathrm{zone\_of}(b) \neq \mathrm{area\_of}(b) \wedge \mathrm{zone\_of}(b) \text{ is defined} \\
+\text{first} && \mathit{on}_{t,g} & = 1 && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \,:\, \mathrm{pos}(t) = 0 \vee \mathrm{pos}_{\mathrm{season}(t)}(t) = 0 \\
+\text{last} && \mathit{on}_{t,g} & = 0 && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \,:\, \mathrm{pos}(t) = \lvert \mathcal{T} \rvert - 1 \vee \mathrm{pos}_{\mathrm{season}(t)}(t) = \lvert \mathcal{T}_{\mathrm{season}(t)} \rvert - 1 \\
+\text{northern} && \mathit{slack}_{t} & \le \mathrm{load}_{t,b} && \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \,:\, \mathrm{zone}(b) = \text{'}\mathrm{north}\text{'} \wedge \mathrm{zone}(b) \neq \mathrm{area}(b) \wedge \mathrm{zone}(b) \text{ is defined} \\
 \text{efficiency} && p_{t,g} & \le \mathrm{eta}_{g} \cdot \mathrm{p}^{\mathrm{max}}_{g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \\
 \text{ceiling} && \theta_{b} & \le \infty && \forall\, b \in \mathcal{B} \\
 \text{always} && \mathit{spill}_{t} & \ge 0 && \forall\, t \in \mathcal{T} \\
 \text{redundant} && \mathit{spill}_{t} & \ge 0 && \forall\, t \in \mathcal{T} \,:\, \mathit{spill}_{t} \text{ exists} \\
 \text{never} && \mathit{slack}_{t} & \ge 0 && \forall\, t \in \mathcal{T} \,:\, \bot \\
 \text{margin} && p_{t,g} & \le \mathrm{p}^{\mathrm{max}}_{g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \,:\, \mathrm{p}^{\mathrm{max}}_{g} - \mathrm{p}^{\mathrm{min}}_{g} > \frac{\mathrm{cost}_{g}}{2} \\
-\text{ramped} && \mathit{slack}_{t} & \le \mathrm{load}_{t,b} && \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \,:\, \mathrm{load}_{t,b} - \mathrm{load}_{t \boxminus_{0} 1,b} \le \mathrm{zone\_cap}_{\mathrm{zone\_of}(b)} \wedge \mathrm{pos}(t) > 0 \\
+\text{ramped} && \mathit{slack}_{t} & \le \mathrm{load}_{t,b} && \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \,:\, \mathrm{load}_{t,b} - \mathrm{load}_{t \boxminus_{0} 1,b} \le \mathrm{zone\_cap}_{\mathrm{zone}(b)} \wedge \mathrm{pos}(t) > 0 \\
 \text{covered} && \sum_{t \in \mathcal{T},\ g \in \mathcal{G}} p_{t,g} & \le \mathrm{budget} && \text{where } \sum_{g \in \mathcal{G}} \mathrm{p}^{\mathrm{max}}_{g} \ge \mathrm{budget} \\
 \text{counted} && \theta_{b} & \le \mathrm{budget} && \forall\, b \in \mathcal{B} \,:\, \lvert \{ e \in \mathcal{E} \,:\, \mathrm{tech\_cap}_{b,e} > 0 \} \rvert \ge 2 \\
 \text{counted\_here} && \theta_{b} & \le \mathrm{tech\_cap}_{b,e} && \forall\, b \in \mathcal{B},\ e \in \mathcal{E} \,:\, \lvert \{ e' \in \mathcal{E} \,:\, \mathrm{tech\_cap}_{b,e'} > 0 \} \rvert \ge 2 \\
 \text{run\_start} && \mathit{slack}_{t} & \le \mathrm{load}_{t,b} && \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \,:\, \mathrm{load}_{t,b} \text{ is defined} \wedge \neg \left( \mathrm{load}_{t - 1,b} \text{ is defined} \right) \\
-\text{zoned} && \theta_{b} & \le \mathrm{budget} && \forall\, b \in \mathcal{B} \,:\, \mathrm{zone\_cap}_{\mathrm{zone\_of}(b)} \text{ is defined} \\
+\text{zoned} && \theta_{b} & \le \mathrm{budget} && \forall\, b \in \mathcal{B} \,:\, \mathrm{zone\_cap}_{\mathrm{zone}(b)} \text{ is defined} \\
 \text{capped} && p_{t,g} & \le \mathrm{p}^{\mathrm{max}}_{g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \,:\, \mathrm{spend}^{\mathrm{cap}}_{g} > 0 \vee \neg \mathrm{is\_flexible}_{g} \\
 \text{masked} && p_{t,g} & \le \mathrm{p}^{\mathrm{max}}_{g} && \forall\, t \in \mathcal{T},\ g \in \mathcal{G} \,:\, \mathrm{priced\_dispatch}_{g} \wedge \mathrm{pos}(t) > 0 \\
 \text{adjacent} && \left( \mathit{weight}_{t,g} \right)_{g \in \mathcal{G}} & \in \mathrm{SOS}2 && \forall\, t \in \mathcal{T} \\
@@ -191,11 +191,11 @@
 \text{bounds\_do\_not\_cross} && \mathrm{p}^{\mathrm{min}}_{g} & \le \mathrm{p}^{\mathrm{max}}_{g} && \forall\, g \in \mathcal{G} \\
 \text{efficiency\_is\_a\_fraction} && \mathrm{eta}_{g} > 0 \wedge \mathrm{eta}_{g} \le 1 &  && \forall\, g \in \mathcal{G} \\
 \text{lead\_times\_are\_short} && \mathrm{lead}_{g} & \le 3 && \forall\, g \in \mathcal{G} \\
-\text{zones\_agree} && \mathrm{zone\_of}(b) & = \mathrm{area\_of}(b) && \forall\, b \in \mathcal{B} \\
+\text{zones\_agree} && \mathrm{zone}(b) & = \mathrm{area}(b) && \forall\, b \in \mathcal{B} \\
 \text{budget\_covers\_the\_peak} && \sum_{g \in \mathcal{G}} \mathrm{p}^{\mathrm{max}}_{g} & \ge \mathrm{budget} \\
 \text{ramps\_are\_gentle} && \mathrm{load}_{t,b} - \mathrm{load}_{t \boxminus_{0} 1,b} & \le \mathrm{budget} && \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \,:\, \mathrm{pos}(t) > 0 \\
 \text{flexible\_units\_have\_headroom} && \mathrm{p}^{\mathrm{min}}_{g} & < \mathrm{p}^{\mathrm{max}}_{g} && \forall\, g \in \mathcal{G} \,:\, \mathrm{is\_flexible}_{g} \\
-\text{northern\_demand\_is\_real} && \mathrm{load}_{t,b} & \ge 0 && \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \,:\, \mathrm{zone\_of}(b) = \text{'}\mathrm{north}\text{'} \\
+\text{northern\_demand\_is\_real} && \mathrm{load}_{t,b} & \ge 0 && \forall\, t \in \mathcal{T},\ b \in \mathcal{B} \,:\, \mathrm{zone}(b) = \text{'}\mathrm{north}\text{'} \\
 \text{fuel\_curve\_complete} && \mathrm{bp\_x}_{g,a} \text{ is defined} \wedge \mathrm{bp\_y}_{g,a} \text{ is defined} \wedge \mathrm{bp\_heat}_{g,a} \text{ is defined} &  && \forall\, g \in \mathcal{G},\ a \in \mathcal{A} \\
 \text{cost\_curve\_complete} && \mathrm{bp\_x}_{g,a} \text{ is defined} \wedge \mathrm{bp\_y}_{g,a} \text{ is defined} &  && \forall\, g \in \mathcal{G},\ a \in \mathcal{A} \,:\, \mathrm{bp\_run}_{g,a} \\
 \text{cost\_curve\_contiguous} && \lvert \{ a \in \mathcal{A} \,:\, \mathrm{bp\_run}_{g,a} \wedge \neg \mathrm{bp\_run}_{g,a - 1} \} \rvert & = 1 && \forall\, g \in \mathcal{G} \\
