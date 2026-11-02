@@ -155,6 +155,68 @@ there too. A `Not` of it is then true. So `connection != 'input'` keeps no
 coordinate that `connection` leaves out, and `NOT connection == 'input'` keeps
 every one.
 
+## The tables of sets and properties
+
+The data for a set or a property arrives as tables. The canonical form has one
+table for each set and one for each property, and no table holds a null.
+
+| Table                     | Name               | Columns                                                     |
+| ------------------------- | ------------------ | ----------------------------------------------------------- |
+| a set                     | the set's name     | one column per member, named after it                       |
+| a property of a dimension | `subject.property` | the dimension, then one column named after the property     |
+| a property of a set       | `subject.property` | the set's members, then one column named after the property |
+
+- Every value is a label of the dimension its column is over.
+- Every row of a property's table is a row of its subject: a label of the
+  dimension, or a row of the set's table. The engine refuses a row that is not.
+- A set under `missing: 'refused'` has a row for every combination of its
+  dimensions. A property under `missing: 'refused'` has a row for every row of
+  its subject, which for a sparse set is every row the set lists.
+
+`program.relations` holds a `Relation` for each of these tables. A set is a
+relation with no value columns, under its own name. A property is a relation
+under `subject.property`, keyed by the subject's members, with one value
+column, and its `subject` names the dimension or set whose rows its key ranges
+over. A relation from `relations:` has `subject` set to `None`.
+
+```python
+from mathspec import to_spec
+
+network = to_spec(
+    {
+        'dimensions': {'generator': {}, 'bus': {}, 'carrier': {}, 'period': {'dtype': 'int'}, 'zone': {}},
+        'sets': {'generator_period': {'dims': ['generator', 'period'], 'missing': 'absent'}},
+        'properties': {
+            'generator': {'bus': 'bus', 'carrier': {'into': 'carrier', 'missing': 'absent'}},
+            'generator_period': {'zone': 'zone'},
+        },
+        'parameters': {'cap': {'dims': ['bus', 'carrier']}},
+        'expressions': {'cap_of': 'at(cap, by=generator[bus, carrier])'},
+    }
+).program
+sorted(network.relations)  # ['generator.bus', 'generator.carrier', 'generator_period', 'generator_period.zone']
+network.relations['generator_period.zone'].key  # ('generator', 'period')
+network.relations['generator_period.zone'].subject  # 'generator_period'
+network.relations['generator.carrier'].missing  # 'absent'
+join = network.expressions['cap_of'].expression.columns
+join.name  # 'generator'
+join.tables  # ('generator.bus', 'generator.carrier')
+```
+
+A call that reads several properties of one subject reads their inner join. Its
+`JoinColumns` or `Partition` carries that join as its `relation`, with `name`
+and `relation.subject` both set to the subject, and the program holds no table
+of that name. The engine builds the join from the tables in `.tables`, on the
+subject's members, and keeps a row only where every one of the tables has it.
+Everywhere else `.tables` is the one table `name`.
+
+An engine may also accept a **wide table** for each subject: the subject's key
+columns, then one column per property. A null in a property column means the
+row does not have that property. The canonical table of a property is then the
+rows of the wide table where that column is not null, so the two forms hold the
+same data. A wide table for a set is also the set's own table, so its rows are
+the set's rows whatever its property columns hold.
+
 ## Nodes and masks
 
 Import the node classes from `mathspec.program` to test a node with

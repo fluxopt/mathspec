@@ -268,11 +268,12 @@ class Walk:
 
         *lk* is the relation's shape, which a call carries, since an inner join
         of several properties is no table of the program. *at* maps each key
-        role to the index it is read at. The function is named after the
-        relation alone where the key determines one column, and after the
-        column read otherwise.
+        role to the index it is read at. A property is named after itself, as
+        the file writes it in ``subject[property]``. A relation is named after
+        itself where the key determines one column, and after the column read
+        otherwise.
         """
-        function = name if len(lk.values) == 1 else f'{name}.{read}'
+        function = _function(name, lk, read)
         return self.format.apply(self.format.upright(function), self.format.joined([at[k] for k in lk.key], ''))
 
     def _relation_row(self, name: str, lk: Relation, at: Mapping[str, str]) -> str:
@@ -285,7 +286,8 @@ class Walk:
         """
         key = self.format.joined([at[k] for k in lk.key], '')
         if lk.values:
-            return f'{self.format.apply(self.format.upright(name), key)} {self.format.prose(" is defined")}'
+            reads = [self.format.apply(self.format.upright(_function(name, lk, v)), key) for v in lk.values]
+            return f'{self.format.joined(reads, ", ")} {self.format.prose(" is defined")}'
         return f'{self.format.parenthesise(key)} {self._op("in")} {self.format.upright(name)}'
 
     def _frame_key(self, lk: Relation, ctx: _Context) -> dict[str, str]:
@@ -985,3 +987,10 @@ class Walk:
     def _sorted(self, dims: frozenset[str]) -> list[str]:
         order = list(self.program.dimensions)
         return sorted(dims, key=order.index)
+
+
+def _function(name: str, lk: Relation, read: str) -> str:
+    """The function a read of column *read* of *name* prints as: the property, the relation, or ``relation.column``."""
+    if lk.subject is not None:
+        return read
+    return name if len(lk.values) == 1 else f'{name}.{read}'
