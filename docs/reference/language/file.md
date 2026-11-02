@@ -5,14 +5,16 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # File shape
 
-A spec file is a YAML mapping with **thirteen section keys**, plus
-`version` and `description`, and any subset of the thirteen is accepted.
+A spec file is a YAML mapping with **fifteen section keys**, plus
+`version` and `description`, and any subset of the fifteen is accepted.
 
 | Key           |                                                                                                           |
 | ------------- | --------------------------------------------------------------------------------------------------------- |
 | `given`       | what this file reads but does not build ([given](parameters-variables-constraints.md#given))              |
 | `dimensions`  | the dimensions ([dimensions](dimensions.md))                                                              |
 | `relations`   | named relations between dimensions ([relations](relations.md))                                            |
+| `sets`        | which combinations of labels exist ([sets](sets.md#sets))                                                 |
+| `properties`  | a label for each row of a dimension or a set ([properties](sets.md#properties))                           |
 | `parameters`  | the data the spec expects ([parameters](parameters-variables-constraints.md#parameters))                  |
 | `conditions`  | named conditions, read by name in a `where:`, a `when:` or a `holds:` ([conditions](named.md#conditions)) |
 | `variables`   | what the solver decides                                                                                   |

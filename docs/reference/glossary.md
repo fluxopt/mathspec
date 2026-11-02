@@ -46,7 +46,7 @@ A consumer is responsible for checking that the host provides each given name
 ([what a program does not build](reading.md#what-a-program-does-not-build)).
 
 **Section**
-: One of the thirteen top-level keys of a file, such as `parameters:` or
+: One of the fifteen top-level keys of a file, such as `parameters:` or
 `given:`, and the entries under it ([file shape](language/file.md)).
 
 **Entry**

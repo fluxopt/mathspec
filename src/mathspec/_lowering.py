@@ -230,7 +230,7 @@ def lower(spec: Spec) -> Program:
             name: Dimension(dtype=ddef.dtype, ordered=ddef.ordered, description=ddef.description)
             for name, ddef in spec.dimensions.items()
         },
-        relations=ns.relations,
+        relations=ns.tables,
         sos={
             name: Sos(sdef.variable, sdef.along, sos_type=sdef.type, description=sdef.description)
             for name, sdef in spec.sos.items()
