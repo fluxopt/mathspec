@@ -420,7 +420,7 @@ def _parameter_masks(spec: Spec, ns: Namespace, errors: list[str]) -> dict[str, 
             continue
         errors.extend(
             f"{context}: its `where:` contains variable '{v}', and a tool evaluates the `where:` of a parameter "
-            f'from the data alone, before any variable has a value. Test a parameter or a map instead.'
+            f'from the data alone, before any variable has a value. Test a parameter or a mapping instead.'
             for v in sorted(mask.names_read & {*spec.variables, *spec.given.variables})
         )
         errors.extend(_masked_read(context, pname, read, spec) for read in sorted(mask.names_read & masked))
@@ -458,7 +458,7 @@ def _index_mask(
 
     A refusal is appended where the relations already decide some of the
     ``where:``: inside them each bare relation name is true, so reading one
-    there says nothing. A map read as ``subject[map]`` is a test,
+    there says nothing. A mapping read as ``subject[mapping]`` is a test,
     and stays.
     """
     if where is not None and in_ and (written := Mask(where)).within(in_) != written:
@@ -476,7 +476,7 @@ def _rows_tested(context: str, text: str | None, written: Mask, in_: tuple[str, 
     """The refusal for a ``where:`` that tests the rows of a relation, which ``in:`` states, or ``None``.
 
     ``in:`` and a bare relation name in ``where:`` would say one thing twice, so
-    only ``in:`` is taken. A map read as ``subject[map]`` is a test of a label,
+    only ``in:`` is taken. A mapping read as ``subject[mapping]`` is a test of a label,
     and stays.
     """
     tested = sorted({a.name for a in written.atoms if isinstance(a, RelationDefined) and a.column is None})
