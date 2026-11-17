@@ -590,6 +590,8 @@ class GivenParameterSpec(_GivenEntrySpec):
     _label: ClassVar[str] = 'a given parameter entry'
 
     dims: Dims
+    in_: Annotated[Dims, SkipJsonSchema()] = ()
+    """The multi-dims named in ``dims:``, which the load writes from it; ``dims`` holds their members."""
     dtype: ParameterDtype = 'float'
     description: str | None = None
 
@@ -604,6 +606,8 @@ class GivenVariableSpec(_GivenEntrySpec):
     _label: ClassVar[str] = 'a given variable entry'
 
     dims: Dims
+    in_: Annotated[Dims, SkipJsonSchema()] = ()
+    """The multi-dims named in ``dims:``, which the load writes from it; ``dims`` holds their members."""
     domain: VariableDomain = 'continuous'
     description: str | None = None
 
@@ -619,6 +623,8 @@ class GivenConstraintSpec(_GivenEntrySpec):
     _label: ClassVar[str] = 'a given constraint entry'
 
     dims: Dims
+    in_: Annotated[Dims, SkipJsonSchema()] = ()
+    """The multi-dims named in ``dims:``, which the load writes from it; ``dims`` holds their members."""
     description: str | None = None
 
 
@@ -640,6 +646,8 @@ class GivenExpressionSpec(_GivenEntrySpec):
     _label: ClassVar[str] = 'a given expression entry'
 
     dims: Dims
+    in_: Annotated[Dims, SkipJsonSchema()] = ()
+    """The multi-dims named in ``dims:``, which the load writes from it; ``dims`` holds their members."""
     description: str | None = None
 
 
@@ -793,6 +801,8 @@ class ExpressionSpec(_StrictSpec):
 
     expression: Expression | None = None
     dims: Dims | None = None
+    in_: Annotated[Dims, SkipJsonSchema()] = ()
+    """The multi-dims named in ``dims:``, which the load writes from it; ``dims`` holds their members."""
     """The dimensions of the expression, sorted by name. An entry with ``cases:`` requires it, and a plain entry without
     it takes the dimensions of its body.
     """
@@ -857,6 +867,8 @@ class ExpressionSpec(_StrictSpec):
                 written['description'] = self.description
         if self.adds_to is not None:
             written['adds_to'] = self.adds_to
+        if self.in_:
+            written['in_'] = list(self.in_)
         return written
 
 
@@ -1450,7 +1462,7 @@ class Spec(_StrictSpec):
         return self
 
 
-_SET_SECTIONS = ('parameters', 'variables', 'constraints')
+_SET_SECTIONS = ('parameters', 'variables', 'constraints', 'expressions')
 
 
 def _members(relation: object) -> tuple[str, ...] | None:
@@ -1508,6 +1520,13 @@ def _over_sets(data: dict[str, object]) -> dict[str, object]:
     for section in _SET_SECTIONS:
         if isinstance(entries := data.get(section), Mapping):
             out[section] = {name: _entry_over_sets(entry, sets, section) for name, entry in entries.items()}
+    if isinstance(given := data.get('given'), Mapping):
+        out['given'] = {
+            kind: {name: _entry_over_sets(e, sets, kind) for name, e in entries.items()}
+            if kind in _SET_SECTIONS and isinstance(entries, Mapping)
+            else entries
+            for kind, entries in given.items()
+        }
     return out
 
 
@@ -1533,6 +1552,13 @@ def _sets_written_back(written: dict[str, object], relations: Mapping[str, Multi
     for section in _SET_SECTIONS:
         if isinstance(entries := written.get(section), Mapping):
             out[section] = {name: _entry_written_back(entry, relations) for name, entry in entries.items()}
+    if isinstance(given := written.get('given'), Mapping):
+        out['given'] = {
+            kind: {name: _entry_written_back(e, relations) for name, e in entries.items()}
+            if kind in _SET_SECTIONS and isinstance(entries, Mapping)
+            else entries
+            for kind, entries in given.items()
+        }
     return out
 
 

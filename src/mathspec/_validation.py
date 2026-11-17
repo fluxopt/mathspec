@@ -212,12 +212,10 @@ def _frame_dimensions(spec: Spec) -> Iterator[str]:
 def _relation_targets(spec: Spec) -> Iterator[str]:
     """A relation has at least two columns, over declared dimensions, each named once."""
     for lname, lk in spec.multi_dims.items():
-        if len(lk.pairs) < 2:
-            dim = lk.pairs[0][1] if lk.pairs else '<dimension>'
+        if not lk.pairs:
             yield (
-                f"Multi-dim '{lname}' has {'one member' if lk.pairs else 'no member'} under 'over:', and a "
-                f'multi-dim needs at least two. To give each {dim} a label, declare a map under maps: {dim}:. To '
-                f'mark some of them, declare a bool parameter or a condition.'
+                f"Multi-dim '{lname}' has no member under 'over:', and a multi-dim needs at least one. List the "
+                f'dimensions whose combinations it lists.'
             )
         if not isinstance(lk.over, Mapping):
             yield from (

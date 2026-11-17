@@ -286,14 +286,15 @@ class Walk:
         """That relation *name* has a row at the key *at* fixes, or with *column*, that the map gives the row a label.
 
         A relation is a set of rows, so the row is written out:
-        ``(p, u) ∈ connection``. A map is a function, so the claim is that it
+        ``(p, u) ∈ connection``, and a row of one member as ``u ∈ extendable``. A map is a function, so the claim is that it
         is defined there: ``line(o) is defined``.
         """
         lk = self.program.relations[name]
         key = self.format.joined([at[k] for k in lk.key], '')
         if column is not None:
             return f'{self.format.apply(self.format.upright(column), key)} {self.format.prose(" is defined")}'
-        return f'{self.format.parenthesise(key)} {self._op("in")} {self.format.upright(name)}'
+        row = key if len(lk.key) == 1 else self.format.parenthesise(key)
+        return f'{row} {self._op("in")} {self.format.upright(name)}'
 
     def _frame_key(self, name: str, ctx: _Context) -> dict[str, str]:
         """Table *name*'s key roles at the frame's own indices of their dimensions."""

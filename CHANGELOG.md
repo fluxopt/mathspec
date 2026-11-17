@@ -14,7 +14,7 @@ it releases that version ([RELEASING.md](https://github.com/energy-models/mathsp
 
 - feat(language)!: a multi-dim is a dimension with over: ([#8](https://github.com/fluxopt/mathspec/pull/8))
   - Breaks a file: `relations:` goes. Declare each relation under `dimensions:` with `over:` in place of `dims:`, and delete its `missing:`. A multi-dim named in the `dims:` of a parameter, a variable or a constraint, or in `over=`, stands for its members at the combinations it lists.
-  - Breaks a file: the `where:` of a parameter, a variable or a constraint no longer takes a multi-dim's bare name. Name the multi-dim in `dims:`.
+  - Breaks a file: the `where:` of a parameter or a variable no longer takes a multi-dim's bare name. Name the multi-dim in `dims:`.
 - feat(language): a dimension may alias another's labels ([#1020](https://github.com/energy-models/mathspec/pull/1020))
 - feat(language)!: maps give labels, relations give rows ([#1015](https://github.com/energy-models/mathspec/pull/1015))
   - Breaks a file: `relations:` takes `dims:`, `missing:` and `description` only. Each value column becomes a map under `maps:`, keyed by its subject, with `dim:` naming its dimension and always written, and is read as `subject[map]`, such as `generator[bus]`.

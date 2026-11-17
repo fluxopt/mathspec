@@ -1,0 +1,51 @@
+# SPDX-FileCopyrightText: mathspec Contributors
+#
+# SPDX-License-Identifier: MIT
+
+description: >-
+  Units whose candidate ports cost more to run, and the units that may be
+  extended: a multi-dim as a condition, and a multi-dim over one member.
+
+dimensions:
+  unit: { description: a converter }
+  port: { description: an output of a unit }
+  period: { dtype: int, ordered: true, description: a step of the horizon }
+  candidate: { over: [unit, port], description: the ports a unit may add }
+  extendable: { over: [unit], description: the units whose capacity may grow }
+
+parameters:
+  run_cost: { dims: [unit, port, period], description: the cost of a unit of flow through a port that exists }
+  new_cost: { dims: [unit, port, period], description: the cost of a unit of flow through a candidate port }
+  capacity: { dims: [unit], description: the most a unit produces in a period }
+  max_build: { dims: [extendable], description: the most a unit's capacity may grow }
+  load: { dims: [period], description: demand to be met }
+
+variables:
+  flow: { dims: [unit, port, period], bounds: { lower: 0 }, description: what a port delivers }
+  build: { dims: [extendable, period], bounds: { lower: 0 }, description: the capacity added to a unit }
+
+expressions:
+  port_cost:
+    description: a candidate port costs its own price, every other port the running price
+    dims: [unit, port, period]
+    cases:
+      new: { when: candidate, expression: new_cost * flow }
+    otherwise: run_cost * flow
+
+constraints:
+  unit_limit:
+    description: the ports of a unit deliver no more than its capacity and what it adds
+    dims: [extendable, period]
+    expression: sum(flow, over=port) <= capacity + build
+  build_limit:
+    description: a unit adds no more than its limit
+    dims: [extendable, period]
+    expression: build <= max_build
+  balance:
+    description: the ports meet the load
+    dims: [period]
+    expression: sum(flow, over=[unit, port]) >= load
+
+objective:
+  sense: minimize
+  expression: sum(port_cost) + sum(build)

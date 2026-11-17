@@ -412,7 +412,9 @@ at load:
   nearest name, such as `Did you mean 'injection'?`.
 - A term does not use the sum that it adds to, directly or through another
   name.
-- A term is indexed only over dimensions that the given entry lists.
+- A term is indexed only over dimensions that the given entry lists. A
+  multi-dim in either `dims:` counts as its members
+  ([`dims` is the domain](parameters-variables-constraints.md#dims-is-the-domain)).
 - Like every expression that uses the sum, a term contains a product of at
   most [two variables](expressions.md#where-a-product-of-two-variables-is-allowed).
 

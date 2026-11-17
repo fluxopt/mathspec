@@ -50,6 +50,7 @@ MODELS = {
     'commitment.md': ROOT / 'examples' / 'commitment.yaml',
     'connection.md': ROOT / 'examples' / 'connection.yaml',
     'sparse.md': ROOT / 'examples' / 'sparse.yaml',
+    'candidates.md': ROOT / 'examples' / 'candidates.yaml',
     'piecewise.md': ROOT / 'examples' / 'piecewise.yaml',
     'piecewise_adjacency.md': ROOT / 'examples' / 'piecewise_adjacency.yaml',
     'sos.md': ROOT / 'examples' / 'sos.yaml',

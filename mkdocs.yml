@@ -75,6 +75,7 @@ nav:
           - Unit commitment: examples/commitment.md
           - Units with ports: examples/connection.md
           - A sparse set, read four ways: examples/sparse.md
+          - A multi-dim as a test and a subset: examples/candidates.md
           - One construct per spec: examples/operators.md
           - A curve by convex combination: examples/piecewise.md
           - A curve that is not convex: examples/piecewise_adjacency.md

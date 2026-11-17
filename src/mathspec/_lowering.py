@@ -178,7 +178,7 @@ def lower(spec: Spec) -> Program:
         where = resolve_condition_text(cdef.where, ns, context, errors)
         if (sides := resolve_constraint_text(cdef.expression, ns, context, errors)) is not None:
             lhs, sense, rhs = sides
-            mask = _index_mask(cname, cdef.in_, cdef.where, where, ns, context, errors)
+            mask = _index_mask(cname, cdef.in_, cdef.where, where, ns, context, errors, rows_follow=True)
             constraints[cname] = Constraint(cdef.dims, lhs, sense, rhs, mask, description=cdef.description)
 
     objective = None
@@ -454,17 +454,24 @@ def _index_mask(
     ns: Namespace,
     context: str,
     errors: list[str],
+    *,
+    rows_follow: bool = False,
 ) -> Mask | None:
     """The key of each relation in *in_* and the resolved *where* as one mask, or ``None`` where neither limits anything.
 
     A refusal is appended where the relations already decide some of the
     ``where:``: inside them each bare relation name is true, so reading one
     there says nothing. A map read as ``subject[map]`` is a test,
-    and stays.
+    and stays. A constraint's rows follow its operands, so with *rows_follow*
+    a bare name of a multi-dim outside ``dims:`` is a test like any other.
     """
     if where is not None and in_ and (written := Mask(where)).within(in_) != written:
         errors.append(_decided_by_index_set(context, name, text, in_, written.within(in_).root))
-    elif where is not None and (problem := _rows_tested(context, text, Mask(where), in_, ns)) is not None:
+    elif (
+        where is not None
+        and not rows_follow
+        and (problem := _rows_tested(context, text, Mask(where), in_, ns)) is not None
+    ):
         errors.append(problem)
     rows: list[Condition] = [
         RelationDefined(r, tuple(sorted(ns.relations[r].dim(k) for k in ns.relations[r].key))) for r in in_

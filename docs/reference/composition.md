@@ -278,7 +278,9 @@ A given entry is a name that a file lists under
 [`given:`](language/parameters-variables-constraints.md#given). `merge` folds
 each given entry into the entry of the fragment that declares the name. The
 fragment that lists the name may state less than the file that declares it,
-such as the dimensions of a variable with no `domain`.
+such as the dimensions of a variable with no `domain`. A multi-dim in the
+`dims:` of either counts as its members
+([`dims` is the domain](language/parameters-variables-constraints.md#dims-is-the-domain)).
 
 | The given entry                   | What `merge` does                                                                                                                                       |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |

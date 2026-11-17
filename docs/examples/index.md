@@ -30,6 +30,10 @@ like yours, and what each line of the file means.
     Units on the ports they have and in the periods they run: a parameter per
     unit, a sum over the ports, a step in time and a sum over every port.
     [Open →](sparse.md)
+- **A multi-dim as a test and a subset**
+    A case tests whether a port is a candidate, and a multi-dim over one
+    member lists the units that may grow.
+    [Open →](candidates.md)
 - **One construct per spec**
     Each form of the four operators and `dual` has its smallest file, beside
     its typeset equation.

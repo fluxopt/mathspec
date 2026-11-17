@@ -13,6 +13,20 @@ lists the keys of those five sections, in the order of the
 also takes `description:`, free text that the
 [typeset](../typeset.md#descriptions) legend lists beside the entry.
 
+## `dims` is the domain
+
+The `dims:` of an entry is its domain: the dimensions and the
+[multi-dims](relations.md#multi-dims) it is over. A multi-dim stands for its
+members at the rows it lists. Two items join on the member names they share,
+so `dims: [connection, period]` with `connection: { over: [unit, port] }` is
+over `unit`, `port` and `period` at the pairs that `connection` lists. An
+[alias](dimensions.md#alias) keeps two copies of one dimension apart.
+
+Every rule that compares `dims:` compares those members: the two sides of a
+constraint, a `given:` entry against the entry it reads, and an
+[`adds_to:`](named.md#adds_to) term against its sum. So a constraint over
+`[connection, period]` whose expression is over `[unit, port, period]` loads.
+
 ## `given`
 
 `given:` lists what this file uses and another file declares. It takes five keys: data under `parameters:`, named conditions under
@@ -486,8 +500,8 @@ The typeset legend lists the condition beside the dimensions, after
 
 ### A multi-dim in `dims`
 
-A [multi-dim](relations.md) named in `dims:` stands for its dimensions, at the
-combinations it lists. The parameter has coordinates only there, and a tool
+A [multi-dim](relations.md) named in `dims:` stands for its members, at the
+combinations it lists ([`dims` is the domain](#dims-is-the-domain)). The parameter has coordinates only there, and a tool
 refuses a row of the data anywhere else. A [`where:`](#where) drops that row
 instead. In this example, `efficiency` and `p_nom_max` have values only at the
 pairs that `connection` lists:
@@ -783,7 +797,14 @@ Constraint 'power_balance': the expression carries dims ['generator'] that are n
 ```
 
 mathspec lists the extra dimension and the `dims`, and suggests two
-rewrites.
+rewrites. A multi-dim in `dims:` counts as its members, so
+`dims: [connection, period]` equals an expression over `[unit, port, period]`
+([`dims` is the domain](#dims-is-the-domain)).
+
+The bare name of a multi-dim may stand in the `where:` of a constraint, as a
+test of whether a row is in it. A constraint's rows follow its operands, so
+the name is a test like any other there. In the `where:` of a parameter or a
+variable it is refused, and the rewrite names it in `dims:`.
 
 At least one side of the comparison must have a variable, so at load mathspec refuses a comparison between numbers and parameters alone:
 

@@ -1440,14 +1440,6 @@ class TestRulesDecidedWithoutData:
                 id='relation-with-a-dtype-of-its-own',
             ),
             pytest.param(
-                {'dimensions.link': {'over': ['g']}},
-                (
-                    "Multi-dim 'link' has one member under 'over:', and a multi-dim needs at least two",
-                    'To give each g a label, declare a map under maps: g:.',
-                ),
-                id='relation-with-one-column',
-            ),
-            pytest.param(
                 {'dimensions.link': {'over': ['g', 'z']}},
                 ("Multi-dim 'link' references undeclared dimension 'z'",),
                 id='relation-over-undeclared',
@@ -1464,7 +1456,7 @@ class TestRulesDecidedWithoutData:
             ),
             pytest.param(
                 {'dimensions.link': {'over': []}},
-                ("Multi-dim 'link' has no member under 'over:', and a multi-dim needs at least two",),
+                ("Multi-dim 'link' has no member under 'over:', and a multi-dim needs at least one",),
                 id='relation-with-no-columns',
             ),
             pytest.param(
@@ -2093,14 +2085,6 @@ ON_A_RELATION: dict[str, Any] = {
             id='a-parameter',
         ),
         pytest.param(
-            {
-                'variables.p': {'dims': ['g', 'h']},
-                'constraints.c': {'dims': ['g', 'h'], 'where': 'pair', 'expression': 'p >= 0'},
-            },
-            "Constraint 'c': `where: pair` tests the rows of 'pair', which dims: states.",
-            id='a-constraint',
-        ),
-        pytest.param(
             {'variables.p.where': 'pair OR flag'},
             "tests the rows of 'pair' under OR or NOT, which dims: cannot state. Declare those rows as a bool "
             'parameter, and test that in its place.',
@@ -2131,6 +2115,41 @@ def test_a_where_that_tests_the_rows_of_a_relation_is_refused(patch: dict[str, A
 )
 def test_a_where_that_reads_a_map_or_a_value_loads(patch: dict[str, Any]):
     to_spec(varied(ON_A_RELATION, **patch))
+
+
+@pytest.mark.parametrize(
+    'patch',
+    [
+        pytest.param(
+            {'constraints.c': {'dims': ['g', 'h'], 'where': 'pair', 'expression': 'p >= 0'}}, id='a-constraint-where'
+        ),
+        pytest.param(
+            {
+                'conditions.paired': 'pair AND flag',
+                'constraints.c': {'dims': ['g', 'h'], 'where': 'paired', 'expression': 'p >= 0'},
+            },
+            id='a-named-condition-in-a-constraint-where',
+        ),
+        pytest.param(
+            {
+                'parameters.cost': {'dims': ['g', 'h']},
+                'expressions.price': {
+                    'dims': ['g', 'h'],
+                    'cases': {'paired': {'when': 'pair', 'expression': 'cost'}},
+                    'otherwise': '2 * cost',
+                },
+            },
+            id='a-case-of-a-named-expression',
+        ),
+    ],
+)
+def test_a_multi_dim_tested_where_its_rows_are_no_domain_loads(patch: dict[str, Any]):
+    """A constraint's rows follow its operands, and a case covers both branches, so neither can move the name into `dims:`.
+
+    Was: a constraint's `where: pair` was refused with `dims:` as the rewrite,
+    where a relation of the same file loads.
+    """
+    to_spec(varied({**ON_A_RELATION, 'variables': {'p': {'dims': ['g', 'h']}}}, **patch))
 
 
 class TestAssumptions:
@@ -3248,6 +3267,64 @@ def test_a_multi_dim_in_dims_stands_for_its_members_at_its_rows(dims, over, in_)
 def test_a_multi_dim_is_declared_under_dimensions_alone(patch: dict[str, Any], message: str):
     """`sets:` is gone, and `multi_dims` is where the load keeps what `dimensions:` declares with `over:`."""
     assert message in _refusal(**patch)
+
+
+def test_a_multi_dim_over_one_member_is_a_subset_of_it():
+    """`extendable: {over: [g]}` lists some labels of `g`; it was refused as needing two members."""
+    spec = _spec(**{'dimensions.extendable': {'over': ['g']}, 'variables.build': {'dims': ['extendable', 'h']}})
+    build = spec.program.variables['build']
+    assert (build.dims, build.in_) == (('g', 'h'), ('extendable',)), 'the subset stands for g, at the rows it lists'
+    assert to_spec(spec.to_yaml()) == spec, 'the subset writes back as the file wrote it'
+
+
+def test_a_row_of_a_multi_dim_over_one_member_prints_without_a_tuple():
+    """A constraint over a one-member multi-dim printed its row as `(g) ∈ extendable`, a tuple of one."""
+    spec = _spec(
+        **{
+            'dimensions.extendable': {'over': ['g']},
+            'constraints.c': {'dims': ['extendable'], 'expression': 'p <= c'},
+        }
+    )
+    latex = typeset(spec, 'latex')
+    assert r'\left( g \right) \in' not in latex, 'one index is no tuple'
+    assert r'g \in \mathrm{extendable}' in latex, latex
+
+
+@pytest.mark.parametrize(
+    'patch',
+    [
+        pytest.param(
+            {'constraints.c': {'dims': ['pair'], 'expression': 'q <= c'}}, id='a-constraint-over-its-operands-rows'
+        ),
+        pytest.param({'expressions.e': {'dims': ['pair'], 'expression': 'q * c'}}, id='a-named-expression'),
+        pytest.param(
+            {'given.parameters.gp': {'dims': ['pair']}, 'constraints.c': {'dims': ['pair'], 'expression': 'q <= gp'}},
+            id='a-given-parameter',
+        ),
+        pytest.param(
+            {
+                'given.expressions.inj': {'dims': ['pair']},
+                'constraints.c': {'dims': ['g', 'h'], 'expression': 'q <= inj'},
+            },
+            id='a-given-expression',
+        ),
+        pytest.param(
+            {
+                'given.expressions.inj': {'dims': ['pair']},
+                'expressions.term': {'dims': ['g', 'h'], 'expression': 'q', 'adds_to': 'inj'},
+            },
+            id='an-adds-to-term',
+        ),
+    ],
+)
+def test_dims_compares_the_members_of_a_multi_dim(patch: dict[str, Any]):
+    """`dims:` is the entry's domain: a multi-dim in it is its members, so every rule that compares `dims:` sees them.
+
+    Was: a named expression and a `given:` entry refused a multi-dim in `dims:`
+    as not a dimension.
+    """
+    spec = _spec(**{'dimensions.pair': {'over': ['g', 'h']}}, **patch)
+    assert to_spec(spec.to_yaml()) == spec, 'the multi-dim writes back into dims: as the file wrote it'
 
 
 def test_a_multi_dim_has_the_combinations_its_rows_list():

@@ -35,7 +35,10 @@ $`\sum_{(g, b) \in \mathrm{connection}}`$. So its name may stand in the
 members at the combinations it lists
 ([a multi-dim in `dims`](parameters-variables-constraints.md#a-multi-dim-in-dims)).
 Two multi-dims in one `dims:` join on the members they share, at the rows that
-both list, so TIMES writes `act: { dims: [prc_ts, rtp_vintyr] }`.
+both list, so TIMES writes `act: { dims: [prc_ts, rtp_vintyr] }`. An
+[alias](dimensions.md#alias) keeps two copies of one dimension apart. So
+`dims:` is the domain of the entry
+([`dims` is the domain](parameters-variables-constraints.md#dims-is-the-domain)).
 
 | Key           | What it sets                                         | Default |
 | ------------- | ---------------------------------------------------- | ------- |
@@ -56,13 +59,16 @@ mathspec prints:
 Multi-dim 'zp' names member 'period' after dimension 'period', but the member is over 'zone'. Rename the member after what it holds.
 ```
 
-A multi-dim with one member is refused, because one member holds labels of one
-dimension, and a map or a condition states that. With
-`r: { over: [generator] }`, mathspec prints:
+A multi-dim over one member lists some labels of that dimension, so
+`extendable: { over: [unit] }` is a subset of `unit`, and `dims: [extendable,
+period]` confines an entry to it. A multi-dim with no member is refused.
 
-```text
-Multi-dim 'r' has one member under 'over:', and a multi-dim needs at least two. To give each generator a label, declare a map under maps: generator:. To mark some of them, declare a bool parameter or a condition.
-```
+The bare name of a multi-dim is a condition: true where it has a row. It
+stands in a `when:` of [`cases:`](named.md#cases), in a named condition and in
+the `where:` of a constraint, where the entry covers rows both in and out of
+the multi-dim. In the `where:` of a parameter or a variable it is refused,
+because `dims:` states those rows
+([example](../../examples/candidates.md)).
 
 A list that names one dimension twice is refused, and the rewrite is an
 [alias](dimensions.md#alias). With `link: { over: [bus, bus] }`, mathspec
