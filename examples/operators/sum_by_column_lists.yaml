@@ -11,9 +11,7 @@ dimensions:
   period: { dtype: int }
   bus: { dtype: str }
   technology: { dtype: str }
-
-sets:
-  slot_of: { dims: [generator, period] }
+  slot_of: { over: [generator, period] }
 
 maps:
   slot_of: { bus: { dim: bus }, technology: { dim: technology } }

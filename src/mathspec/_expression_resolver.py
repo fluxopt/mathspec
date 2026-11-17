@@ -208,7 +208,7 @@ class ExpressionResolver:
                 return None
             case 'relation':
                 self.errors.append(
-                    f"{self.context}: '{node.name}' is a set, and a set is not a value. Sum through it "
+                    f"{self.context}: '{node.name}' is a multi-dim, and a multi-dim is not a value. Sum through it "
                     f'as sum(x, over=<column>, by={node.name}[<column>]), test it in a condition, or declare a '
                     f'parameter to carry numbers.'
                 )
@@ -709,9 +709,9 @@ class ExpressionResolver:
                 f'under maps: {name}:, or read a subject that has it: {key}=<subject>[<map>].'
             )
         kinds = (
-            'a set, a dimension with maps or a formal argument of this macro'
+            'a multi-dim, a dimension with maps or a formal argument of this macro'
             if self.formals
-            else 'a set or a dimension with maps'
+            else 'a multi-dim or a dimension with maps'
         )
         return (
             f'{context}: {operator}({key}={name}[...]): {name!r} is not {kinds}. '
@@ -741,7 +741,7 @@ def _members_of_sets(names: tuple[str, ...], ns: Namespace) -> tuple[str, ...]:
     """
     out: list[str] = []
     for name in names:
-        relation = None if name in ns.dimensions else ns.spec.sets.get(name)
+        relation = None if name in ns.dimensions else ns.spec.multi_dims.get(name)
         dims: list[str] = [d for _, d in relation.pairs] if relation is not None else []
         out.extend(dims if dims and len(set(dims)) == len(dims) else [name])
     return tuple(out)
@@ -750,9 +750,10 @@ def _members_of_sets(names: tuple[str, ...], ns: Namespace) -> tuple[str, ...]:
 def _undeclared_dim(context: str, operator: str, call: str, name: str, ns: Namespace, formals: frozenset[str]) -> str:
     if name in ns.relations and name not in ns.dimensions:
         dims = list(ns.relations[name].dims)
-        which = 'its dimensions' if call.startswith('over=') else 'one of its dimensions'
+        which = 'its members' if call.startswith('over=') else 'one of its members'
         return (
-            f"{context}: {operator}({call}) names the set '{name}', and a set is not a dimension. Name {which}, {dims}."
+            f"{context}: {operator}({call}) names the multi-dim '{name}', which stands for its members only in dims: "
+            f'and over=. Name {which}, {dims}.'
         )
     return (
         f'{context}: {operator}({call}) does not name a declared dimension{_or_a_formal(formals)}. '

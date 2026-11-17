@@ -14,22 +14,21 @@ The top level of a spec file has **fourteen section keys**, plus `version` and
 `description`. mathspec accepts any subset of the fourteen, so a file that
 declares only `dimensions:` loads.
 
-| Key           | What the section declares                                                                                          |
-| ------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `given`       | what this file uses and another file declares ([given](parameters-variables-constraints.md#given))                 |
-| `dimensions`  | the sets of labels that entries are indexed over ([dimensions](dimensions.md))                                     |
-| `sets`        | named sets of combinations of labels of two or more dimensions ([sets](relations.md#sets))                         |
-| `maps`        | the label of a dimension that each row of a dimension or a set has ([maps](relations.md#maps))                     |
-| `parameters`  | the data the spec expects ([parameters](parameters-variables-constraints.md#parameters))                           |
-| `conditions`  | named conditions, used by name in a `where:`, a `when:` or a `holds:` ([conditions](named.md#conditions))          |
-| `variables`   | what the solver decides ([variables](parameters-variables-constraints.md#variables))                               |
-| `expressions` | named quantities, used again in the math and readable once the solver runs ([named expressions](named.md))         |
-| `objective`   | what the solver minimises or maximises ([objective](parameters-variables-constraints.md#objective))                |
-| `constraints` | the rules that the decisions obey ([constraints](parameters-variables-constraints.md#constraints))                 |
-| `sos`         | sets of variables of which few may be non-zero ([special ordered sets, SOS](piecewise.md#sos))                     |
-| `piecewise`   | piecewise-linear curves ([piecewise](piecewise.md))                                                                |
-| `assumptions` | what the spec expects of its data ([assumptions](assumptions.md))                                                  |
-| `macros`      | templates that take arguments, substituted into an expression before anything reads it ([macros](named.md#macros)) |
+| Key           | What the section declares                                                                                                                                        |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `given`       | what this file uses and another file declares ([given](parameters-variables-constraints.md#given))                                                               |
+| `dimensions`  | the sets of labels that entries are indexed over ([dimensions](dimensions.md)), and the multi-dims, written with `over:` ([multi-dims](relations.md#multi-dims)) |
+| `maps`        | the label of a dimension that each row of a dimension or a set has ([maps](relations.md#maps))                                                                   |
+| `parameters`  | the data the spec expects ([parameters](parameters-variables-constraints.md#parameters))                                                                         |
+| `conditions`  | named conditions, used by name in a `where:`, a `when:` or a `holds:` ([conditions](named.md#conditions))                                                        |
+| `variables`   | what the solver decides ([variables](parameters-variables-constraints.md#variables))                                                                             |
+| `expressions` | named quantities, used again in the math and readable once the solver runs ([named expressions](named.md))                                                       |
+| `objective`   | what the solver minimises or maximises ([objective](parameters-variables-constraints.md#objective))                                                              |
+| `constraints` | the rules that the decisions obey ([constraints](parameters-variables-constraints.md#constraints))                                                               |
+| `sos`         | sets of variables of which few may be non-zero ([special ordered sets, SOS](piecewise.md#sos))                                                                   |
+| `piecewise`   | piecewise-linear curves ([piecewise](piecewise.md))                                                                                                              |
+| `assumptions` | what the spec expects of its data ([assumptions](assumptions.md))                                                                                                |
+| `macros`      | templates that take arguments, substituted into an expression before anything reads it ([macros](named.md#macros))                                               |
 
 The order of the sections, and the order of the entries in a section, change
 nothing. `to_spec` sorts the entries of each section by name, and the entries

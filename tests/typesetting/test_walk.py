@@ -668,8 +668,8 @@ UNREAD = {
         'zone': {'dtype': 'str'},
         'bus': {'dtype': 'str'},
         'technology': {'dtype': 'str'},
+        'gen_zone': {'over': ['generator', 'snapshot']},
     },
-    'sets': {'gen_zone': {'dims': ['generator', 'snapshot']}},
     'maps': {
         'gen_zone': {'zone': {'dim': 'zone'}},
         'generator': {'bus': {'dim': 'bus'}, 'technology': {'dim': 'technology'}},

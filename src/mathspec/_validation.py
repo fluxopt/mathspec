@@ -123,25 +123,32 @@ def reference_errors(spec: Spec) -> list[str]:
 
 def undeclared_dimension(kind: str, name: str, dimension: str, spec: Spec, *, along: bool = False) -> str:
     """The one wording for an entry naming a dimension the file does not declare, or naming a relation as one."""
-    if (relation := spec.sets.get(dimension)) is None:
+    if (relation := spec.multi_dims.get(dimension)) is None:
         return f"{kind} '{name}' references undeclared dimension '{dimension}'. Declare it under 'dimensions:'."
     dims = sorted({d for _, d in relation.pairs})
     repeated = sorted({d for _, d in relation.pairs if [c for _, c in relation.pairs].count(d) > 1})
     if not along and kind in ('Parameter', 'Variable', 'Constraint') and repeated:
         return (
-            f"{kind} '{name}' names the set '{dimension}', which has two columns over '{repeated[0]}', and an "
-            f"entry is over each dimension once. Declare an alias of '{repeated[0]}' under dimensions:, and one "
-            f'column of the set over it.'
+            f"{kind} '{name}' names the multi-dim '{dimension}', which has two members over '{repeated[0]}', and "
+            f"an entry is over each dimension once. Declare an alias of '{repeated[0]}' under dimensions:, and "
+            f"list it under the over: of '{dimension}' in place of one of the two."
         )
-    rewrite = f'Name one of its dimensions, {dims}.' if along else f'Name its dimensions, {dims}.'
-    return f"{kind} '{name}' names the set '{dimension}', and a set is not a dimension. {rewrite}"
+    if along:
+        return (
+            f"{kind} '{name}' names the multi-dim '{dimension}', and a step runs along one dimension. Name one of "
+            f'its members, {dims}.'
+        )
+    return (
+        f"{kind} '{name}' names the multi-dim '{dimension}', and the members of a multi-dim are dimensions. "
+        f'Name its members, {dims}.'
+    )
 
 
 def _flat_namespace(spec: Spec) -> list[tuple[str, Iterable[str]]]:
     """Each kind of entry whose names share the one namespace an expression reads."""
     return [
         ('dimension', spec.dimensions),
-        ('set', spec.sets),
+        ('multi-dim', spec.multi_dims),
         ('parameter', spec.parameters),
         ('given parameter', spec.given.parameters),
         ('variable', spec.variables),
@@ -204,29 +211,29 @@ def _frame_dimensions(spec: Spec) -> Iterator[str]:
 
 def _relation_targets(spec: Spec) -> Iterator[str]:
     """A relation has at least two columns, over declared dimensions, each named once."""
-    for lname, lk in spec.sets.items():
+    for lname, lk in spec.multi_dims.items():
         if len(lk.pairs) < 2:
             dim = lk.pairs[0][1] if lk.pairs else '<dimension>'
             yield (
-                f"Set '{lname}' has {'one column' if lk.pairs else 'no column'} under 'dims:', and a set "
-                f'needs at least two. To give each {dim} a label, declare a map under maps: {dim}:. To mark some '
-                f'of them, declare a bool parameter or a condition.'
+                f"Multi-dim '{lname}' has {'one member' if lk.pairs else 'no member'} under 'over:', and a "
+                f'multi-dim needs at least two. To give each {dim} a label, declare a map under maps: {dim}:. To '
+                f'mark some of them, declare a bool parameter or a condition.'
             )
-        if not isinstance(lk.dims, Mapping):
+        if not isinstance(lk.over, Mapping):
             yield from (
-                f"Set '{lname}' names dimension '{d}' twice under 'dims:'. Give the two columns names: "
-                f'dims: {{{d}0: {d}, {d}1: {d}}}.'
-                for d, count in Counter(lk.dims if isinstance(lk.dims, tuple) else (lk.dims,)).items()
+                f"Multi-dim '{lname}' names dimension '{d}' twice under 'over:'. Declare an alias of '{d}' under "
+                f'dimensions:, such as {d}_to: {{alias: {d}}}, and list it in place of the second.'
+                for d, count in Counter(lk.over if isinstance(lk.over, tuple) else (lk.over,)).items()
                 if count > 1
             )
         yield from (
-            undeclared_dimension('Set', lname, d, spec)
+            undeclared_dimension('Multi-dim', lname, d, spec)
             for d in dict.fromkeys(d for _, d in lk.pairs)
             if d not in spec.dimensions
         )
         yield from (
-            f"Set '{lname}' names column '{role}' after dimension '{role}', but the column is over "
-            f"'{dim}'. Rename the column after what it holds."
+            f"Multi-dim '{lname}' names member '{role}' after dimension '{role}', but the member is over "
+            f"'{dim}'. Rename the member after what it holds."
             for role, dim in lk.pairs
             if role in spec.dimensions and role != dim
         )
@@ -240,19 +247,19 @@ def _map_targets(spec: Spec) -> Iterator[str]:
     """
     for subject, maps in spec.maps.items():
         head = f"maps: '{subject}'"
-        if subject in spec.sets:
-            pairs = spec.sets[subject].pairs
+        if subject in spec.multi_dims:
+            pairs = spec.multi_dims[subject].pairs
             if twice := [d for d, count in Counter(d for _, d in pairs).items() if count > 1]:
                 yield (
-                    f"{head} is a set with two columns over '{twice[0]}', and a map reads one row per "
-                    f'combination of its dimensions. Declare the maps on a set over each dimension once.'
+                    f"{head} is a multi-dim with two members over '{twice[0]}', and a map reads one row per "
+                    f'combination of its members. Declare the maps on a multi-dim over each dimension once.'
                 )
         elif subject in spec.dimensions:
             pairs = ((subject, subject),)
         else:
-            subjects = [*spec.dimensions, *spec.sets]
+            subjects = [*spec.dimensions, *spec.multi_dims]
             yield (
-                f'{head} is neither a dimension nor a set, and a map gives each row of one a label. '
+                f'{head} is neither a dimension nor a multi-dim, and a map gives each row of one a label. '
                 f'{did_you_mean(subject, subjects, label="Subjects")}'
             )
             continue
@@ -267,10 +274,10 @@ def _map_targets(spec: Spec) -> Iterator[str]:
                     f"{head}: map '{role}' has the name of a column of '{subject}', which holds the row, not a "
                     f'label of it. Rename the map after what it holds.'
                 )
-            if m.dim in spec.sets:
+            if m.dim in spec.multi_dims:
                 yield (
-                    f"{head}: map '{role}' refers to the set '{m.dim}', and a map gives a label of one "
-                    f"dimension. Refer to one of its dimensions, or declare '{role}' on the set instead."
+                    f"{head}: map '{role}' refers to the multi-dim '{m.dim}', and a map gives a label of one "
+                    f"dimension. Refer to one of its members, or declare '{role}' on the multi-dim instead."
                 )
             elif m.dim not in spec.dimensions:
                 yield (
@@ -284,7 +291,7 @@ def _map_targets(spec: Spec) -> Iterator[str]:
 
 
 def _index_sets(spec: Spec) -> Iterator[str]:
-    """Each relation an entry names in ``dims:`` is named once and leaves a combination out."""
+    """Each multi-dim an entry names in ``dims:`` is named once."""
     entries = [
         *((f"Parameter '{name}'", p.in_) for name, p in spec.parameters.items()),
         *((f"Variable '{name}'", v.in_) for name, v in spec.variables.items()),
@@ -293,12 +300,6 @@ def _index_sets(spec: Spec) -> Iterator[str]:
     for context, in_ in entries:
         head = f'{context}: dims: names'
         yield from (f"{head} '{r}' twice. Delete one." for r, count in Counter(in_).items() if count > 1)
-        for rname in dict.fromkeys(in_):
-            if spec.sets[rname].missing == 'refused':
-                yield (
-                    f"{head} '{rname}', which under missing: refused has a row at every combination, so it "
-                    f"leaves nothing out. Write missing: absent on '{rname}', or name its dimensions in its place."
-                )
 
 
 def _aliases(spec: Spec) -> Iterator[str]:

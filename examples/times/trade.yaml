@@ -13,12 +13,9 @@ dimensions:
   process: { description: a technology that carries trade }
   from_region: { alias: region, description: the region an export leaves }
   from_commodity: { alias: commodity, description: the commodity an export leaves as }
-
-sets:
   top_ire:
     description: the processes that carry each link from a region and commodity to another (TOP_IRE)
-    dims: [from_region, from_commodity, region, commodity, process]
-    missing: absent
+    over: [from_region, from_commodity, region, commodity, process]
 
 parameters:
   ire_flo:

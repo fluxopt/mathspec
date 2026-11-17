@@ -298,11 +298,11 @@ def legend() -> str:
 
 #: What the legend is made of. No equation comes from these, so they are shown
 #: once, together, above the tables they turn into.
-DECLARED = ('dimensions', 'sets', 'maps', 'parameters')
+DECLARED = ('dimensions', 'maps', 'parameters')
 
 
 def preamble(text: str) -> str:
-    """The fixture's ``dimensions``/``relations``/``maps``/``parameters`` sections, verbatim."""
+    """The fixture's ``dimensions``/``maps``/``parameters`` sections, verbatim."""
     sections = []
     for name in DECLARED:
         body = text[text.index(f'\n{name}:') + 1 :]
@@ -316,7 +316,7 @@ def block() -> str:
     rendered = to_markdown(MODEL, numbered=False)
     parts = [
         '### Legend',
-        'A dimension, a relation, a map and a parameter declare no equation; what they '
+        'A dimension, a multi-dim, a map and a parameter declare no equation; what they '
         'print is the legend every spec opens with.',
         f'```yaml\n{preamble(MODEL.read_text())}\n```',
         legend(),

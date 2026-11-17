@@ -719,8 +719,12 @@ def test_a_relation_lowers_with_the_join_each_call_names():
     """Every node reading a relation carries its columns, its key and the join, so a consumer joins on the right columns."""
     program = to_spec(
         {
-            'dimensions': {'snapshot': {'dtype': 'int', 'ordered': True}, 'generator': {'ordered': True}, 'zone': {}},
-            'sets': {'zone_of': {'dims': ['generator', 'snapshot'], 'missing': 'absent'}},
+            'dimensions': {
+                'snapshot': {'dtype': 'int', 'ordered': True},
+                'generator': {'ordered': True},
+                'zone': {},
+                'zone_of': {'over': ['generator', 'snapshot']},
+            },
             'maps': {'zone_of': {'zone': {'dim': 'zone'}}},
             'parameters': {'price': {'dims': ['snapshot', 'zone']}},
             'variables': {
@@ -812,7 +816,7 @@ def test_a_relation_lowers_with_the_join_each_call_names():
 def test_a_condition_tests_a_row_or_a_label_by_how_it_is_written(variable, entry, atom):
     """A relation's bare name asks for a row, and `subject[map]` alone asks whether the map gives the row a label."""
     patch = {
-        'sets.link': {'dims': ['g', 'h'], 'missing': 'absent'},
+        'dimensions.link': {'over': ['g', 'h']},
         'maps.g.h': {'dim': 'h', 'missing': 'absent'},
         **{f'variables.{variable}.{key}': value for key, value in entry.items()},
     }
@@ -896,8 +900,7 @@ def test_a_relation_is_declared_as_the_file_declares_it():
     program = to_spec(
         varied(
             TINY,
-            dimensions={'g': {}, 'bus': {}, 'season': {}},
-            sets={'link': {'dims': ['g', 'bus'], 'missing': 'absent'}},
+            dimensions={'g': {}, 'bus': {}, 'season': {}, 'link': {'over': ['g', 'bus']}},
             maps={'g': {'season': {'dim': 'season'}, 'bus': {'dim': 'bus', 'missing': 'absent'}}},
         )
     ).program

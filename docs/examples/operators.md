@@ -158,9 +158,7 @@ dimensions:
   generator: { dtype: str }
   period: { dtype: int }
   zone: { dtype: str }
-
-sets:
-  zone_of: { dims: [generator, period] }
+  zone_of: { over: [generator, period] }
 
 maps:
   zone_of: { zone: { dim: zone } }
@@ -197,9 +195,7 @@ dimensions:
   period: { dtype: int }
   bus: { dtype: str }
   technology: { dtype: str }
-
-sets:
-  slot_of: { dims: [generator, period] }
+  slot_of: { over: [generator, period] }
 
 maps:
   slot_of: { bus: { dim: bus }, technology: { dim: technology } }

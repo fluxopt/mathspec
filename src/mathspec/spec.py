@@ -76,11 +76,11 @@ __all__ = [
     'GivenVariableSpec',
     'MacroSpec',
     'MapSpec',
+    'MultiDimSpec',
     'ObjectiveSpec',
     'ParameterSpec',
     'PiecewiseLinkSpec',
     'PiecewiseSpec',
-    'SetSpec',
     'SosSpec',
     'Spec',
     'VariableSpec',
@@ -149,7 +149,10 @@ class _StrictSpec(BaseModel):
             return data
         known = set(_written_keys(cls).values())
         unknown = [k for k in data if isinstance(k, str) and k not in known]
-        written = known - {'in_'}  # the load writes `in_` from `dims:`; a file never does
+        written = known - {
+            'in_',
+            'multi_dims',
+        }  # the load writes these from `dims:` and `dimensions:`; a file never does
         if unknown:
             raise ValueError(
                 '\n'.join(
@@ -252,41 +255,36 @@ def relation_columns(written: str | Sequence[str] | Mapping[str, str]) -> tuple[
     return tuple((d, d) for d in ((written,) if isinstance(written, str) else written))
 
 
-class SetSpec(_StrictSpec):
-    """A named relation: the combinations of its dimensions that exist, one row each.
+class MultiDimSpec(_StrictSpec):
+    """A multi-dim: a dimension whose labels are the combinations of its members that exist, one row each.
 
-    ``dims:`` is a list of dimensions, or a mapping of column name to
-    dimension where two columns share one. A row is its own identity, so the
-    relation is a subset of the product of its dimensions::
+    Written under ``dimensions:`` with ``over:``, a list of the member
+    dimensions, or a mapping of column name to dimension where two columns
+    share one::
 
-        sets:
-          connection: {dims: [unit, port], missing: absent}
-          corridor: {dims: {from: bus, to: bus}}
+        dimensions:
+          connection: {over: [unit, port]}
+          corridor: {over: {from: bus, to: bus}}
 
-    A relation is not a dimension. Its name stands under an entry's ``in:``,
-    in a condition, where it is true at the rows it lists, and before a
-    bracket, where it reads one of its maps (``maps:``, [`MapSpec`][]). The
-    rows are data, and arrive under the relation's name, one column per
-    column name, with a column per map beside them.
+    In an entry's ``dims:`` and in ``over=``, a multi-dim stands for its
+    members, at the rows it lists. Two multi-dims in one ``dims:`` join on the
+    members they share. Its name also stands in a condition, where it is true
+    at the rows it lists, and before a bracket, where it reads one of its maps
+    (``maps:``, [`MapSpec`][]). The rows are data, and arrive under the
+    multi-dim's name, one column per member, with a column per map beside
+    them. A combination with no row is not a label of the multi-dim.
     """
 
-    _label: ClassVar[str] = 'a set entry'
+    _label: ClassVar[str] = 'a multi-dim entry'
 
-    dims: str | Dims | ByName[str]
-    """The relation's columns: a list of dimensions, each a column named after it, or a mapping of column name to
-    dimension.
-    """
-    missing: RelationMissing = 'refused'
-    """Whether every combination of its dimensions is a row. Under ``refused``, a tool refuses data that leaves one out.
-    Under ``absent``, that combination is not in the relation.
-    """
+    over: str | Dims | ByName[str]
+    """The members: a list of dimensions, each a column named after it, or a mapping of column name to dimension."""
     description: str | None = None
 
-    @field_validator('missing', mode='before')
-    @classmethod
-    def _refused_or_absent(cls, v: object) -> object:
-        """A row is data, so no value fills a gap in a relation."""
-        return _refused_or_absent(v, 'a set', 'Write absent where a combination may have no row, or leave it out.')
+    @property
+    def missing(self) -> RelationMissing:
+        """A combination with no row is not a label, so a multi-dim's rows are never refused for a gap."""
+        return 'absent'
 
     @property
     def pairs(self) -> tuple[tuple[str, str], ...]:
@@ -294,7 +292,7 @@ class SetSpec(_StrictSpec):
 
         The program calls the same thing [`columns`][mathspec.program.Relation.columns].
         """
-        return relation_columns(self.dims)
+        return relation_columns(self.over)
 
     @property
     def roles(self) -> tuple[str, ...]:
@@ -1236,7 +1234,9 @@ class Spec(_StrictSpec):
     given: GivenSpec = GivenSpec()
     """What this file uses and does not build ([`GivenSpec`][]). It is empty when the file has no ``given:``."""
     dimensions: ByName[DimensionSpec] = Frozen({})
-    sets: ByName[SetSpec] = Frozen({})
+    """Each dimension by name ([`DimensionSpec`][]), and each multi-dim, written with ``over:`` ([`MultiDimSpec`][])."""
+    multi_dims: ByName[MultiDimSpec] = Frozen({})
+    """The multi-dims, which the file writes under ``dimensions:``; the load moves them here before validation."""
     maps: ByName[ByName[MapSpec]] = Frozen({})
     """Each subject's maps, by subject, a dimension or a relation, and then by map ([`MapSpec`][])."""
     parameters: ByName[ParameterSpec] = Frozen({})
@@ -1323,18 +1323,32 @@ class Spec(_StrictSpec):
         read in.
         """
         written = _as_set(self, cast('dict[str, object]', handler(self)))
-        return {'version': self.version, **_sets_written_back(written, self.sets)}
+        return {'version': self.version, **_multi_dims_written_back(_sets_written_back(written, self.multi_dims))}
 
     @model_validator(mode='before')
     @classmethod
     def _sets_in_dims(cls, data: object) -> object:
-        """A relation named in the ``dims:`` of a parameter, a variable or a constraint stands for its dimensions.
+        """A multi-dim named in the ``dims:`` of a parameter, a variable or a constraint stands for its members.
 
-        The entry is over those dimensions, at the rows the relation lists,
-        so every check after this one sees plain dimensions. ``in_`` keeps
-        the relations, and the serializer writes them back into ``dims:``.
+        The multi-dims leave ``dimensions:`` for ``multi_dims`` first, so a
+        dimension is always an axis. The entry is over the members, at the
+        rows the multi-dim lists, so every check after this one sees plain
+        dimensions. ``in_`` keeps the multi-dims, and the serializer writes
+        them back into ``dims:``.
         """
-        return _over_sets(data) if isinstance(data, dict) else data
+        return _over_sets(_multi_dims_split(data)) if isinstance(data, dict) else data
+
+    @classmethod
+    @override
+    def __get_pydantic_json_schema__(cls, core_schema: CoreSchema, handler: GetJsonSchemaHandler) -> dict[str, object]:
+        """The schema of the file: a multi-dim is an entry of ``dimensions:``, and ``multi_dims`` is no key of it."""
+        generated = handler(core_schema)
+        resolved = handler.resolve_ref_schema(generated) if set(generated) == {'$ref'} else generated
+        properties = cast('dict[str, dict[str, object]]', resolved['properties'])
+        multi = properties.pop('multi_dims')['additionalProperties']
+        dimensions = properties['dimensions']
+        dimensions['additionalProperties'] = {'anyOf': [dimensions['additionalProperties'], multi]}
+        return generated
 
     def to_dict(self) -> dict[str, object]:
         """The spec as plain data. ``to_spec(m.to_dict())`` reproduces it."""
@@ -1445,16 +1459,46 @@ def _members(relation: object) -> tuple[str, ...] | None:
     An entry over a dimension has it once, so a relation with two columns over
     one dimension stays a name the dimension check refuses.
     """
-    dims = relation.get('dims') if isinstance(relation, Mapping) else getattr(relation, 'dims', None)
+    dims = relation.get('over') if isinstance(relation, Mapping) else getattr(relation, 'over', None)
     listed = [dims] if isinstance(dims, str) else list(dims.values()) if isinstance(dims, Mapping) else dims
     if not isinstance(listed, (list, tuple)) or len(set(listed)) != len(listed):
         return None
     return tuple(listed)
 
 
+def _multi_dims_split(data: dict[str, object]) -> dict[str, object]:
+    """*data* with each entry of ``dimensions:`` that has ``over:`` moved to ``multi_dims``."""
+    if 'multi_dims' in data:
+        msg = "unknown key 'multi_dims' at the top level. Declare a multi-dim under dimensions:, with over:."
+        raise ValueError(msg)
+    dimensions = data.get('dimensions')
+    if not isinstance(dimensions, Mapping):
+        return data
+    multi = {name: entry for name, entry in dimensions.items() if isinstance(entry, Mapping) and 'over' in entry}
+    if not multi:
+        return data
+    plain = {name: entry for name, entry in dimensions.items() if name not in multi}
+    return {**data, 'dimensions': plain, 'multi_dims': multi}
+
+
+def _multi_dims_written_back(written: dict[str, object]) -> dict[str, object]:
+    """*written* with ``multi_dims`` folded back into ``dimensions:``, by name, as the file writes them."""
+    multi = written.get('multi_dims')
+    if not isinstance(multi, Mapping):
+        return written
+    merged = {**cast('Mapping[str, object]', written.get('dimensions', {})), **multi}
+    dimensions = {name: merged[name] for name in sorted(merged)}
+    at = 'dimensions' if 'dimensions' in written else 'multi_dims'
+    return {
+        ('dimensions' if key == at else key): (dimensions if key == at else value)
+        for key, value in written.items()
+        if key in (at, 'version') or key not in ('dimensions', 'multi_dims')
+    }
+
+
 def _over_sets(data: dict[str, object]) -> dict[str, object]:
-    """*data* with each relation in an entry's ``dims:`` replaced by its dimensions and recorded under ``in_``."""
-    relations = data.get('sets')
+    """*data* with each multi-dim in an entry's ``dims:`` replaced by its members and recorded under ``in_``."""
+    relations = data.get('multi_dims')
     sets = {
         name: members
         for name, entry in (relations.items() if isinstance(relations, Mapping) else ())
@@ -1483,7 +1527,7 @@ def _entry_over_sets(entry: object, sets: Mapping[str, tuple[str, ...]], section
     return {**entry, 'dims': flat, 'in_': named}
 
 
-def _sets_written_back(written: dict[str, object], relations: Mapping[str, SetSpec]) -> dict[str, object]:
+def _sets_written_back(written: dict[str, object], relations: Mapping[str, MultiDimSpec]) -> dict[str, object]:
     """*written* with each entry's ``in_`` folded back into its ``dims:``, as the file writes it."""
     out = dict(written)
     for section in _SET_SECTIONS:
@@ -1492,7 +1536,7 @@ def _sets_written_back(written: dict[str, object], relations: Mapping[str, SetSp
     return out
 
 
-def _entry_written_back(entry: object, relations: Mapping[str, SetSpec]) -> object:
+def _entry_written_back(entry: object, relations: Mapping[str, MultiDimSpec]) -> object:
     """One entry's ``dims:`` with the dimensions of each relation in ``in_`` written as the relation, at its first."""
     if not isinstance(entry, Mapping) or not (named := entry.get('in_')):
         return entry
@@ -1524,11 +1568,11 @@ def subject_tables(spec: Spec) -> dict[str, Relation]:
     """
     tables: dict[str, Relation] = {}
     aliases = {name: d.alias for name, d in spec.dimensions.items() if d.alias in spec.dimensions}
-    for name in sorted({*spec.sets, *spec.maps, *aliases}):
+    for name in sorted({*spec.multi_dims, *spec.maps, *aliases}):
         maps = spec.maps.get(name, Frozen({}))
         if name in aliases:
             maps = {aliases[name]: MapSpec(dim=aliases[name]), **maps}
-        if (relation := spec.sets.get(name)) is not None:
+        if (relation := spec.multi_dims.get(name)) is not None:
             key, missing, description = relation.pairs, relation.missing, relation.description
         elif name in spec.dimensions:
             key, missing, description = ((name, name),), cast('RelationMissing', 'refused'), None

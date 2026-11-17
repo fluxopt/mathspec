@@ -3,84 +3,96 @@ SPDX-FileCopyrightText: mathspec contributors
 SPDX-License-Identifier: CC-BY-4.0
 -->
 
-# Sets and maps
+# Multi-dims and maps
 
-A **set** is a set of combinations of labels of
-[dimensions](dimensions.md), such as the buses that each generator may connect
-to. A **map** gives each row of a dimension or a set one label of a
-dimension, such as the bus of each generator. The file declares both, and the
-rows come with the data. This page lists the keys of `sets:` and `maps:`,
-the data they expect, and how each operator uses them.
+A **multi-dim** is a dimension whose labels are combinations of labels of other
+[dimensions](dimensions.md), its **members**, such as the buses that each
+generator may connect to. A **map** gives each row of a dimension or a
+multi-dim one label of a dimension, such as the bus of each generator. The file
+declares both, and the rows come with the data. This page lists the keys of a
+multi-dim and of `maps:`, the data they expect, and how each operator uses
+them.
 
-## `sets`
+## Multi-dims
 
-Each key under `sets:` declares one set.
+A multi-dim is an entry under `dimensions:` that has `over:`.
 
 ```yaml
 dimensions:
   bus: { dtype: str }
   generator: { dtype: str }
   snapshot: { dtype: int }
-sets:
-  connection: { dims: [generator, bus], missing: absent } # the pairs that are wired
-  neighbour: { dims: { from: snapshot, to: snapshot }, missing: absent }
+  connection: { over: [generator, bus] } # the pairs that are wired
+  neighbour: { over: { from: snapshot, to: snapshot } }
 ```
 
 Each row of `connection` is one pair of a generator and a bus, and a pair with
-no row is not in the set.
+no row is not a label of `connection`.
 
-A set is what an entry is indexed over and what a sum runs over, as in
+A multi-dim is what an entry is indexed over and what a sum runs over, as in
 $`\sum_{(g, b) \in \mathrm{connection}}`$. So its name may stand in the
 `dims:` of a parameter, a variable or a constraint, and in `over=`, for its
-dimensions at the combinations it lists
-([a set in `dims`](parameters-variables-constraints.md#a-set-in-dims)).
+members at the combinations it lists
+([a multi-dim in `dims`](parameters-variables-constraints.md#a-multi-dim-in-dims)).
+Two multi-dims in one `dims:` join on the members they share, at the rows that
+both list, so TIMES writes `act: { dims: [prc_ts, rtp_vintyr] }`.
 
-| Key           | What it sets                                                             | Default   |
-| ------------- | ------------------------------------------------------------------------ | --------- |
-| `dims`        | required. The columns of the set, at least two                           |           |
-| `missing`     | [`refused` or `absent`](#missing): whether every combination needs a row | `refused` |
-| `description` | free text                                                                | `null`    |
+| Key           | What it sets                                         | Default |
+| ------------- | ---------------------------------------------------- | ------- |
+| `over`        | required. The members of the multi-dim, at least two |         |
+| `description` | free text                                            | `null`  |
 
-A column is named after its dimension, or after no dimension. Where two
-columns share a dimension, each column has its own name in the mapping form,
-as in `{from: snapshot, to: snapshot}`. A column named after a dimension that
-it is not over is refused, because mathspec reads the name of a column as its
-dimension. With `zp: { dims: { period: zone, generator: generator } }`,
+A multi-dim has no `missing:`. Its labels are the rows that the data lists, as
+the labels of a dimension are, so a combination with no row is not a label.
+
+A member is named after its dimension, or after no dimension. Where two
+members share a dimension, each member has its own name in the mapping form,
+as in `{from: snapshot, to: snapshot}`. A member named after a dimension that
+it is not over is refused, because mathspec reads the name of a member as its
+dimension. With `zp: { over: { period: zone, generator: generator } }`,
 mathspec prints:
 
 ```text
-Set 'zp' names column 'period' after dimension 'period', but the column is over 'zone'. Rename the column after what it holds.
+Multi-dim 'zp' names member 'period' after dimension 'period', but the member is over 'zone'. Rename the member after what it holds.
 ```
 
-A set with one column is refused, because one column holds labels of one
+A multi-dim with one member is refused, because one member holds labels of one
 dimension, and a map or a condition states that. With
-`r: { dims: [generator] }`, mathspec prints:
+`r: { over: [generator] }`, mathspec prints:
 
 ```text
-Set 'r' has one column under 'dims:', and a set needs at least two. To give each generator a label, declare a map under maps: generator:. To mark some of them, declare a bool parameter or a condition.
+Multi-dim 'r' has one member under 'over:', and a multi-dim needs at least two. To give each generator a label, declare a map under maps: generator:. To mark some of them, declare a bool parameter or a condition.
 ```
 
-A set is not one dimension, so its name does not go in `along=`, which steps
-along one. A set with two columns over one dimension, such as `neighbour`,
-does not go in `dims:` either, because an entry is over each dimension once.
-With `flow: { dims: [neighbour] }`, mathspec prints:
+A list that names one dimension twice is refused, and the rewrite is an
+[alias](dimensions.md#alias). With `link: { over: [bus, bus] }`, mathspec
+prints:
 
 ```text
-Variable 'flow' names the set 'neighbour', which has two columns over 'snapshot', and an entry is over each dimension once. Declare an alias of 'snapshot' under dimensions:, and one column of the set over it.
+Multi-dim 'link' names dimension 'bus' twice under 'over:'. Declare an alias of 'bus' under dimensions:, such as bus_to: {alias: bus}, and list it in place of the second.
+```
+
+A multi-dim is not one dimension, so its name does not go in `along=`, which
+steps along one. A multi-dim with two members over one dimension, such as
+`neighbour`, does not go in `dims:` either, because an entry is over each
+dimension once. With `flow: { dims: [neighbour] }`, mathspec prints:
+
+```text
+Variable 'flow' names the multi-dim 'neighbour', which has two members over 'snapshot', and an entry is over each dimension once. Declare an alias of 'snapshot' under dimensions:, and list it under the over: of 'neighbour' in place of one of the two.
 ```
 
 With `from_snapshot: { alias: snapshot }` and
-`neighbour: { dims: [from_snapshot, snapshot] }`, the set names each
+`neighbour: { over: [from_snapshot, snapshot] }`, the multi-dim names each
 dimension once, and an entry may be over it
 ([`alias`](dimensions.md#alias)).
 
-The order of the columns under `dims:` changes nothing. The typesetter sorts
-the columns by name, so `connection` above prints as
+The order of the members under `over:` changes nothing. The typesetter sorts
+the members by name, so `connection` above prints as
 $`\mathrm{connection} \subseteq \mathcal{B} \times \mathcal{G}`$.
 
 ## `maps`
 
-Each key under `maps:` names a **subject**, which is a dimension or a set.
+Each key under `maps:` names a **subject**, which is a dimension or a multi-dim.
 Each key under the subject declares one map, which gives every row of the
 subject one label of the dimension that `dim:` names.
 
@@ -111,8 +123,8 @@ typesetter prints a map as a function from its subject into that dimension, so
 `generator[bus]` prints as $`\mathrm{bus}: \mathcal{G} \to \mathcal{B}`$.
 mathspec refuses a map at load in four cases:
 
-- The subject is neither a dimension nor a set.
-- `dim:` names a set, or names no dimension.
+- The subject is neither a dimension nor a multi-dim.
+- `dim:` names a multi-dim, or names no dimension.
 - The map is named after a dimension that it does not refer to.
 - The map has the name of a column of its subject.
 
@@ -122,37 +134,36 @@ With `generator: { period: { dim: zone } }`, mathspec prints:
 maps: 'generator': map 'period' is named after dimension 'period', but refers to 'zone'. Rename the map after what it holds.
 ```
 
-A set with two columns over one dimension takes no maps, because a map
+A multi-dim with two members over one dimension takes no maps, because a map
 gives one label per combination of the dimensions of its subject.
 
 ### Cardinalities
 
 How many labels a row may have (the cardinality) decides whether a fact is a
-map or a set:
+map or a multi-dim:
 
-| What the file states                         | Written                                                                                             | Cardinality                 |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------- |
-| each generator has one bus                   | `maps: { generator: { bus: { dim: bus } } }`                                                        | many-to-one                 |
-| a generator may connect to several buses     | `sets: { connection: { dims: [generator, bus], missing: absent } }`                                 | many-to-many                |
-| a generator has one zone in each period      | `sets: { zone_of: { dims: [generator, period] } }` and `maps: { zone_of: { zone: { dim: zone } } }` | many-to-one, from a pair    |
-| a snapshot has a month, a week and a weekday | `maps: { snapshot: { month: { dim: month }, week: { dim: week }, weekday: { dim: weekday } } }`     | three maps of one subject   |
-| a line has two ends, both buses              | `maps: { line: { bus0: { dim: bus }, bus1: { dim: bus } } }`                                        | two maps into one dimension |
-| a snapshot has a representative snapshot     | `maps: { snapshot: { rep: { dim: snapshot } } }`                                                    | many-to-one, onto itself    |
-| a snapshot has neighbours                    | `sets: { neighbour: { dims: { from: snapshot, to: snapshot }, missing: absent } }`                  | many-to-many, onto itself   |
+| What the file states                         | Written                                                                                                   | Cardinality                 |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------- |
+| each generator has one bus                   | `maps: { generator: { bus: { dim: bus } } }`                                                              | many-to-one                 |
+| a generator may connect to several buses     | `dimensions: { connection: { over: [generator, bus] } }`                                                  | many-to-many                |
+| a generator has one zone in each period      | `dimensions: { zone_of: { over: [generator, period] } }` and `maps: { zone_of: { zone: { dim: zone } } }` | many-to-one, from a pair    |
+| a snapshot has a month, a week and a weekday | `maps: { snapshot: { month: { dim: month }, week: { dim: week }, weekday: { dim: weekday } } }`           | three maps of one subject   |
+| a line has two ends, both buses              | `maps: { line: { bus0: { dim: bus }, bus1: { dim: bus } } }`                                              | two maps into one dimension |
+| a snapshot has a representative snapshot     | `maps: { snapshot: { rep: { dim: snapshot } } }`                                                          | many-to-one, onto itself    |
+| a snapshot has neighbours                    | `dimensions: { neighbour: { over: { from: snapshot, to: snapshot } } }`                                   | many-to-many, onto itself   |
 
 ## `missing`
 
-`missing:` sets whether the data may leave something out. On a set, it
-sets whether every combination of the dimensions under `dims:` needs a row. On
-a map, it sets whether every row of the subject needs a label.
+`missing:` on a map sets whether every row of the subject needs a label. A
+multi-dim has no `missing:`: a combination with no row is not one of its
+labels.
 
 ```yaml
 dimensions:
   generator: { dtype: str }
   bus: { dtype: str }
   line: { dtype: str }
-sets:
-  connection: { dims: [generator, bus], missing: absent } # most pairs are not wired
+  connection: { over: [generator, bus] } # most pairs are not wired
 maps:
   generator:
     bus: { dim: bus } # refused: every generator is on a bus
@@ -167,10 +178,10 @@ maps:
 
 At `l3`, the data gives `line[bus1]` no label, so `line[bus1]` is absent there.
 
-| `missing:`            | Result                                                                                                              |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `refused`, by default | a tool refuses the data when it is attached, and names the combination or the row                                   |
-| `absent`              | a combination with no row is not in the set, and a row with no label maps to nothing, which is [absent](absence.md) |
+| `missing:`            | Result                                                                            |
+| --------------------- | --------------------------------------------------------------------------------- |
+| `refused`, by default | a tool refuses the data when it is attached, and names the combination or the row |
+| `absent`              | a row with no label maps to nothing, which is [absent](absence.md)                |
 
 No number can replace a missing label, so at load mathspec refuses a value
 such as `missing: 0`:
@@ -179,19 +190,15 @@ such as `missing: 0`:
 maps.generator.bus.missing: missing: 0 on a map, which takes refused or absent. A row with nothing there is refused, or is not in the data.
 ```
 
-Under the default `refused`, a set needs a row for every combination, so
-`connection` would need every generator wired to every bus. Most sets are
-sparse, so they declare `missing: absent`.
-
 The typeset legend lists `` `connection` is `absent` where the data has no row ``
 and `` `line[bus1]` is `absent` where the data gives no label `` beside each
 dimension they are over, and nothing for `refused`.
 
 ## The data contract
 
-With data attached, each set and each subject with maps has one table,
-named after it. The table of a set has one column per column under
-`dims:`. The table of a subject also has one column per map, named after the
+With data attached, each multi-dim and each subject with maps has one table,
+named after it. The table of a multi-dim has one column per member under
+`over:`. The table of a subject also has one column per map, named after the
 map. So the data for the maps of `line` is a table `line` with the columns
 `line`, `bus0` and `bus1`. A piece of software that reads a spec
 ([a tool](../glossary.md#tool)) requires five things of a table:
@@ -200,46 +207,45 @@ map. So the data for the maps of `line` is a table `line` with the columns
   generator with two rows, on two buses, is refused.
 - Every label in the column of a map is a label of the dimension it refers to,
   and a label that matches none is refused.
-- The table has a row for every combination of its dimensions, unless the
-  set declares `missing: absent`. The table of a dimension has a row for
-  every label of the dimension.
+- The table of a dimension has a row for every label of the dimension. The
+  table of a multi-dim has the rows it lists, and no others.
 - A null is refused, except in the column of a map that declares
   `missing: absent`.
 - The order of the rows has no meaning, because the order comes from the
   [dimension](dimensions.md#ordered).
 
-A set and a map have no `where:`, so their rows and labels come from the
+A multi-dim and a map have no `where:`, so their rows and labels come from the
 data alone. A tool therefore knows them before it evaluates any condition,
 such as the [`where:` of a parameter](parameters-variables-constraints.md#where).
 
-The rows of a set can also be the coordinates of a parameter or a
+The rows of a multi-dim are also the coordinates of a parameter or a
 variable. An entry with `connection` in its `dims:` has coordinates only at
 the pairs that `connection` lists, and a tool refuses a row of the data of a
 parameter at any other pair
-([a set in `dims`](parameters-variables-constraints.md#a-set-in-dims)). A map
-is no set to be over, because it adds no row to its subject.
+([a multi-dim in `dims`](parameters-variables-constraints.md#a-multi-dim-in-dims)). A map
+is no multi-dim to be over, because it adds no row to its subject.
 
-An [assumption](assumptions.md) can require rows of a set or labels of a
+An [assumption](assumptions.md) can require rows of a multi-dim or labels of a
 map. For `line[bus1]` [above](#missing), `{holds: "line[bus1]", where: "closed"}`
 requires an end for every closed line, where `closed` is a `bool` parameter
 over `line`.
 
-## How sets and maps are used
+## How multi-dims and maps are used
 
-A set fixes no direction, so the same table can map generators to buses
+A multi-dim fixes no direction, so the same table can map generators to buses
 or buses to generators. A call **joins** the expression it acts on (its
 operand) to the table on their shared columns, and then **groups** the rows it
 has joined. In a call, `s[c]` names the subject `s` and its column `c`, and
 `s[c, …]` names several columns of one table. A column is a map of `s`, or one
-of the columns of a set under `dims:`. The subject appears once, so one
+of the members of a multi-dim under `over:`. The subject appears once, so one
 call uses one table.
 
-| Kind              | What it does                                                              | Written as                                         |
-| ----------------- | ------------------------------------------------------------------------- | -------------------------------------------------- |
-| join and group by | rows of the operand match rows of the table, and each group is added up   | `sum(x, over=d, by=s[c])`                          |
-| join              | each row of the operand matches one row of the table, and takes its label | `at(x, by=s[m])`                                   |
-| partition         | the dimensions stay, and the rows are grouped                             | `shift`, `sum_back`, `position` with `within=s[m]` |
-| test              | a coordinate stays where the set has a row, or where the map has a label  | `r` or `s[m]` in a condition                       |
+| Kind              | What it does                                                                   | Written as                                         |
+| ----------------- | ------------------------------------------------------------------------------ | -------------------------------------------------- |
+| join and group by | rows of the operand match rows of the table, and each group is added up        | `sum(x, over=d, by=s[c])`                          |
+| join              | each row of the operand matches one row of the table, and takes its label      | `at(x, by=s[m])`                                   |
+| partition         | the dimensions stay, and the rows are grouped                                  | `shift`, `sum_back`, `position` with `within=s[m]` |
+| test              | a coordinate stays where the multi-dim has a row, or where the map has a label | `r` or `s[m]` in a condition                       |
 
 Four rules apply to every call:
 
@@ -280,8 +286,8 @@ Each column of the table is either **joined on** or not, and either
 | a key column the call does not list | yes       | yes        | kept          |
 | a map the call does not list        | no        | no         | not used      |
 
-With the set `zone_of` over `[generator, period]` and its map `zone`, the
-set `connection` over `[generator, bus]`, and a variable `p` over
+With the multi-dim `zone_of` over `[generator, period]` and its map `zone`, the
+multi-dim `connection` over `[generator, bus]`, and a variable `p` over
 `[generator, period]`, three sums have three results:
 
 | Call                                         | Joins on            | Groups by         | Result              |
@@ -344,7 +350,7 @@ it at `south`.
 Three rules apply to a lookup:
 
 - A lookup reads only maps. A key column in `by=` is refused, and so is a
-  set with no map, where one combination can have several rows.
+  multi-dim with no map, where one combination can have several rows.
 - The result gains every key column that the operand is not already over. A
   key column over a dimension that the operand is over is joined on too,
   unless a map in `by=` already refers to that dimension. With `price` over
@@ -379,7 +385,7 @@ The first snapshot of each season takes the value of the last snapshot of the
 same season, and no value crosses from winter to summer.
 
 `within=` may list two maps into one dimension, but not a key column. A
-set with no map makes no groups, so mathspec refuses it in `within=`:
+multi-dim with no map makes no groups, so mathspec refuses it in `within=`:
 
 ```text
 Constraint 'd': shift(within=sp[period]): 'sp' has no map, so it makes no groups. Declare the group as a map of the dimension shift steps along, under maps: snapshot:.
@@ -387,7 +393,7 @@ Constraint 'd': shift(within=sp[period]): 'sp' has no map, so it makes no groups
 
 ### Tests
 
-A condition tests a set or a map at the coordinates of its own entry. It
+A condition tests a multi-dim or a map at the coordinates of its own entry. It
 compares a map, written `s[m]`, against a label, compares two maps, or tests
 that a row or a label exists. [Conditions](expressions.md#conditions) lists
 when two maps may be compared. A comparison reads one map, so
@@ -401,18 +407,17 @@ Expected end of text, found '['  (at char 8), (line:1, col:9)
 ```
 
 A map alone in a condition, such as `line[bus1]`, is true where the map gives
-the row a label. A set name alone is true where the set has a row.
-On a parameter, a variable or a constraint, the set in `dims:` states those
-rows, so mathspec refuses the name in its `where:`. Over the set, a variable is
-absent at every pair that the set does not list:
+the row a label. A multi-dim name alone is true where the multi-dim has a row.
+On a parameter, a variable or a constraint, the multi-dim in `dims:` states those
+rows, so mathspec refuses the name in its `where:`. Over the multi-dim, a variable is
+absent at every pair that the multi-dim does not list:
 
 ```yaml title="flow.yaml"
 dimensions:
   generator: { dtype: str }
   bus: { dtype: str }
   snapshot: { dtype: int }
-sets:
-  connection: { dims: [generator, bus], missing: absent } # the pairs that are wired
+  connection: { over: [generator, bus] } # the pairs that are wired
 parameters:
   load: { dims: [bus, snapshot] }
 variables:
@@ -455,5 +460,5 @@ $`\mathrm{bus1}(l) \text{ is defined}`$.
 
 !!! info "See also"
 
-    - [sets as linear maps](../../about/relations-as-linear-maps.md) for the
+    - [multi-dims as linear maps](../../about/relations-as-linear-maps.md) for the
       same calls written as matrices

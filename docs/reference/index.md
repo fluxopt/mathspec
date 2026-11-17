@@ -25,7 +25,7 @@ optimisation model ([a spec](glossary.md#spec)).
 - **[Dimensions](language/dimensions.md)** lists the keys of a named set of
     labels (a dimension).
 - **[Sets and maps](language/relations.md)** lists the keys of a set of
-    combinations of labels (a set) and of the label each row has (a map),
+    combinations of labels (a multi-dim) and of the label each row has (a map),
     and how an expression uses them.
 - **[Expressions](language/expressions.md)** defines the grammar of arithmetic and of
     conditions, and how dimensions combine.

@@ -229,10 +229,9 @@ def _mapped(missing: str | None = None, dim: str = 'bus') -> dict[str, object]:
     return {'dimensions': {'port': {'dtype': 'str'}, dim: {'dtype': 'str'}}, 'maps': {'port': {'bus': entry}}}
 
 
-def _wired(missing: str | None = None) -> dict[str, object]:
-    """A fragment that declares only the relation `wired` over `port` and `bus`, as `_mapped` does a map."""
-    entry = {'dims': ['port', 'bus']} | ({} if missing is None else {'missing': missing})
-    return {'dimensions': {'port': {'dtype': 'str'}, 'bus': {'dtype': 'str'}}, 'sets': {'wired': entry}}
+def _wired(*over: str) -> dict[str, object]:
+    """A fragment that declares only the multi-dim `wired` over *over*, as `_mapped` does a map."""
+    return {'dimensions': {d: {'dtype': 'str'} for d in over} | {'wired': {'over': list(over)}}}
 
 
 #: A fragment that gives `port` a map of its own beside the one `SURFACE` gives it.
@@ -276,7 +275,9 @@ def test_two_fragments_that_say_one_missing_agree(fragments, missing):
         pytest.param([SURFACE, _mapped('absent')], "map 'port[bus]'", id='refused-against-absent'),
         pytest.param([_mapped('absent'), SURFACE], "map 'port[bus]'", id='absent-against-refused'),
         pytest.param([SURFACE, _mapped(dim='node')], "map 'port[bus]'", id='two-dimensions-referred-to'),
-        pytest.param([_wired(), _wired('absent')], "set 'wired'", id='a-set-refused-against-absent'),
+        pytest.param(
+            [_wired('port', 'bus'), _wired('port', 'node')], "dimension 'wired'", id='a-multi-dim-over-other-members'
+        ),
     ],
 )
 def test_two_fragments_that_say_different_things_about_one_entry_are_refused(fragments, entry):
@@ -599,7 +600,7 @@ def test_a_patch_restates_a_dimension_as_the_schema_reads_it(dimension, restated
 
 
 #: `SURFACE` with a relation, `wired`, over the two dimensions `port[bus]` maps between.
-WIRED = varied(SURFACE, **{'sets.wired': {'dims': ['port', 'bus']}})
+WIRED = varied(SURFACE, **{'dimensions.wired': {'over': ['port', 'bus']}})
 
 
 @pytest.mark.parametrize(
@@ -613,9 +614,9 @@ WIRED = varied(SURFACE, **{'sets.wired': {'dims': ['port', 'bus']}})
             id='a-dimension',
         ),
         pytest.param(
-            varied(WIRED, **{'sets.wired.description': 'which ports reach which buses'}),
-            {'sets': {'wired': {'dims': ['port', 'bus'], 'description': 'a port and the buses it reaches'}}},
-            lambda spec: spec.sets['wired'].description,
+            varied(WIRED, **{'dimensions.wired.description': 'which ports reach which buses'}),
+            {'dimensions': {'wired': {'over': ['port', 'bus'], 'description': 'a port and the buses it reaches'}}},
+            lambda spec: spec.multi_dims['wired'].description,
             'a port and the buses it reaches',
             id='a-relation',
         ),
@@ -641,9 +642,9 @@ WIRED = varied(SURFACE, **{'sets.wired': {'dims': ['port', 'bus']}})
             id='null-removes-a-dimension-description',
         ),
         pytest.param(
-            varied(WIRED, **{'sets.wired.description': 'which ports reach which buses'}),
-            {'sets': {'wired': {'description': None}}},
-            lambda spec: spec.sets['wired'].description,
+            varied(WIRED, **{'dimensions.wired.description': 'which ports reach which buses'}),
+            {'dimensions': {'wired': {'description': None}}},
+            lambda spec: spec.multi_dims['wired'].description,
             None,
             id='null-removes-a-relation-description',
         ),
@@ -725,8 +726,10 @@ def test_a_patch_that_rewrites_a_dimension_is_refused(patch, says):
 @pytest.mark.parametrize(
     ('patch', 'kind', 'name'),
     [
-        pytest.param({'sets': {'wired': {}}}, 'set', 'wired', id='a-set-with-no-field'),
-        pytest.param({'sets': {'wired': {'dims': ['port']}}}, 'set', 'wired', id='a-set-over-one-dimension'),
+        pytest.param({'dimensions': {'wired': {}}}, 'dimension', 'wired', id='a-multi-dim-with-no-field'),
+        pytest.param(
+            {'dimensions': {'wired': {'over': ['port']}}}, 'dimension', 'wired', id='a-multi-dim-over-one-dimension'
+        ),
         pytest.param({'maps': {'port': {'bus': {}}}}, 'map', 'port[bus]', id='a-map-with-no-field'),
     ],
 )
@@ -745,8 +748,8 @@ def test_a_patch_that_restates_an_entry_in_part_is_refused_with_the_rewrite(patc
     ('patch', 'says'),
     [
         pytest.param(
-            {'sets': {'wired': {'dmis': ['port', 'bus']}}},
-            "unknown key 'dmis' in a set entry. Did you mean 'dims'?",
+            {'dimensions': {'wired': {'over': ['port', 'bus'], 'ovr': ['port', 'bus']}}},
+            "unknown key 'ovr' in a multi-dim entry. Did you mean 'over'?",
             id='a-relation',
         ),
         pytest.param(
@@ -801,10 +804,6 @@ def test_a_patch_changes_what_a_row_the_map_gives_no_label_means(base, map_, mis
     assert override(base, [{'maps': {'port': {'bus': map_}}}]).maps['port']['bus'].missing == missing
 
 
-def test_a_patch_changes_what_a_combination_the_relation_leaves_out_means():
-    assert override(WIRED, [{'sets': {'wired': {'missing': 'absent'}}}]).sets['wired'].missing == 'absent'
-
-
 @pytest.mark.parametrize(
     ('base', 'written', 'missing'),
     [
@@ -825,7 +824,6 @@ def test_a_patch_changes_what_a_missing_row_of_a_parameter_means(base, written, 
     ('section', 'name', 'declared'),
     [
         pytest.param('parameters', 'c', {'dims': ['g']}, id='a-parameter'),
-        pytest.param('sets', 'gh', {'dims': ['g', 'h']}, id='a-relation'),
         pytest.param('maps', 'g.h', {'dim': 'h'}, id='a-map'),
     ],
 )

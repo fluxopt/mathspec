@@ -127,9 +127,7 @@ def test_ire_flo_is_over_the_set_of_links_between_two_regions_and_two_commoditie
                 'commodity': {},
                 'from_region': {'alias': 'region'},
                 'from_commodity': {'alias': 'commodity'},
-            },
-            'sets': {
-                'top_ire': {'dims': ['from_region', 'from_commodity', 'region', 'commodity'], 'missing': 'absent'}
+                'top_ire': {'over': ['from_region', 'from_commodity', 'region', 'commodity']},
             },
             'parameters': {'ire_flo': {'dims': ['top_ire']}},
             'variables': {'export': {'dims': ['top_ire']}, 'supply': {'dims': ['region', 'commodity']}},

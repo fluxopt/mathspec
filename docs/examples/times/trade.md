@@ -13,9 +13,9 @@ which TIMES writes with a second name for each set, `ALIAS(REG,R)` in
 
 The spec does the same with an [alias](../../reference/language/dimensions.md#alias):
 `from_region` has the labels of `region`, and `from_commodity` those of
-`commodity`. The set `top_ire` lists the processes that carry each link, as
+`commodity`. The multi-dim `top_ire` lists the processes that carry each link, as
 TIMES' `TOP_IRE` does, and `ire_flo`, `trade_cost` and `export` name it in
-`dims:`, so they are over its five dimensions and a data row outside its rows
+`dims:`, so they are over its five members and a data row outside its rows
 is refused. The data of `ire_flo` has the five columns that the TIMES data
 already has, and no label is invented.
 
@@ -39,12 +39,9 @@ dimensions:
   process: { description: a technology that carries trade }
   from_region: { alias: region, description: the region an export leaves }
   from_commodity: { alias: commodity, description: the commodity an export leaves as }
-
-sets:
   top_ire:
     description: the processes that carry each link from a region and commodity to another (TOP_IRE)
-    dims: [from_region, from_commodity, region, commodity, process]
-    missing: absent
+    over: [from_region, from_commodity, region, commodity, process]
 
 parameters:
   ire_flo:

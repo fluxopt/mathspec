@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: mathspec contributors
 SPDX-License-Identifier: CC-BY-4.0
 -->
 
-# Choose between a dimension, a set, a map and a parameter
+# Choose between a dimension, a multi-dim, a map and a parameter
 
 This guide shows how to choose the declaration for a
 [column](../reference/glossary.md#column) of your data, in
@@ -20,7 +20,7 @@ Use the first row that fits what you do with the column in the spec:
 | --------------------------------------------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | index parameters, variables or constraints over the rows the column lists         | `generator`, `snapshot`                                         | a [`dimension`](../reference/language/dimensions.md)                                                                    |
 | look up a label of another dimension, one per row                                 | the bus of each generator                                       | a [`map`](../reference/language/relations.md#maps) of `generator` into `bus`, a dimension                               |
-| list which pairs of two dimensions exist, with no value                           | `connection`, the buses a generator may connect to              | a [`set`](../reference/language/relations.md#sets) with [`missing: absent`](../reference/language/relations.md#missing) |
+| list which pairs of two dimensions exist, with no value                           | `connection`, the buses a generator may connect to              | a [multi-dim](../reference/language/relations.md#multi-dims), a dimension with `over:`                                  |
 | use its numbers in an expression or a bound                                       | `cost` per generator, `availability` per generator and snapshot | a [`parameter`](../reference/language/parameters-variables-constraints.md#parameters) over the dimensions that index it |
 | test its values in a [condition](../reference/language/expressions.md#conditions) | `fuel`, `is_committable`                                        | a `str` or `bool` parameter                                                                                             |
 
@@ -33,9 +33,7 @@ dimensions:
   generator: { dtype: str }
   snapshot: { dtype: int }
   bus: { dtype: str }
-
-sets:
-  connection: { dims: [generator, bus], missing: absent }
+  connection: { over: [generator, bus] }
 
 maps:
   generator: { bus: { dim: bus } }
@@ -105,6 +103,6 @@ spec and has no remark that is not a refusal
 
     - [Check a spec without data](check.md), for how to read a refusal or advice.
     - [Dimensions](../reference/language/dimensions.md),
-      [sets and maps](../reference/language/relations.md) and
+      [multi-dims and maps](../reference/language/relations.md) and
       [parameters](../reference/language/parameters-variables-constraints.md#parameters),
       for every key of each declaration.

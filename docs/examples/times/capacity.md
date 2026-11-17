@@ -17,11 +17,12 @@ without storage, with the upper bound only.
 
 The GAMS conditions map to the spec as follows:
 
-- `RTP_VINTYR` and `PRC_TS` are [sets](../../reference/language/relations.md),
-  and `act` names both in `dims:`, so it is over their dimensions and exists
-  only at the coordinates that both list.
-- `TS_MAP(R,S,TS)` is the set `ts_map`, which names `timeslice` twice
-  under two column names.
+- `RTP_VINTYR` and `PRC_TS` are
+  [multi-dims](../../reference/language/relations.md#multi-dims), and `act`
+  names both in `dims:`. They join on the members they share, `region` and
+  `process`, so `act` exists only at the coordinates that both list.
+- `TS_MAP(R,S,TS)` is the multi-dim `ts_map`, which names `timeslice` twice
+  under two member names.
 - `COEF_AF(…,'UP')` is the `where:` of `eq_capact_up`.
 - `NCAP_PASTI$PASTYEAR(V)` reads `0` where the data has no row.
 
@@ -41,20 +42,15 @@ dimensions:
   vintage: { dtype: int, description: the period a capacity was built in }
   process: { description: a technology }
   timeslice: { description: "a slice of the year, at any level of the timeslice tree" }
-
-sets:
   rtp_vintyr:
     description: the vintages of a process that exist in a period (RTP_VINTYR)
-    dims: [region, vintage, period, process]
-    missing: absent
+    over: [region, vintage, period, process]
   prc_ts:
     description: the timeslices a process operates at (PRC_TS)
-    dims: [region, process, timeslice]
-    missing: absent
+    over: [region, process, timeslice]
   ts_map:
     description: each timeslice and the timeslices at or below it (TS_MAP)
-    dims: { region: region, s: timeslice, ts: timeslice }
-    missing: absent
+    over: { region: region, s: timeslice, ts: timeslice }
 
 parameters:
   coef_cpt: { dims: [region, vintage, period, process], description: the share of a vintage that still exists in a period }

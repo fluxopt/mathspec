@@ -70,7 +70,7 @@ are tables of the rows that a tool builds. `dispatch` has one decision variable
 per coordinate of `(snapshot, generator)`, and `power_balance` has one row per
 coordinate of `(snapshot, bus)`.
 
-A [set](../reference/language/relations.md#sets) is a table whose
+A [multi-dim](../reference/language/relations.md#multi-dims) is a table whose
 columns are all in its primary key, so it lists which combinations of labels
 exist. A [map](../reference/language/relations.md#maps) is a column of the
 table of its subject. `generator: { bus: { dim: bus } }` under `maps:` is a table

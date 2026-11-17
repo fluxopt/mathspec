@@ -42,7 +42,7 @@ the file changes nothing:
 
 - the entries of each section, and of each kind under `given:`
 - each `dims:` list
-- the columns of each set, and the maps of each subject
+- the members of each multi-dim, and the maps of each subject
 - the cases under `cases:`
 - the `kwargs:` of a macro
 - the labels under `one_of:`
@@ -164,10 +164,11 @@ the colon is the description that the file sets.
 `program.parameters[name].missing` is what the file sets under
 [`missing:`](language/absence.md#missing) for a missing row of that parameter.
 It is `'refused'`, `'absent'`, or the value that a tool uses for the row.
-`program.sets` has one table per set and per subject with
+`program.relations` has one table per multi-dim and per subject with
 [maps](language/relations.md#the-data-contract), named after it, and each map
-is one of its `values`. `program.sets[name].missing` is `'refused'` or
-`'absent'`, and `partial` lists the maps under `missing: absent`. The program of
+is one of its `values`. `program.relations[name].missing` is `'absent'` for a
+multi-dim and `'refused'` for a dimension, and `partial` lists the maps under
+`missing: absent`. The program of
 `spec.expand(...)` has the same `missing` values.
 
 A [given](language/parameters-variables-constraints.md#given) parameter is a
@@ -186,26 +187,26 @@ the parameter has no row.
 
 `program.parameters[name].where` is a [`Mask`](#nodes-and-conditions) for the
 coordinates of the parameter, or `None` when the parameter has every
-coordinate of its `dims`. It contains each set named in the `dims:` of the
+coordinate of its `dims`. It contains each multi-dim named in the `dims:` of the
 parameter and its `where:`. With data attached, an engine applies the
 condition before `missing:`, as
 [`where` on a parameter](language/parameters-variables-constraints.md#where)
 describes. The condition contains no variable and no parameter with a `where:`
-or a set in its `dims:`. So an engine can evaluate every such condition before
+or a multi-dim in its `dims:`. So an engine can evaluate every such condition before
 it reads any parameter that has one.
 
-`program.parameters[name].in_` lists the sets the file named in the `dims:`
+`program.parameters[name].in_` lists the multi-dims the file named in the `dims:`
 of the parameter, sorted by name. `program.parameters[name].dims` holds their
 dimensions in their place. With data attached, an engine refuses a row of the parameter at a
 combination that one of them has no row for, and reads no map. It does this
 before it applies the `where`, and so before `missing:`, as
-[a set in `dims`](language/parameters-variables-constraints.md#a-set-in-dims) describes. An engine
+[a multi-dim in `dims`](language/parameters-variables-constraints.md#a-multi-dim-in-dims) describes. An engine
 drops a row outside the rest of the `where`, and refuses a row outside the
-sets.
+multi-dims.
 
 `program.variables[name].where` is the same kind of `Mask` for the coordinates
-of the variable, with the sets of its `dims:` in it, and
-`program.variables[name].in_` lists those sets. A variable has no data, so
+of the variable, with the multi-dims of its `dims:` in it, and
+`program.variables[name].in_` lists those multi-dims. A variable has no data, so
 an engine builds it where the `where` is true and needs nothing more from
 `in_`.
 
@@ -239,7 +240,7 @@ An `ExpressionReference` is the node for a use of an `expressions:` entry. Its
 
 Every expression node has `dims`, the dimensions that it is indexed over,
 sorted by name. A sum has the dimensions of its operand, less the ones it sums
-over. A `Join` under a sum through a set has the dimensions of that sum.
+over. A `Join` under a sum through a multi-dim has the dimensions of that sum.
 A `Join` also opens an index per dropped column (an `Axis`). An axis is not a dimension and is not in `dims`. An
 `ExpressionReference` has the dimensions of its body.
 
@@ -281,7 +282,7 @@ both are true at the same coordinates.
 A comparison of a map against a label is a `RelationComparison`, and a
 comparison of two maps is a `RelationPairComparison`. The page on [conditions](language/expressions.md#conditions) defines both,
 and both are false for every operator where the map gives no label. A
-set name alone is a `RelationDefined`, and a map alone, `subject[map]`, is a
+multi-dim name alone is a `RelationDefined`, and a map alone, `subject[map]`, is a
 `RelationDefined` with `column` set to the map.
 
 Three conditions contain another condition rather than an entry. A
@@ -461,7 +462,7 @@ Writing the canonical form out again gives the same text. The canonical form
 has these rules:
 
 - The sections come in one fixed order: `version`, `description`, `given`,
-  `dimensions`, `sets`, `maps`, `parameters`, `conditions`, `variables`,
+  `dimensions`, `maps`, `parameters`, `conditions`, `variables`,
   `expressions`, `objective`, `constraints`, `sos`, `piecewise`,
   `assumptions`, `macros`. The keys of an entry also come in one order.
 - Entries are sorted by name within each section, and so is every other list

@@ -648,6 +648,49 @@
       "title": "MapSpec",
       "type": "object"
     },
+    "MultiDimSpec": {
+      "additionalProperties": false,
+      "description": "A multi-dim: a dimension whose labels are the combinations of its members that exist, one row each.\n\nWritten under ``dimensions:`` with ``over:``, a list of the member\ndimensions, or a mapping of column name to dimension where two columns\nshare one::\n\n    dimensions:\n      connection: {over: [unit, port]}\n      corridor: {over: {from: bus, to: bus}}\n\nIn an entry's ``dims:`` and in ``over=``, a multi-dim stands for its\nmembers, at the rows it lists. Two multi-dims in one ``dims:`` join on the\nmembers they share. Its name also stands in a condition, where it is true\nat the rows it lists, and before a bracket, where it reads one of its maps\n(``maps:``, [`MapSpec`][]). The rows are data, and arrive under the\nmulti-dim's name, one column per member, with a column per map beside\nthem. A combination with no row is not a label of the multi-dim.",
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "over": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            }
+          ],
+          "title": "Over"
+        }
+      },
+      "required": [
+        "over"
+      ],
+      "title": "MultiDimSpec",
+      "type": "object"
+    },
     "ObjectiveSpec": {
       "additionalProperties": false,
       "description": "A declared objective function.",
@@ -894,58 +937,6 @@
       "title": "PiecewiseSpec",
       "type": "object"
     },
-    "SetSpec": {
-      "additionalProperties": false,
-      "description": "A named relation: the combinations of its dimensions that exist, one row each.\n\n``dims:`` is a list of dimensions, or a mapping of column name to\ndimension where two columns share one. A row is its own identity, so the\nrelation is a subset of the product of its dimensions::\n\n    sets:\n      connection: {dims: [unit, port], missing: absent}\n      corridor: {dims: {from: bus, to: bus}}\n\nA relation is not a dimension. Its name stands under an entry's ``in:``,\nin a condition, where it is true at the rows it lists, and before a\nbracket, where it reads one of its maps (``maps:``, [`MapSpec`][]). The\nrows are data, and arrive under the relation's name, one column per\ncolumn name, with a column per map beside them.",
-      "properties": {
-        "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Description"
-        },
-        "dims": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            },
-            {
-              "additionalProperties": {
-                "type": "string"
-              },
-              "type": "object"
-            }
-          ],
-          "title": "Dims"
-        },
-        "missing": {
-          "default": "refused",
-          "enum": [
-            "refused",
-            "absent"
-          ],
-          "title": "Missing",
-          "type": "string"
-        }
-      },
-      "required": [
-        "dims"
-      ],
-      "title": "SetSpec",
-      "type": "object"
-    },
     "SosSpec": {
       "additionalProperties": false,
       "description": "A special-ordered set over one dimension of one variable.\n\nOne set per coordinate of the variable's ``dims`` minus ``along``; the\nmembers are the variable's *existing* coordinates along ``along``, in that\ndimension's declared order.\n\n``type: 1`` admits at most one nonzero member, ``type: 2`` at most two,\nand those two consecutive. A consumer with the concept takes the set as\none; [`Spec.expand`][] states it as binaries instead, and the rows it\nwrites multiply by the member's own ``bounds``, which is why a member\nneeds both.",
@@ -1100,7 +1091,14 @@
     },
     "dimensions": {
       "additionalProperties": {
-        "$ref": "#/$defs/DimensionSpec"
+        "anyOf": [
+          {
+            "$ref": "#/$defs/DimensionSpec"
+          },
+          {
+            "$ref": "#/$defs/MultiDimSpec"
+          }
+        ]
       },
       "default": {},
       "title": "Dimensions",
@@ -1162,14 +1160,6 @@
       },
       "default": {},
       "title": "Piecewise",
-      "type": "object"
-    },
-    "sets": {
-      "additionalProperties": {
-        "$ref": "#/$defs/SetSpec"
-      },
-      "default": {},
-      "title": "Sets",
       "type": "object"
     },
     "sos": {

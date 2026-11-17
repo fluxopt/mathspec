@@ -18,7 +18,7 @@ from mathspec._composition import GIVEN_KINDS, OWNED_SECTIONS, SHARED_SECTIONS, 
 from mathspec._expression_parser import NAME, REAL
 from mathspec._validation import to_spec
 from mathspec.errors import LanguageError, did_you_mean
-from mathspec.spec import MacroSpec, Spec
+from mathspec.spec import DimensionSpec, MacroSpec, MultiDimSpec, Spec
 
 if TYPE_CHECKING:
     from mathspec._composition import Source
@@ -120,8 +120,8 @@ def _checked(names: Mapping[str, str | None], declared: Mapping[str, str], spec:
             raise LanguageError(msg)
     changed = {old: new for old, new in names.items() if new is not None and new != old}
     columns = {
-        column: f"a column of the set '{relation}'"
-        for relation, entry in spec.sets.items()
+        column: f"a member of the multi-dim '{relation}'"
+        for relation, entry in spec.multi_dims.items()
         for column, dimension in entry.pairs
         if column != dimension
     } | {
@@ -176,6 +176,8 @@ def _renamed(cls: type[BaseModel], entry: object, names: Mapping[str, str]) -> o
     """
     if not isinstance(entry, Mapping):
         return _in_text(entry, names)
+    if cls is DimensionSpec and 'over' in entry:
+        cls = MultiDimSpec
     if cls is MacroSpec:
         return _macro(entry, names)
     out: dict[str, object] = {}

@@ -171,7 +171,7 @@ def _check_joined(call: str, use: JoinColumns | Partition, inner: frozenset[str]
     if twice := sorted({d for d in dims if dims.count(d) > 1}):
         raise DimensionError(
             f"{context}: {call} joins '{use.name}' on {twice} through more than one column. Join on "
-            f'different dimensions, or use a set whose columns are over different dimensions.'
+            f'different dimensions, or use a multi-dim whose members are over different dimensions.'
         )
 
 

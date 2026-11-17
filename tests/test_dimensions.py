@@ -66,8 +66,8 @@ BASE = {
         'generator': {'dtype': 'str', 'ordered': True},
         'bus': {'dtype': 'str'},
         'zone': {'dtype': 'str'},
+        'gen_zone': {'over': ['generator', 'snapshot']},
     },
-    'sets': {'gen_zone': {'dims': ['generator', 'snapshot']}},
     'maps': {
         'generator': {'bus': {'dim': 'bus'}, 'zone': {'dim': 'zone'}, 'b0': {'dim': 'bus'}, 'b1': {'dim': 'bus'}},
         'snapshot': {'bus': {'dim': 'bus'}, 'rep': {'dim': 'snapshot'}},
@@ -253,7 +253,7 @@ def _dims_with(expr: str, **overrides) -> frozenset[str]:
 )
 def test_a_bare_relation_is_summed_between_its_key_columns(expr, expected):
     """A bare relation holds no value column, so the column a sum groups by is a key column."""
-    assert _dims_with(expr, **{'sets.connection': {'dims': ['generator', 'bus']}}) == expected
+    assert _dims_with(expr, **{'dimensions.connection': {'over': ['generator', 'bus']}}) == expected
 
 
 def test_a_value_column_added_to_a_relation_changes_no_call():
@@ -433,7 +433,7 @@ def test_an_ill_dimensioned_expression_is_rejected(expr, error, match):
     [
         pytest.param(
             'sum(p, over=k, by=diag[z])',
-            {'dims': {'k': 'generator', 'j': 'generator', 'z': 'zone'}},
+            {'over': {'k': 'generator', 'j': 'generator', 'z': 'zone'}},
             id='a-sum-summing-away-a-column-over-a-dimension-it-also-joins-on',
         ),
     ],
@@ -441,7 +441,7 @@ def test_an_ill_dimensioned_expression_is_rejected(expr, error, match):
 def test_two_joined_columns_do_not_share_a_dimension(expr, diag):
     """The operand carries one coordinate per dimension, so the `over=` column and an unnamed key column cannot share one."""
     with pytest.raises(DimensionError, match=r"joins 'diag' on \[.*\] through more than one column"):
-        _dims_with(expr, **{'sets.diag': diag})
+        _dims_with(expr, **{'dimensions.diag': diag})
 
 
 @pytest.mark.parametrize(
@@ -695,7 +695,7 @@ def test_a_condition_names_the_entries_its_leaves_test(namespace, condition, exp
 )
 def test_names_read_takes_both_sides_of_a_map_pair(condition, expected):
     """The one leaf that can name two entries — two maps compared row by row on the key their subjects share."""
-    home_of = {'sets.home_of': {'dims': ['generator', 'snapshot']}, 'maps.home_of': {'zone': {'dim': 'zone'}}}
+    home_of = {'dimensions.home_of': {'over': ['generator', 'snapshot']}, 'maps.home_of': {'zone': {'dim': 'zone'}}}
     where = where_of(condition, Namespace(_spec(**home_of)), 'test')
 
     assert where is not None, 'a condition the connectives cannot settle survives the fold'
@@ -974,11 +974,11 @@ def test_every_dims_of_the_program_is_sorted_by_name(path):
 )
 def test_a_condition_on_a_relation_states_its_key_dims_sorted_by_name(entry):
     """A condition on a relation stated the dims in the order the relation lists its key."""
-    keyed_backwards = {'dims': ['snapshot', 'generator'], 'missing': 'absent'}
+    keyed_backwards = {'over': ['snapshot', 'generator']}
     spec = _spec(
         **{
-            'sets.zone_of': keyed_backwards,
-            'sets.home_of': keyed_backwards,
+            'dimensions.zone_of': keyed_backwards,
+            'dimensions.home_of': keyed_backwards,
             'maps.zone_of': {'zone': {'dim': 'zone'}},
             'maps.home_of': {'zone': {'dim': 'zone'}},
         }

@@ -53,18 +53,17 @@ contain.
 
 Nine constructs make a coordinate absent:
 
-| Construct                                      | What is absent                                                                                                                 |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `where:` on a variable                         | the variable, at the coordinates the condition excludes ([`where`](#where))                                                    |
-| `where:` on a parameter                        | the parameter, at the coordinates the condition excludes ([`where` on a parameter](parameters-variables-constraints.md#where)) |
-| `where:` on a constraint                       | the row ([`where`](#where))                                                                                                    |
-| `shift(x, along=d, offset=n)` without `edge=`  | the expression, at the edge coordinate ([shift](operators.md#shift))                                                           |
-| a key with no row in a `missing: absent` set   | the set, at that key ([sets](relations.md#missing))                                                                            |
-| a row with no label in a `missing: absent` map | the map, at that row ([maps](relations.md#missing))                                                                            |
-| a key with no row in a set in `dims:`          | the parameter or variable, at that key ([a set in `dims`](parameters-variables-constraints.md#a-set-in-dims))                  |
-| a missing row of a `missing: absent` parameter | the parameter, at that coordinate ([`missing`](#missing))                                                                      |
-| `within=` at a coordinate in no group          | the expression, at that coordinate ([`within=`](operators.md#within))                                                          |
-| a quotient whose divisor is zero               | the quotient, at that coordinate ([reported values](#reported-values))                                                         |
+| Construct                                      | What is absent                                                                                                                                       |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `where:` on a variable                         | the variable, at the coordinates the condition excludes ([`where`](#where))                                                                          |
+| `where:` on a parameter                        | the parameter, at the coordinates the condition excludes ([`where` on a parameter](parameters-variables-constraints.md#where))                       |
+| `where:` on a constraint                       | the row ([`where`](#where))                                                                                                                          |
+| `shift(x, along=d, offset=n)` without `edge=`  | the expression, at the edge coordinate ([shift](operators.md#shift))                                                                                 |
+| a row with no label in a `missing: absent` map | the map, at that row ([maps](relations.md#missing))                                                                                                  |
+| a key with no row in a multi-dim               | the multi-dim, the parameter or the variable over it, at that key ([a multi-dim in `dims`](parameters-variables-constraints.md#a-multi-dim-in-dims)) |
+| a missing row of a `missing: absent` parameter | the parameter, at that coordinate ([`missing`](#missing))                                                                                            |
+| `within=` at a coordinate in no group          | the expression, at that coordinate ([`within=`](operators.md#within))                                                                                |
+| a quotient whose divisor is zero               | the quotient, at that coordinate ([reported values](#reported-values))                                                                               |
 
 No value shifts in at the edge, so a `shift` without `edge=` has no row there:
 
@@ -229,7 +228,7 @@ as [missing rows](../reading.md#missing-rows) describes.
 
 ### `missing` on a variable
 
-Outside its `where:` and its [set](parameters-variables-constraints.md#a-set-in-a-variables-dims),
+Outside its `where:` and its [multi-dim](parameters-variables-constraints.md#a-multi-dim-in-a-variables-dims),
 a variable is absent by default. Its `missing:` key can set a number there
 instead, such as `0`. Under `absent`, a row that needs that
 coordinate is absent. A file declares `missing: 0` for a quantity that is zero

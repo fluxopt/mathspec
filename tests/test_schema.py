@@ -59,7 +59,6 @@ def test_no_definition_refers_only_to_itself():
         pytest.param('ObjectiveSpec', 'sense', spec.ObjectiveSense, id='sense'),
         pytest.param('VariableSpec', 'domain', spec.VariableDomain, id='domain'),
         pytest.param('VariableSpec', 'missing', Literal['absent'], id='variable-missing'),
-        pytest.param('SetSpec', 'missing', spec.RelationMissing, id='relation-missing'),
         pytest.param('ParameterSpec', 'missing', spec.RelationMissing, id='parameter-missing'),
         pytest.param('ParameterSpec', 'dtype', spec.ParameterDtype, id='parameter-dtype'),
         pytest.param('DimensionSpec', 'dtype', spec.DimensionDtype, id='dimension-dtype'),
@@ -80,12 +79,11 @@ def test_a_closed_vocabulary_is_published_as_an_enum(entry, field, alias):
     ('entry', 'default'),
     [
         pytest.param('ParameterSpec', 'refused', id='parameter'),
-        pytest.param('SetSpec', 'refused', id='relation'),
         pytest.param('VariableSpec', 'absent', id='variable'),
     ],
 )
 def test_the_schema_publishes_the_reading_a_file_gets_by_leaving_missing_out(entry, default):
-    """The parameter and the relation hold `None` until read, and the schema published that `null`, not `refused`."""
+    """The parameter holds `None` until read, and the schema published that `null`, not `refused`."""
     published = json.loads(schema.PATH.read_text())['$defs'][entry]['properties']['missing']
     assert published['default'] == default
 
@@ -95,3 +93,12 @@ def test_the_piecewise_method_vocabulary_has_one_home():
     assert set(get_args(spec.PiecewiseMethod)) == set(spec.PIECEWISE_METHODS), (
         'the typed methods and the emitting ones disagree, so a method is accepted that emits nothing or the reverse'
     )
+
+
+def test_a_multi_dim_is_published_as_an_entry_of_dimensions():
+    """A multi-dim is written under `dimensions:`, so the schema offers `over:` there and no `multi_dims:` key."""
+    published = json.loads(schema.PATH.read_text())
+    entry = published['properties']['dimensions']['additionalProperties']
+    refs = [branch['$ref'] for branch in entry['anyOf']]
+    assert refs == ['#/$defs/DimensionSpec', '#/$defs/MultiDimSpec'], 'a dimension entry is a dimension or a multi-dim'
+    assert 'multi_dims' not in published['properties'], 'the load fills multi_dims; a file never writes it'

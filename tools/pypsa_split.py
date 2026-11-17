@@ -54,7 +54,6 @@ if TYPE_CHECKING:
 SOURCE = Path('examples/pypsa.yaml')
 SECTIONS = (
     'dimensions',
-    'sets',
     'maps',
     'parameters',
     'variables',
@@ -64,7 +63,7 @@ SECTIONS = (
     'constraints',
     'assumptions',
 )
-FRAME = ('dimensions', 'sets', 'maps')
+FRAME = ('dimensions', 'maps')
 IDENT = re.compile(r'[A-Za-z_][A-Za-z0-9_]*')
 READ = re.compile(r'(?<![\w.])([A-Za-z_]\w*)\[')
 HEADER = '# SPDX-FileCopyrightText: mathspec Contributors\n#\n# SPDX-License-Identifier: MIT\n'

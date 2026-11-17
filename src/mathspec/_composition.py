@@ -108,7 +108,7 @@ from mathspec._validation import to_spec
 from mathspec._yaml import read_spec
 from mathspec.errors import LanguageError, SchemaError, did_you_mean, schema_error
 from mathspec.program import variables_of
-from mathspec.spec import GivenSpec, MapSpec, Spec
+from mathspec.spec import GivenSpec, MapSpec, MultiDimSpec, Spec
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -116,14 +116,13 @@ if TYPE_CHECKING:
     from mathspec.program import Program
     from mathspec.spec import DimensionSpec
 
-SHARED_SECTIONS = ('dimensions', 'sets', 'maps')
+SHARED_SECTIONS = ('dimensions', 'maps')
 
 SETTINGS: dict[str, frozenset[str]] = {
     'dimensions': frozenset({'ordered'}),
-    'sets': frozenset({'missing'}),
     'maps': frozenset({'missing'}),
 }
-"""The fields of a dimension, a relation or a map, other than ``description``, that a patch may change. A patch may
+"""The fields of a dimension, a multi-dim or a map, other than ``description``, that a patch may change. A patch may
 change no other field of one that its base declares.
 """
 
@@ -191,9 +190,8 @@ def merge(fragments: Sequence[Source], description: str | None = None) -> Spec:
     merged: dict[str, object] = {'version': _one_version(read)}
     if description is not None:
         merged['description'] = description
-    for section in ('dimensions', 'sets'):
-        if agreed := _agreed(read, section, _singular(section), 'give one of them a name of its own'):
-            merged[section] = agreed
+    if agreed := _agreed(read, 'dimensions', 'dimension', 'give one of them a name of its own'):
+        merged['dimensions'] = agreed
     flat: dict[str, dict[str, object]] = {
         name: {'maps': _flat_maps(sections.get('maps'))} for name, sections in read.items()
     }
@@ -280,7 +278,7 @@ def _said(read: Mapping[str, dict[str, object]], section: str, key: str) -> obje
 def _read(owner: type[BaseModel], section: str, entry: object) -> BaseModel:
     """*entry* as the schema reads it, so a field written at its default and one left out read the same."""
     try:
-        return _entry_class(owner, section).model_validate(entry)
+        return _entry_class(owner, section, entry).model_validate(entry)
     except ValidationError as e:
         raise schema_error(e) from None
 
@@ -292,7 +290,7 @@ def _same(owner: type[BaseModel], section: str, a: object, b: object, *, aside: 
     here, because the spec sorts it as it loads.
     """
     x, y = _read(owner, section, a), _read(owner, section, b)
-    return all(getattr(x, f) == getattr(y, f) for f in type(x).model_fields if f not in aside)
+    return type(x) is type(y) and all(getattr(x, f) == getattr(y, f) for f in type(x).model_fields if f not in aside)
 
 
 def _restates(
@@ -310,7 +308,7 @@ def _restates(
     the rewrite. A key the schema does not know stays a schema error, which
     names the near-miss.
     """
-    known = restated.keys() <= _entry_class(owner, section).model_fields.keys()
+    known = restated.keys() <= _entry_class(owner, section, restated).model_fields.keys()
     try:
         return _same(owner, section, declared, restated, aside=aside)
     except SchemaError:
@@ -774,12 +772,14 @@ def _singular(section: str) -> str:
     return IRREGULAR.get(section, section[:-1])
 
 
-def _entry_class(owner: type[BaseModel], field: str) -> type[BaseModel]:
-    """The schema's own class for one entry under *field* of *owner*.
+def _entry_class(owner: type[BaseModel], field: str, entry: object = None) -> type[BaseModel]:
+    """The schema's own class for one entry under *field* of *owner*, *entry* being a multi-dim where it has ``over:``.
 
     Read off the annotation rather than listed here, so a section added to the
     schema cannot be laid over by a rule that does not know what it is made of.
     """
+    if owner is Spec and field == 'dimensions' and isinstance(entry, Mapping) and 'over' in entry:
+        return MultiDimSpec
     annotation = owner.model_fields[field].annotation
     inner = [arg for arg in get_args(annotation) if arg is not type(None)]
     return cast('type[BaseModel]', inner[-1] if inner else annotation)

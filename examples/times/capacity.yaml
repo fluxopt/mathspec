@@ -12,20 +12,15 @@ dimensions:
   vintage: { dtype: int, description: the period a capacity was built in }
   process: { description: a technology }
   timeslice: { description: "a slice of the year, at any level of the timeslice tree" }
-
-sets:
   rtp_vintyr:
     description: the vintages of a process that exist in a period (RTP_VINTYR)
-    dims: [region, vintage, period, process]
-    missing: absent
+    over: [region, vintage, period, process]
   prc_ts:
     description: the timeslices a process operates at (PRC_TS)
-    dims: [region, process, timeslice]
-    missing: absent
+    over: [region, process, timeslice]
   ts_map:
     description: each timeslice and the timeslices at or below it (TS_MAP)
-    dims: { region: region, s: timeslice, ts: timeslice }
-    missing: absent
+    over: { region: region, s: timeslice, ts: timeslice }
 
 parameters:
   coef_cpt: { dims: [region, vintage, period, process], description: the share of a vintage that still exists in a period }

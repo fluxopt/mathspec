@@ -7,18 +7,20 @@ SPDX-License-Identifier: CC-BY-4.0
 
 Units feed buses through the ports they have, and each runs only in the
 periods it is active. `connection` lists the ports of each unit and the bus
-each feeds, and `active` lists the periods of each unit. Each constraint reads
-the sets in one way:
+each feeds, and `active` lists the periods of each unit. Both are
+[multi-dims](../reference/language/relations.md#multi-dims), declared under
+`dimensions:` with `over:`. Each constraint reads them in one way:
 
 - `port_limit` reads `capacity`, a parameter of each unit, at each port.
 - `split` sums the flows of a unit over its ports, one column of
   `connection`.
-- `ramp_up` steps `output` along `period` inside the periods of `active`.
+- `ramp_up` is over `active`, and steps `output` along `period` inside the
+  periods of `active`.
 - `balance` sums over every row of `connection`, grouped by the bus each port
   feeds.
 
-`efficiency` and `flow` name the set `connection` in `dims:`, so they are over
-`unit` and `port` where it lists a port, `missing: 1` fills only those ports,
+`efficiency` and `flow` name `connection` in `dims:`, so they are over `unit`
+and `port` where it lists a port, `missing: 1` fills only those ports,
 and a data row for a port that `connection` does not list is refused.
 [#1019](https://github.com/energy-models/mathspec/issues/1019) compares how
 three designs for sparse sets write this spec.
@@ -34,16 +36,8 @@ dimensions:
   port: { description: an output of a unit }
   bus: { description: a node of the network }
   period: { dtype: int, ordered: true, description: a step of the horizon }
-
-sets:
-  connection:
-    description: the ports a unit has
-    dims: [unit, port]
-    missing: absent
-  active:
-    description: the periods a unit runs in
-    dims: [unit, period]
-    missing: absent
+  connection: { over: [unit, port], description: the ports a unit has }
+  active: { over: [unit, period], description: the periods a unit runs in }
 
 maps:
   connection:

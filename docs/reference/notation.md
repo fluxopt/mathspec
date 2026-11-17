@@ -7,7 +7,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 This page lists each construct of the language beside the math that
 [the typesetter](typeset.md) prints for it. Each section has the math of one
-kind of construct, and the legend lists the symbol of each dimension, set and parameter.
+kind of construct, and the legend lists the symbol of each dimension, multi-dim and parameter.
 
 Each construct is printed as its YAML and then its equation. Most of the YAML
 comes from one test spec,
@@ -23,7 +23,7 @@ typesetter changes nothing else.
 <!-- notation:begin -->
 ### Legend
 
-A dimension, a relation, a map and a parameter declare no equation; what they print is the legend every spec opens with.
+A dimension, a multi-dim, a map and a parameter declare no equation; what they print is the legend every spec opens with.
 
 ```yaml
 dimensions:
@@ -35,11 +35,9 @@ dimensions:
   season: { dtype: str }
   technology: { dtype: str }
   bp: { dtype: int, ordered: true } # the breakpoints every curve below runs through
-
-sets:
-  gen_zone: { dims: [generator, snapshot] } # a relation over two dimensions, with a map: a call sums one away and joins on the other
-  connection: { dims: [generator, bus], missing: absent } # a relation with no map: many-to-many, read only by sum with both ends named
-  bus_zone: { dims: [bus, zone], missing: absent } # the pairs that exist
+  gen_zone: { over: [generator, snapshot] } # a multi-dim over two dimensions, with a map: a call sums one away and joins on the other
+  connection: { over: [generator, bus] } # a multi-dim with no map: many-to-many, read only by sum with both ends named
+  bus_zone: { over: [bus, zone] } # the pairs that exist
 
 maps:
   generator: { bus: { dim: bus }, technology: { dim: technology } } # two maps of one subject, read to both at once
@@ -59,7 +57,7 @@ parameters:
   is_flexible: { dims: [generator], dtype: bool, missing: false }
   zone_cap: { dims: [zone] }
   tech_cap: { dims: [bus, technology], missing: absent }
-  link_eff: { dims: [connection], missing: 1 } # over the pairs a relation lists; a `where:` may not test them
+  link_eff: { dims: [connection], missing: 1 } # over the pairs a multi-dim lists; a `where:` may not test them
   zone_share: { dims: [bus_zone], missing: 1 } # over the pairs that exist: data refused outside them, with no `where:` of its own
   susceptance: { dims: [from_bus, bus], missing: 0 } # over one set twice, through its alias
   area_weight: { dims: [bus], where: "bus[area]" } # a map's label as a condition: the buses that have an area
@@ -81,9 +79,9 @@ parameters:
 | $`\mathcal{B}`$ | index $`b`$ — `bp` |
 | $`\mathcal{U}`$ | index $`u`$ — `bus` with $`\mathrm{area}: \mathcal{U} \to \mathcal{Z},\ \mathrm{zone}: \mathcal{U} \to \mathcal{Z},\ \mathrm{bus\_zone} \subseteq \mathcal{U} \times \mathcal{Z},\ \mathrm{connection} \subseteq \mathcal{U} \times \mathcal{G},\ \mathrm{bus}: \mathcal{G} \to \mathcal{U}`$, `bus_zone` is `absent` where the data has no row, `connection` is `absent` where the data has no row, `bus[area]` is `absent` where the data gives no label |
 | $`\mathcal{U}`$ | index $`u'`$ — `from_bus`, an alias of `bus` |
-| $`\mathcal{G}`$ | index $`g`$ — `generator` with $`\mathrm{connection} \subseteq \mathcal{U} \times \mathcal{G},\ \mathrm{gen\_zone} \subseteq \mathcal{G} \times \mathcal{T},\ \mathrm{zone}: \mathrm{gen\_zone} \to \mathcal{Z},\ \mathrm{bus}: \mathcal{G} \to \mathcal{U},\ \mathrm{technology}: \mathcal{G} \to \mathcal{E}`$, `connection` is `absent` where the data has no row |
+| $`\mathcal{G}`$ | index $`g`$ — `generator` with $`\mathrm{connection} \subseteq \mathcal{U} \times \mathcal{G},\ \mathrm{gen\_zone} \subseteq \mathcal{G} \times \mathcal{T},\ \mathrm{zone}: \mathrm{gen\_zone} \to \mathcal{Z},\ \mathrm{bus}: \mathcal{G} \to \mathcal{U},\ \mathrm{technology}: \mathcal{G} \to \mathcal{E}`$, `connection` is `absent` where the data has no row, `gen_zone` is `absent` where the data has no row |
 | $`\mathcal{S}`$ | index $`s`$ — `season` with $`\mathrm{season}: \mathcal{T} \to \mathcal{S}`$ |
-| $`\mathcal{T}`$ | index $`t`$ — `snapshot` (`int` coordinates) with $`\mathrm{gen\_zone} \subseteq \mathcal{G} \times \mathcal{T},\ \mathrm{zone}: \mathrm{gen\_zone} \to \mathcal{Z},\ \mathrm{rep}: \mathcal{T} \to \mathcal{T},\ \mathrm{season}: \mathcal{T} \to \mathcal{S}`$ |
+| $`\mathcal{T}`$ | index $`t`$ — `snapshot` (`int` coordinates) with $`\mathrm{gen\_zone} \subseteq \mathcal{G} \times \mathcal{T},\ \mathrm{zone}: \mathrm{gen\_zone} \to \mathcal{Z},\ \mathrm{rep}: \mathcal{T} \to \mathcal{T},\ \mathrm{season}: \mathcal{T} \to \mathcal{S}`$, `gen_zone` is `absent` where the data has no row |
 | $`\mathcal{E}`$ | index $`e`$ — `technology` with $`\mathrm{technology}: \mathcal{G} \to \mathcal{E}`$ |
 | $`\mathcal{Z}`$ | index $`z`$ — `zone` (labels `north`, `south`) with $`\mathrm{area}: \mathcal{U} \to \mathcal{Z},\ \mathrm{zone}: \mathcal{U} \to \mathcal{Z},\ \mathrm{bus\_zone} \subseteq \mathcal{U} \times \mathcal{Z},\ \mathrm{zone}: \mathrm{gen\_zone} \to \mathcal{Z}`$, `bus_zone` is `absent` where the data has no row, `bus[area]` is `absent` where the data gives no label |
 

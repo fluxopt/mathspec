@@ -796,7 +796,7 @@ def test_a_where_joins_both_gate_rows(gate: dict[str, Any]):
         **{
             'variables.u': {'dims': ['snapshot', 'generator'], 'domain': 'binary', **gate},
             'parameters.committable': {'dims': ['generator'], 'dtype': 'bool'},
-            'sets.running': {'dims': ['generator', 'snapshot'], 'missing': 'absent'},
+            'dimensions.running': {'over': ['generator', 'snapshot']},
             'piecewise.cost_curve.activity': 'u',
         },
     )
@@ -983,7 +983,7 @@ def _walk(**written: object) -> dict[str, object]:
 
 def _joined(dims: list[str] | dict[str, str]) -> dict[str, object]:
     """The `power` link walked through `generator_of`, a relation over *dims* that maps each row to a generator."""
-    return {'sets.generator_of': {'dims': dims}, 'maps.generator_of.generator': {'dim': 'generator'}} | _walk(
+    return {'dimensions.generator_of': {'over': dims}, 'maps.generator_of.generator': {'dim': 'generator'}} | _walk(
         by='generator_of[generator]'
     )
 
@@ -1408,7 +1408,7 @@ SHAPES = r'Write activity: <variable>, or activity: at\(<variable>, by=<subject>
         ),
         pytest.param(
             {'piecewise.curve.activity': 'at(running, by=bp_p[converter])'},
-            r"piecewise 'curve' activity: at\(by=bp_p\[\.\.\.\]\): 'bp_p' is not a set",
+            r"piecewise 'curve' activity: at\(by=bp_p\[\.\.\.\]\): 'bp_p' is not a multi-dim",
             id='a-walk-through-something-no-relation',
         ),
         pytest.param(
@@ -1525,8 +1525,7 @@ def test_a_walked_row_exists_only_where_its_relation_has_a_row(patch, where):
 #: fluxopt's investment cost curve (fluxopt/fluxopt#26): each effect of a sized flow is read off its curve.
 INVESTED = {
     'dimensions': {name: {'dtype': 'str'} for name in ('cost_curve', 'effect', 'flow')}
-    | {'bp': {'dtype': 'int', 'ordered': True}},
-    'sets': {'cost_of': {'dims': ['flow', 'effect']}},
+    | {'bp': {'dtype': 'int', 'ordered': True}, 'cost_of': {'over': ['flow', 'effect']}},
     'maps': {'cost_of': {'cost_curve': {'dim': 'cost_curve'}}},
     'parameters': {
         'has_cost_curve': {'dims': ['cost_curve'], 'dtype': 'bool'},
@@ -1611,7 +1610,9 @@ def test_a_mask_over_a_dim_the_walk_joins_on_reaches_the_walked_row_as_written()
             },
         )
     )
-    assert expanded.constraints['coupling_power'].where == 'season'
+    assert expanded.constraints['coupling_power'].where == '(generator_of[generator]) AND (season)', (
+        'the mask is kept, beside the rows a multi-dim lists, which are all a multi-dim has'
+    )
 
 
 @pytest.mark.parametrize(

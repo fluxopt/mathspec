@@ -27,16 +27,13 @@ dimensions:
     ordered: true
   process:
     description: generalised multi-port converters, each with an internal power that every port draws or delivers at its own rate
-
-sets:
   Process_maintenance_cover:
     description: >-
       the snapshots a maintenance event covers, by the snapshot it starts in,
       data prep. In a scenario, they are the start and the snapshots after it,
       until their generator weightings reach that scenario's
       `maintenance_duration`. A process that is not maintainable has no rows
-    dims: { scenario: scenario, process: process, start: snapshot, covered: snapshot }
-    missing: absent
+    over: { scenario: scenario, process: process, start: snapshot, covered: snapshot }
 
 parameters:
   Process_maintainable:

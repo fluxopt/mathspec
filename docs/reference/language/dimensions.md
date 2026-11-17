@@ -102,7 +102,7 @@ Variable 'p': 'gnrtr' is not a label of 'carrier', which allows only ['ccgt', 'o
 mathspec lists the allowed labels and suggests two rewrites.
 
 With data attached, a tool refuses a label
-outside the list: in the table of the dimension, in every column of a set
+outside the list: in the table of the dimension, in every member of a multi-dim
 over it, and in the column of every map into it.
 
 Only a dimension takes `one_of`, and a `one_of` key on a parameter is refused
@@ -168,8 +168,7 @@ each pair of regions that trade:
 dimensions:
   region: { dtype: str }
   from_region: { alias: region }
-sets:
-  trade: { dims: [from_region, region], missing: absent }
+  trade: { over: [from_region, region] }
 parameters:
   ire_flo: { dims: [trade] }
 variables:
@@ -183,13 +182,13 @@ constraints:
 
 `from_region` has the labels, the `dtype` and the order of `region`, so it
 takes no `dtype:`, `one_of:` or `ordered:` of its own. `ire_flo` is over the
-[set](relations.md) `trade`, so over `from_region` and `region` at the pairs it
+[multi-dim](relations.md) `trade`, so over `from_region` and `region` at the pairs it
 lists. The data of `ire_flo` has the columns `from_region`, `region` and
 `value`, and the data has no table
 for `from_region`. An alias has the map `from_region[region]`, which sends
 each label to itself, so `at(exp, by=from_region[region])` reads `exp` at the
 region a row comes from. The typesetter prints the alias as the index of
-`region`, primed, over the same set:
+`region`, primed, over the same multi-dim:
 
 ```math
 \mathit{imp}_{r} = \sum_{r' \in \mathcal{R}} \mathrm{ire\_flo}_{r',r} \cdot \mathit{exp}_{r'} \qquad \forall\, r \in \mathcal{R}
@@ -200,5 +199,5 @@ An alias names a declared dimension that is no alias itself. A second alias of
 
 !!! info "See also"
 
-    - [choose between a dimension, a set, a map and a parameter](../../howto/declare-a-column.md)
+    - [choose between a dimension, a multi-dim, a map and a parameter](../../howto/declare-a-column.md)
       for a column of data.

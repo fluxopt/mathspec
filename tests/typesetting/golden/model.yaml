@@ -21,11 +21,9 @@ dimensions:
   season: { dtype: str }
   technology: { dtype: str }
   bp: { dtype: int, ordered: true } # the breakpoints every curve below runs through
-
-sets:
-  gen_zone: { dims: [generator, snapshot] } # a relation over two dimensions, with a map: a call sums one away and joins on the other
-  connection: { dims: [generator, bus], missing: absent } # a relation with no map: many-to-many, read only by sum with both ends named
-  bus_zone: { dims: [bus, zone], missing: absent } # the pairs that exist
+  gen_zone: { over: [generator, snapshot] } # a multi-dim over two dimensions, with a map: a call sums one away and joins on the other
+  connection: { over: [generator, bus] } # a multi-dim with no map: many-to-many, read only by sum with both ends named
+  bus_zone: { over: [bus, zone] } # the pairs that exist
 
 maps:
   generator: { bus: { dim: bus }, technology: { dim: technology } } # two maps of one subject, read to both at once
@@ -45,7 +43,7 @@ parameters:
   is_flexible: { dims: [generator], dtype: bool, missing: false }
   zone_cap: { dims: [zone] }
   tech_cap: { dims: [bus, technology], missing: absent }
-  link_eff: { dims: [connection], missing: 1 } # over the pairs a relation lists; a `where:` may not test them
+  link_eff: { dims: [connection], missing: 1 } # over the pairs a multi-dim lists; a `where:` may not test them
   zone_share: { dims: [bus_zone], missing: 1 } # over the pairs that exist: data refused outside them, with no `where:` of its own
   susceptance: { dims: [from_bus, bus], missing: 0 } # over one set twice, through its alias
   area_weight: { dims: [bus], where: "bus[area]" } # a map's label as a condition: the buses that have an area

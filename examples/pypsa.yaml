@@ -88,6 +88,27 @@ dimensions:
       breakpoints its data has rows for, so curves may differ in length
     dtype: int
     ordered: true
+  Generator_maintenance_cover:
+    description: >-
+      the snapshots a maintenance event covers, by the snapshot it starts in,
+      data prep. In a scenario, they are the start and the snapshots after it,
+      until their generator weightings reach that scenario's
+      `maintenance_duration`. A generator that is not maintainable has no rows
+    over: { scenario: scenario, generator: generator, start: snapshot, covered: snapshot }
+  Link_maintenance_cover:
+    description: >-
+      the snapshots a maintenance event covers, by the snapshot it starts in,
+      data prep. In a scenario, they are the start and the snapshots after it,
+      until their generator weightings reach that scenario's
+      `maintenance_duration`. A link that is not maintainable has no rows
+    over: { scenario: scenario, link: link, start: snapshot, covered: snapshot }
+  Process_maintenance_cover:
+    description: >-
+      the snapshots a maintenance event covers, by the snapshot it starts in,
+      data prep. In a scenario, they are the start and the snapshots after it,
+      until their generator weightings reach that scenario's
+      `maintenance_duration`. A process that is not maintainable has no rows
+    over: { scenario: scenario, process: process, start: snapshot, covered: snapshot }
 
 parameters:
   Bus_attached:
@@ -1579,32 +1600,6 @@ parameters:
       One outside it, or one that is not active in the row's
       `investment_period`, has no row
     dims: [global_constraint, process]
-    missing: absent
-
-sets:
-  Generator_maintenance_cover:
-    description: >-
-      the snapshots a maintenance event covers, by the snapshot it starts in,
-      data prep. In a scenario, they are the start and the snapshots after it,
-      until their generator weightings reach that scenario's
-      `maintenance_duration`. A generator that is not maintainable has no rows
-    dims: { scenario: scenario, generator: generator, start: snapshot, covered: snapshot }
-    missing: absent
-  Link_maintenance_cover:
-    description: >-
-      the snapshots a maintenance event covers, by the snapshot it starts in,
-      data prep. In a scenario, they are the start and the snapshots after it,
-      until their generator weightings reach that scenario's
-      `maintenance_duration`. A link that is not maintainable has no rows
-    dims: { scenario: scenario, link: link, start: snapshot, covered: snapshot }
-    missing: absent
-  Process_maintenance_cover:
-    description: >-
-      the snapshots a maintenance event covers, by the snapshot it starts in,
-      data prep. In a scenario, they are the start and the snapshots after it,
-      until their generator weightings reach that scenario's
-      `maintenance_duration`. A process that is not maintainable has no rows
-    dims: { scenario: scenario, process: process, start: snapshot, covered: snapshot }
     missing: absent
 
 maps:
