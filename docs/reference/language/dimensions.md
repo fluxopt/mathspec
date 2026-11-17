@@ -256,19 +256,31 @@ Constraint 'limit': an operand over ['unit'] meets one over 'connection'. 'unit'
 mathspec suggests the lookup through the mapping of the member, or the sum
 of `flow` to the member. The same refusal applies wherever the two operands
 meet: in a product, in a sum, and in the objective, as in
-`sum(flow * capacity)`. An entry over both, such as a variable over
-`[connection, unit]`, loads.
+`sum(flow * capacity)`, in an [assumption](assumptions.md), and in the
+`where:` of a `piecewise:` entry.
 
-mathspec refuses the meeting unless the `dims:` of the entry lists both the
-dimension and the member. Then the two operands meet as their cross product,
-at every pair of a connection and a unit. With
-`dims: [connection, unit, snapshot]`, `flow <= capacity` loads, with one row
-for each connection, unit and snapshot. Inside a `sum`, a dimension that the
-`sum` adds up is not in the `dims:` of the entry, so
-`sum(flow * capacity, over=unit)` is refused in that entry too. The objective
-and an [assumption](assumptions.md) have no `dims:`, so mathspec refuses
-the meeting in each of them. It also refuses the meeting in the `where:` of a
-`piecewise:` entry, because mathspec repeats that condition in assumptions.
+### Each member once in `dims:`
+
+A tool may store a dimension with members as the columns of its members. So a
+`dims:` list reaches each member once. mathspec refuses two dimensions in one
+`dims:` that share a member, and a dimension beside one of its own members.
+With `site: { over: [unit, bus] }` and `dims: [connection, site, snapshot]`,
+mathspec prints:
+
+```text
+Variable 'flow': 'connection' and 'site' in dims: share the member 'unit', so the entry would be indexed by 'unit' twice. Keep 'connection' in dims:, list ['bus'] beside it, and confine the entry with where: "at(<relation>, by=connection[unit])", where <relation> is a relation over ['bus', 'unit'] that lists the tuples of 'site'. Or declare an alias of 'unit', such as from_unit: {alias: unit}, and list it in 'site' in place of 'unit', so the members differ.
+```
+
+With `dims: [connection, unit, snapshot]`, mathspec prints:
+
+```text
+Variable 'flow': 'connection' and 'unit' in dims: share the member 'unit', so the entry would be indexed by 'unit' twice. Delete 'unit' from dims: and read it as connection[unit], or declare an alias of 'unit', such as from_unit: {alias: unit}, and list it in place of 'unit'.
+```
+
+The refusal applies to every `dims:` list: a parameter, a variable, a
+constraint, a named expression, a given entry and a `piecewise:` entry. A
+different unit at each connection is an alias of `unit`, which is a member of
+its own.
 
 A sum over a member is refused the same way. With `sum(flow, over=unit)`,
 mathspec prints:
@@ -292,7 +304,7 @@ At load, mathspec also refuses each of these, and prints the rewrite:
 | `ordered: true`, `dtype:` or `one_of:` beside `over:`                                    | the key on a member                                                       |
 | `shift`, `sum_back`, `position`, `piecewise:` or `sos:` of `type: 2` along the dimension | an entry over the members, with `where:` a relation that lists the tuples |
 | a comparison of the dimension with a label, as in `connection == 'a'`                    | a comparison of a member, as in `connection[unit] == 'u1'`                |
-| a call through a member on an operand over both the dimension and that member            | the member summed out of the operand first                                |
+| two dimensions in one `dims:` that share a member, or a dimension beside its own member  | [one of the two, and a `where:`, or an alias](#each-member-once-in-dims)  |
 
 A set of tuples with an ordered member, such as the periods in which each unit
 is active, therefore stays a [bare relation](relations.md) over `unit` and

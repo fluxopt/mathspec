@@ -198,6 +198,36 @@ def _frame_dimensions(spec: Spec) -> Iterator[str]:
             for d, count in Counter(dims).items()
             if count > 1
         )
+        yield from _shared_members(kind, name, dims, spec)
+
+
+def _shared_members(kind: str, name: str, dims: Iterable[str], spec: Spec) -> Iterator[str]:
+    """A frame reaches each member once, so a later reading of a tuple dimension by its members means the same.
+
+    A plain dimension counts as its own member.
+    """
+    carriers: dict[str, list[str]] = {}
+    for d in dict.fromkeys(dims):
+        if d in spec.dimensions:
+            for member in [dim for _, dim in spec.dimensions[d].members] or [d]:
+                carriers.setdefault(member, []).append(d)
+    for member, (one, other, *_) in ((m, c) for m, c in carriers.items() if len(c) > 1):
+        head = f"{kind} '{name}': '{one}' and '{other}' in dims: share the member '{member}'"
+        alias = f'declare an alias of {member!r}, such as from_{member}: {{alias: {member}}}'
+        if member in (one, other):
+            tup = other if member == one else one
+            yield (
+                f"{head}, so the entry would be indexed by '{member}' twice. Delete '{member}' from dims: and "
+                f'read it as {tup}[{member}], or {alias}, and list it in place of {member!r}.'
+            )
+            continue
+        rest = sorted({dim for _, dim in spec.dimensions[other].members} - {member})
+        yield (
+            f"{head}, so the entry would be indexed by '{member}' twice. Keep '{one}' in dims:, list {rest} "
+            f'beside it, and confine the entry with where: "at(<relation>, by={one}[{member}])", where '
+            f"<relation> is a relation over {sorted({member, *rest})} that lists the tuples of '{other}'. Or "
+            f"{alias}, and list it in '{other}' in place of {member!r}, so the members differ."
+        )
 
 
 def _members(spec: Spec) -> Iterator[str]:
@@ -438,6 +468,7 @@ def _piecewise_references(spec: Spec) -> Iterator[str]:
                 )
         if len(set(pw.dims)) != len(pw.dims):
             yield f'{context}: dims repeats a dimension: {list(pw.dims)}. Write each dimension once.'
+        yield from _shared_members('piecewise', name, pw.dims, spec)
         for key, link in pw.links.items():
             yield from _piecewise_link_shape(spec, name, pw, key, link)
         if pw.activity is None:
