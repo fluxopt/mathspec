@@ -25,18 +25,18 @@ parameters:
   load: { dims: [bus, period], description: demand to be met }
 
 variables:
-  output: { dims: [unit, period], where: active, bounds: { lower: 0 }, description: what a unit produces }
+  output: { dims: [active], bounds: { lower: 0 }, description: what a unit produces }
   flow: { dims: [connection, period], bounds: { lower: 0 }, description: what a port takes of it }
 
 constraints:
   port_limit:
     description: a port takes no more than the unit's capacity
     dims: [connection, period]
-    expression: flow <= at(capacity, by=connection[unit])
+    expression: flow <= capacity
   split:
     description: the ports of a unit take what it produces
     dims: [unit, period]
-    expression: sum(flow, over=connection, by=connection[unit]) == output
+    expression: sum(flow, over=port) == output
   ramp_up:
     description: output rises by at most the ramp from one active period to the next
     dims: [unit, period]

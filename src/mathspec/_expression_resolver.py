@@ -13,7 +13,7 @@ doors that call this.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, assert_never, cast
+from typing import TYPE_CHECKING, Literal, assert_never, cast
 
 from mathspec._dimensions import check_meeting, check_node, joined, operand_over, sorted_dims
 from mathspec._expression_parser import (
@@ -158,8 +158,9 @@ class ExpressionResolver:
     def _binary(self, node: BinaryOperatorNode) -> Expression | None:
         """A subtraction is an addition of the negation, so a program has one additive node."""
         left, right = self.arith(node.left), self.arith(node.right)
-        if left is None or right is None or self.met(left, right):
+        if left is None or right is None or (pair := self.aligned(left, right)) is None:
             return None
+        left, right = pair
         dims = sorted_dims(left.dims, right.dims)
         match node.op:
             case '+':
@@ -174,6 +175,77 @@ class ExpressionResolver:
                 return Power(left, right, dims=dims)
             case _:
                 assert_never(node.op)
+
+    def aligned(self, left: Expression, right: Expression) -> tuple[Expression, Expression] | None:
+        """*left* and *right*, an operand over members of a dimension the other carries read at each of its tuples.
+
+        A member operand meets the dimension by name: ``flow <= capacity`` reads
+        ``capacity`` at the unit of each connection, as
+        ``at(capacity, by=connection[unit])`` does, and builds the same node.
+        Where the entry is over the members and not the dimension, the operand
+        over the dimension is read at the members instead, as
+        [`framed`][mathspec._expression_resolver.ExpressionResolver.framed] reads it.
+
+        Returns:
+            The two operands, or ``None`` with the refusal appended where a
+            read fails or the two still meet a member against its dimension.
+        """
+        while (read := self._read_at_tuples(left, right)) is not None:
+            if read is False:
+                return None
+            left, right = read
+        return None if self.met(left, right) else (left, right)
+
+    def _read_at_tuples(
+        self, left: Expression, right: Expression
+    ) -> tuple[Expression, Expression] | Literal[False] | None:
+        """The pair with one operand read through the first dimension the other carries members of, or ``None`` where none is."""
+        spec = self.ns.spec
+        for one, other, flipped in ((left, right, False), (right, left, True)):
+            for name in sorted(set(one.dims) - set(other.dims)):
+                members = {dim for _, dim in spec.dimensions[name].members}
+                if not (stray := tuple(sorted((members & set(other.dims)) - set(one.dims)))):
+                    continue
+                if name not in self.frame and members <= self.frame:
+                    read = self._sum(one, (name,), ColumnsNode(name, tuple(sorted(members))))
+                    if read is None:
+                        return False
+                    return (other, read) if flipped else (read, other)
+                join = self.lookup(ColumnsNode(name, stray), frozenset(other.dims))
+                if join is None or (read := self._joined(other, join)) is None:
+                    return False
+                return (read, one) if flipped else (one, read)
+        return None
+
+    def framed(self, node: Expression) -> Expression | None:
+        """*node* read at the entry's own dimensions, where it meets one of them by its members.
+
+        Two readings meet the frame by name. A *node* over members of a
+        dimension the frame lists is read at each of its tuples, as
+        ``at(node, by=dimension[members])`` reads it. A *node* over a dimension
+        whose members the frame lists is read at those members, as
+        ``sum(node, over=dimension, by=dimension[members])`` reads it. The frame
+        lists each tuple once, so each group holds one term.
+
+        Returns:
+            The node, or ``None`` with the refusal appended where a read fails.
+        """
+        spec, frame = self.ns.spec, self.frame
+        for name in sorted(frame - set(node.dims)):
+            members = {dim for _, dim in spec.dimensions[name].members}
+            if stray := tuple(sorted((members & set(node.dims)) - frame)):
+                join = self.lookup(ColumnsNode(name, stray), frozenset(node.dims))
+                if join is None or (read := self._joined(node, join)) is None:
+                    return None
+                node = read
+        for name in sorted(set(node.dims) - frame):
+            members = {dim for _, dim in spec.dimensions[name].members}
+            if members and members <= frame:
+                summed = self._sum(node, (name,), ColumnsNode(name, tuple(sorted(members))))
+                if summed is None:
+                    return None
+                node = summed
+        return node
 
     def met(self, left: Expression, right: Expression) -> bool:
         """Whether *left* and *right* meet a member against the dimension that lists it, the refusal appended."""
@@ -293,6 +365,8 @@ class ExpressionResolver:
         call, so no axis is ever left open. A name in *over* that is no column
         of the relation is a dim, summed away after the group-by.
         """
+        if columns is None and over is not None and (meant := self._over_members(operand, over)) is not None:
+            over, columns = meant
         if columns is None:
             if over is None:
                 return self._bare_sum(operand)
@@ -306,6 +380,27 @@ class ExpressionResolver:
             return None
         grouped = self._summed(through, join.axes)
         return self._summed(grouped, tuple(Axis(d) for d in plain)) if plain and grouped is not None else grouped
+
+    def _over_members(
+        self, operand: Expression, over: tuple[str, ...]
+    ) -> tuple[tuple[str, ...], ColumnsNode | None] | None:
+        """``over=`` naming members of a dimension *operand* carries, as the sum through that dimension it means.
+
+        ``sum(flow, over=port)`` on ``flow`` over ``connection`` sums over
+        ``connection`` grouped by its other members, as
+        ``sum(flow, over=connection, by=connection[unit])`` does. ``None``
+        where *over* names no such member, or members of more than one
+        dimension, which the plain sum then refuses.
+        """
+        if not (stray := {d for d in over if d not in operand.dims}):
+            return None
+        for name in sorted(operand.dims):
+            members = {dim for _, dim in self.ns.spec.dimensions[name].members}
+            if members and stray <= members:
+                rest = tuple(sorted(members - set(over)))
+                summed = tuple(sorted({*(d for d in over if d not in members), name}))
+                return summed, ColumnsNode(name, rest) if rest else None
+        return None
 
     def _summed(self, operand: Expression, over: tuple[Axis, ...]) -> Sum | None:
         """A [`Sum`][mathspec.program.Sum] over *over*, which removes the dims its plain axes name; a join's axes are no dims."""

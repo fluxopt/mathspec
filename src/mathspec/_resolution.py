@@ -345,9 +345,9 @@ def resolve_expression(
 ) -> Expression | None:
     """Build the program tree *node* stands for, checking every name and operator call shape on the way.
 
-    *frame* is the ``dims:`` of the entry *node* belongs to: where it declares
-    a dimension with members and a member, an operand over the member meets
-    one over the dimension as their cross product.
+    *frame* is the ``dims:`` of the entry *node* belongs to. A tree that
+    meets it by the members of a dimension is read at it
+    ([`ExpressionResolver.framed`][mathspec._expression_resolver.ExpressionResolver.framed]).
 
     Returns:
         The tree, or ``None`` once anything failed — appending to *errors*
@@ -359,7 +359,10 @@ def resolve_expression(
 
     """
     before = len(errors)
-    resolved = ExpressionResolver(ns, context, errors, formals=formals, frame=frozenset(frame)).build(node)
+    resolver = ExpressionResolver(ns, context, errors, formals=formals, frame=frozenset(frame))
+    resolved = resolver.build(node)
+    if resolved is not None and frame:
+        resolved = resolver.framed(resolved)
     return None if len(errors) > before else resolved
 
 
@@ -456,7 +459,10 @@ def resolve_constraint_text(
     found = len(errors)
     resolver = ExpressionResolver(ns, context, errors, frame=frozenset(frame))
     left, right = resolver.build(ast.left), resolver.build(ast.right)
-    if len(errors) > found or left is None or right is None or resolver.met(left, right):
+    if len(errors) > found or left is None or right is None or (pair := resolver.aligned(left, right)) is None:
+        return None
+    left, right = resolver.framed(pair[0]), resolver.framed(pair[1])
+    if left is None or right is None:
         return None
     if any(_over_the_ceiling(side, context, errors, ceiling=2) for side in (left, right)):
         return None

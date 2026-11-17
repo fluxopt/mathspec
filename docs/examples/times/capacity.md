@@ -18,9 +18,10 @@ without storage, with the upper bound only.
 The GAMS conditions map to the spec as follows:
 
 - `RTP_VINTYR` and `PRC_TS` are dimensions with
-  [members](../../reference/language/dimensions.md#over). `act` is over every
-  member of both, and `where: "prc_ts AND rtp_vintyr"` keeps the coordinates
-  that both list.
+  [members](../../reference/language/dimensions.md#over). `act` is over both,
+  which share `region` and `process`, so mathspec
+  [reads it over their members](../../reference/language/dimensions.md#members-by-name),
+  at the coordinates that both list.
 - `TS_MAP(R,S,TS)` is the dimension `ts_map`. Its upper timeslice is the
   alias `upper_timeslice`, so the two timeslices are two members.
   `eq_capact_up` reads the activity at each tuple of `ts_map`, sums it to each
@@ -69,8 +70,7 @@ variables:
   cap: { dims: [region, period, process], bounds: { lower: 0 }, description: installed capacity (VAR_CAP) }
   act:
     description: activity of a vintage of a process in a timeslice (VAR_ACT)
-    dims: [region, vintage, period, process, timeslice]
-    where: "prc_ts AND rtp_vintyr"
+    dims: [prc_ts, rtp_vintyr]
     bounds: { lower: 0 }
 
 constraints:

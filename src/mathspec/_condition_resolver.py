@@ -413,9 +413,10 @@ class ConditionResolver:
                 self.errors.extend(zero_divisor_refusals(side, context, ns.spec.parameters, {}))
         if len(self.errors) > found:
             return node
-        left, right = sides
-        if self._expressions.met(left, right):
+        if (pair := self._expressions.aligned(*sides)) is None:
             return node
+        left, right = pair
+        dims = set(sorted_dims(left.dims, right.dims))
         if all(_is_number(side) for side in sides):
             self.errors.append(
                 f"{context}: '{node.left} {node.op} {node.right}' compares two numbers. Name the parameter one "

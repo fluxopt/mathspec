@@ -1238,9 +1238,17 @@ class Spec(_StrictSpec):
         so a consumer building rows reads ``spec.expand(...).program`` and
         refuses an entry it does not take.
         """
+        from dataclasses import replace
+
+        from mathspec._flat import flat_spec
         from mathspec._lowering import lower
 
-        return lower(self)
+        flat, domains = flat_spec(self)
+        if flat is self:
+            return lower(self)
+        built = flat.program
+        parameters = {n: replace(p, domain=domains[n]) if n in domains else p for n, p in built.parameters.items()}
+        return replace(built, parameters=Frozen(parameters))
 
     @classmethod
     @override

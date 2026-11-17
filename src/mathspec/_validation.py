@@ -187,7 +187,6 @@ def _frame_dimensions(spec: Spec) -> Iterator[str]:
             for d, count in Counter(dims).items()
             if count > 1
         )
-        yield from _shared_members(kind, name, dims, spec)
 
 
 def _shared_members(kind: str, name: str, dims: Iterable[str], spec: Spec) -> Iterator[str]:
