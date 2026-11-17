@@ -171,7 +171,7 @@ dimensions:
 relations:
   trade: { dims: [from_region, region], missing: absent }
 parameters:
-  ire_flo: { dims: [from_region, region], where: trade }
+  ire_flo: { dims: [from_region, region], in: [trade] }
 variables:
   exp: { dims: [region] }
   imp: { dims: [region] }

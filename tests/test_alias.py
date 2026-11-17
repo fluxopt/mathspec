@@ -98,6 +98,42 @@ def test_an_alias_that_says_more_or_less_than_its_dimension_is_refused(patch: di
     assert message in str(caught.value)
 
 
+def test_ire_flo_is_over_two_regions_and_two_commodities_at_the_links_that_exist():
+    """TIMES' IRE_FLO(REG,COM,R,C): an alias for each set named twice, and `in:` for the links that exist."""
+    spec = to_spec(
+        {
+            'dimensions': {
+                'region': {},
+                'commodity': {},
+                'from_region': {'alias': 'region'},
+                'from_commodity': {'alias': 'commodity'},
+            },
+            'relations': {
+                'top_ire': {'dims': ['from_region', 'from_commodity', 'region', 'commodity'], 'missing': 'absent'}
+            },
+            'parameters': {
+                'ire_flo': {'dims': ['from_region', 'from_commodity', 'region', 'commodity'], 'in': ['top_ire']}
+            },
+            'variables': {
+                'export': {'dims': ['from_region', 'from_commodity', 'region', 'commodity'], 'in': ['top_ire']},
+                'supply': {'dims': ['region', 'commodity']},
+            },
+            'constraints': {
+                'balance': {
+                    'dims': ['region', 'commodity'],
+                    'expression': (
+                        'supply + sum(ire_flo * export, over=[from_region, from_commodity]) '
+                        '- sum(sum(sum(export, over=[region, commodity]), over=from_region, by=from_region[region]), '
+                        'over=from_commodity, by=from_commodity[commodity]) >= 0'
+                    ),
+                }
+            },
+            'objective': {'expression': 'sum(supply)'},
+        }
+    )
+    assert spec.program.parameters['ire_flo'].in_ == ('top_ire',), 'the links that exist are the index set'
+
+
 def test_a_sum_inside_an_entry_over_the_alias_takes_an_index_of_its_own():
     """A sum over `g` inside a sum over its alias printed `w_{g',g'}`: its dummy took the alias's own index.
 
