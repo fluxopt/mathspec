@@ -5,7 +5,7 @@
 description: >-
   A sum that keeps a member: `zone_of` lists (generator, period) tuples. The
   sum reads `p` at each tuple with `at`, then groups by the member `period`
-  and the map `zone`, so each zone gets one total per period.
+  and the mapping `zone`, so each zone gets one total per period.
 
 dimensions:
   generator: { dtype: str }
@@ -13,7 +13,7 @@ dimensions:
   zone: { dtype: str }
   zone_of: { over: [generator, period], missing: refused }
 
-maps:
+mappings:
   zone_of: { zone: { dim: zone } }
 
 parameters:

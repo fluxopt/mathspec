@@ -7,7 +7,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 This page lists each construct of the language beside the math that
 [the typesetter](typeset.md) prints for it. Each section has the math of one
-kind of construct, and the legend lists the symbol of each dimension, map and parameter.
+kind of construct, and the legend lists the symbol of each dimension, mapping and parameter.
 
 Each construct is printed as its YAML and then its equation. Most of the YAML
 comes from one test spec,
@@ -23,7 +23,7 @@ typesetter changes nothing else.
 <!-- notation:begin -->
 ### Legend
 
-A dimension, a map and a parameter declare no equation; what they print is the legend every spec opens with.
+A dimension, a mapping and a parameter declare no equation; what they print is the legend every spec opens with.
 
 ```yaml
 dimensions:
@@ -37,17 +37,17 @@ dimensions:
   bp: { dtype: int, ordered: true } # the breakpoints every curve below runs through
   site: { over: [generator, bus] } # a dimension that lists its members: the legend prints it as a subset of their product
   corridor: { over: [from_bus, bus], missing: refused } # a member and its alias, and every combination required: the product itself
-  gen_zone: { over: [generator, snapshot], missing: refused } # a tuple over two dimensions, with a map: a call reads an entry at each tuple and groups by a member
-  connection: { over: [generator, bus] } # a tuple with no map: many-to-many, read only through its members
+  gen_zone: { over: [generator, snapshot], missing: refused } # a tuple over two dimensions, with a mapping: a call reads an entry at each tuple and groups by a member
+  connection: { over: [generator, bus] } # a tuple with no mapping: many-to-many, read only through its members
 
-maps:
-  generator: { bus: { dim: bus }, technology: { dim: technology } } # two maps of one subject, read to both at once
+mappings:
+  generator: { bus: { dim: bus }, technology: { dim: technology } } # two mappings of one subject, read to both at once
   bus:
     zone: { dim: zone }
-    area: { dim: zone, missing: absent } # a second map into the same set, to compare against; a bus may be in no area
+    area: { dim: zone, missing: absent } # a second mapping into the same set, to compare against; a bus may be in no area
   snapshot:
     season: { dim: season }
-    rep: { dim: snapshot } # a map into its own dimension: the representative snapshot
+    rep: { dim: snapshot } # a mapping into its own dimension: the representative snapshot
   gen_zone: { zone: { dim: zone } }
 
 parameters:
@@ -61,7 +61,7 @@ parameters:
   tech_cap: { dims: [bus, technology], missing: absent }
   link_eff: { dims: [generator, bus], where: connection, missing: 1 }
   susceptance: { dims: [from_bus, bus], missing: 0 } # over one set twice, through its alias
-  area_weight: { dims: [bus], where: "bus[area]" } # a map's label as a condition: the buses that have an area
+  area_weight: { dims: [bus], where: "bus[area]" } # a mapping's label as a condition: the buses that have an area
   min_up: { dims: [generator], dtype: int }
   eta: { dims: [generator] } # a Greek name that is *given*, so the rule wins and it prints as the word
   lead: { dims: [generator], dtype: int }
@@ -160,9 +160,9 @@ parameters:
 |---|---|
 | $`t \ominus k`$ | `edge='wrap'` — $`t-k`$, cyclic |
 | $`t \boxminus_{v} k`$ | `edge=v` — $`t-k`$, and $`v`$ past the edge |
-| $`t \ominus^{\mathrm{map}(t)} k`$ | `within=subject[map]` — $`t-k`$ inside the group of $`t`$ |
+| $`t \ominus^{\mathrm{map}(t)} k`$ | `within=subject[mapping]` — $`t-k`$ inside the group of $`t`$ |
 | $`\mathrm{pos}(t)`$ | `position()` — the position of $`t`$, counted from $`0`$; $`t`$ is the label |
-| $`\mathrm{pos}_{\mathrm{map}(t)}(t)`$ | `position(within=subject[map])` — the position of $`t`$ inside its group |
+| $`\mathrm{pos}_{\mathrm{map}(t)}(t)`$ | `position(within=subject[mapping])` — the position of $`t`$ inside its group |
 | $`\lvert \mathcal{T} \rvert`$ | the size of $`\mathcal{T}`$; $`\lvert \mathcal{T} \rvert - 1`$ is the last position |
 
 ### Variable domains
@@ -407,9 +407,9 @@ objective:
 \max \sum_{e \in \mathcal{E},\ t \in \mathcal{T}} p_{e,t} \cdot \mathrm{cost}_{e} + \sum_{e \in \mathcal{E},\ t \in \mathcal{T}} p_{e,t} \cdot p_{e,t} \cdot \mathrm{cost}_{e} + \sum_{e \in \mathcal{E},\ t \in \mathcal{T}} p_{e,t} \cdot \mathrm{cost}_{e} \cdot \mathrm{growth}^{\mathrm{lead}_{e}} + \sum_{e \in \mathcal{E},\ t \in \mathcal{T}} p_{e,t} \cdot \left( \mathrm{growth}^{\mathrm{lead}_{e}} \right)^{2} + \sum_{e \in \mathcal{E},\ t \in \mathcal{T}} p_{e,t} \cdot \mathrm{p}^{\mathrm{max}}_{e} - \mathit{reserve} - \mathit{headroom}
 ```
 
-### Maps and tuples
+### Mappings and tuples
 
-#### Sum through a map
+#### Sum through a mapping
 
 ```yaml
 constraints:
@@ -437,9 +437,9 @@ constraints:
 \sum_{e \in \mathcal{E},\ t \in \mathcal{T}} p_{e,t} \le \mathrm{budget}
 ```
 
-#### `at` through a map
+#### `at` through a mapping
 
-at(), which re-indexes through a map instead of an offset
+at(), which re-indexes through a mapping instead of an offset
 
 ```yaml
 constraints:
@@ -452,7 +452,7 @@ constraints:
 \mathit{spill}_{t} \le \mathrm{zone\_cap}_{\mathrm{zone}(u)} \qquad \forall\, u \in \mathcal{U},\ t \in \mathcal{T}
 ```
 
-#### Sum into two maps
+#### Sum into two mappings
 
 one table read to two value columns: the domain carries a condition per column
 
@@ -467,7 +467,7 @@ constraints:
 \sum_{e \in \mathcal{E} \,:\, \mathrm{bus}(e) = u \wedge \mathrm{technology}(e) = h} p_{e,t} \le \mathrm{tech\_cap}_{u,h} \qquad \forall\, u \in \mathcal{U},\ t \in \mathcal{T},\ h \in \mathcal{H}
 ```
 
-#### `at` through two maps
+#### `at` through two mappings
 
 the same table joined the other way, reading one slot through two columns
 
@@ -482,7 +482,7 @@ constraints:
 \mathit{units}_{e} \le \mathrm{tech\_cap}_{\mathrm{bus}(e),\mathrm{technology}(e)} \qquad \forall\, e \in \mathcal{E}
 ```
 
-#### Shift within one map
+#### Shift within one mapping
 
 a partition grouped by one named value column of a two-value table, and a position within both
 
@@ -500,7 +500,7 @@ constraints:
 
 #### Sum over a tuple
 
-a sum over a tuple with no map: the domain is a tuple rather than a label
+a sum over a tuple with no mapping: the domain is a tuple rather than a label
 
 ```yaml
 constraints:
@@ -529,9 +529,9 @@ constraints:
 p_{e,t} \le \mathrm{load}_{u,t} \qquad \forall\, u \in \mathcal{U},\ e \in \mathcal{E},\ t \in \mathcal{T} \,:\, \left( u,\ e \right) \in \mathrm{connection}
 ```
 
-#### Map into its own dimension
+#### Mapping into its own dimension
 
-a map into its own dimension, read both ways: the frame is unchanged and the index is primed
+a mapping into its own dimension, read both ways: the frame is unchanged and the index is primed
 
 ```yaml
 constraints:
@@ -574,9 +574,9 @@ constraints:
 \theta_{u} = \sum_{u' \in \mathcal{U} \,:\, u' = u} \sum_{u'' \in \mathcal{U}} \mathrm{susceptance}_{u'',u'} \qquad \forall\, u \in \mathcal{U}
 ```
 
-#### Sum through a map of a tuple
+#### Sum through a mapping of a tuple
 
-a grouping through a map of a tuple, keeping one member: the row keeps the snapshot
+a grouping through a mapping of a tuple, keeping one member: the row keeps the snapshot
 
 ```yaml
 constraints:
@@ -606,7 +606,7 @@ constraints:
 
 #### Sum grouped by one member of a tuple
 
-the same tuple grouped by a member alone: no map is read, so the domain asks only that the tuple is there
+the same tuple grouped by a member alone: no mapping is read, so the domain asks only that the tuple is there
 
 ```yaml
 constraints:
@@ -619,7 +619,7 @@ constraints:
 \sum_{g \in \mathcal{G} \,:\, \mathrm{snapshot}(g) = t} \mathit{units}_{\mathrm{generator}(g)} \le \mathrm{budget} \qquad \forall\, t \in \mathcal{T}
 ```
 
-#### `at` through a map of a tuple
+#### `at` through a mapping of a tuple
 
 the same tuple as the frame, reading the zone each tuple maps to
 
@@ -1018,7 +1018,7 @@ p_{e,t \boxminus_{0} \mathrm{lead}} \le \mathrm{p}^{\mathrm{max}}_{e} \qquad \fo
 
 #### Cyclic shift within a group
 
-a translation partitioned by a map: the group rides on the operator
+a translation partitioned by a mapping: the group rides on the operator
 
 ```yaml
 constraints:
@@ -1080,7 +1080,7 @@ constraints:
 
 #### Window within a group
 
-a window partitioned by a map: the group rides on the operator
+a window partitioned by a mapping: the group rides on the operator
 
 ```yaml
 constraints:
@@ -1482,9 +1482,9 @@ assumptions:
 \mathrm{lead}_{e} \le 3 \qquad \forall\, e \in \mathcal{E}
 ```
 
-#### Two maps compared
+#### Two mappings compared
 
-two maps into one set, compared row by row
+two mappings into one set, compared row by row
 
 ```yaml
 assumptions:
@@ -1538,9 +1538,9 @@ assumptions:
 \mathrm{p}^{\mathrm{min}}_{e} < \mathrm{p}^{\mathrm{max}}_{e} \qquad \forall\, e \in \mathcal{E} \,:\, \mathrm{is\_flexible}_{e}
 ```
 
-#### Assumption with a map condition
+#### Assumption with a mapping condition
 
-a map comparison as the where, over a frame two dims wide
+a mapping comparison as the where, over a frame two dims wide
 
 ```yaml
 assumptions:
@@ -1619,9 +1619,9 @@ constraints:
 \mathit{on}_{e,t} = 0 \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T} \,:\, \mathrm{pos}(t) = \lvert \mathcal{T} \rvert - 1 \vee \mathrm{pos}_{\mathrm{season}(t)}(t) = \lvert \mathcal{T}_{\mathrm{season}(t)} \rvert - 1
 ```
 
-#### Map compared to a label
+#### Mapping compared to a label
 
-a map compared to a label, to another map, and tested for a label
+a mapping compared to a label, to another mapping, and tested for a label
 
 ```yaml
 constraints:
@@ -1701,7 +1701,7 @@ p_{e,t} \le \mathrm{p}^{\mathrm{max}}_{e} \qquad \forall\, e \in \mathcal{E},\ t
 
 #### Shift and lookup in a condition
 
-a translation under a comparison names its edge, a lookup reads through a map, and the position keeps the vacated row out
+a translation under a comparison names its edge, a lookup reads through a mapping, and the position keeps the vacated row out
 
 ```yaml
 constraints:
@@ -1779,9 +1779,9 @@ constraints:
 \mathit{slack}_{t} \le \mathrm{load}_{u,t} \qquad \forall\, u \in \mathcal{U},\ t \in \mathcal{T} \,:\, \mathrm{load}_{u,t} \text{ is defined} \wedge \neg \left( \mathrm{load}_{u,t - 1} \text{ is defined} \right)
 ```
 
-#### Condition through a map
+#### Condition through a mapping
 
-a condition read through a map: a bus is held only where its zone has a cap at all
+a condition read through a mapping: a bus is held only where its zone has a cap at all
 
 ```yaml
 constraints:

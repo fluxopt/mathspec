@@ -3,12 +3,12 @@ SPDX-FileCopyrightText: mathspec contributors
 SPDX-License-Identifier: CC-BY-4.0
 -->
 
-# Maps as linear maps
+# Mappings as linear maps
 
 A [`sum`](../reference/language/operators.md#sum) or an
 [`at`](../reference/language/operators.md#at) through a table that gives each
-label a label ([a map](../reference/language/maps.md#maps)) is the product
-of a matrix and a vector. The maps page describes the same sum in
+label a label ([a mapping](../reference/language/mappings.md#mappings)) is the product
+of a matrix and a vector. The mappings page describes the same sum in
 database words, "joined on" and "grouped by". The matrix form is the sum in
 the form a paper uses.
 
@@ -20,7 +20,7 @@ dimensions:
   generator: { dtype: str }
   zone: { dtype: str }
   zone_of: { over: [generator, snapshot] }
-maps:
+mappings:
   zone_of: { zone: { dim: zone } }
 parameters:
   zone_cap: { dims: [snapshot, zone] }
@@ -38,8 +38,8 @@ objective:
   expression: sum(p)
 ```
 
-`zonal` contains a sum of `p` through the map `zone_of[zone]`, and
-`looked_up` a lookup of `zone_cap` through the same map. The spec loads.
+`zonal` contains a sum of `p` through the mapping `zone_of[zone]`, and
+`looked_up` a lookup of `zone_cap` through the same mapping. The spec loads.
 
 ## The indicator of a set of tuples
 
@@ -47,8 +47,8 @@ A dimension with [members](../reference/language/dimensions.md#over)
 $`D_1, \dots, D_n`$ is a set of tuples, so it is a subset
 $`K \subseteq D_1 \times \dots \times D_n`$. Its **indicator**
 $`\mathbf{1}_K`$ is $`1`$ at a listed tuple and $`0`$ everywhere else. A
-[map](../reference/language/maps.md#maps) gives each label of its subject one
-label, so a map from the subject $`K`$ into the dimension $`V`$ is a function
+[mapping](../reference/language/mappings.md#mappings) gives each label of its subject one
+label, so a mapping from the subject $`K`$ into the dimension $`V`$ is a function
 $`f: K \to V`$. The set of pairs $`(k, f(k))`$ is a relation $`R`$ (the graph
 of $`f`$), and its indicator is
 
@@ -61,17 +61,17 @@ The bracket is $`1`$ where $`f(k) = v`$ and $`0`$ elsewhere.
 By default the function has a value at every tuple (it is total). With data
 attached, the tool that builds the model
 ([an engine](../reference/glossary.md#tool)) checks for
-[one row per label](../reference/language/maps.md#the-data-contract) of the
-subject. Under [`missing: absent`](../reference/language/maps.md#missing), the
+[one row per label](../reference/language/mappings.md#the-data-contract) of the
+subject. Under [`missing: absent`](../reference/language/mappings.md#missing), the
 function has no value at a tuple with no label (it is partial). With
 $`\mathcal{G}`$, $`\mathcal{T}`$ and $`\mathcal{Z}`$ the sets of generators,
 snapshots and zones, `zone_of[zone]` in the spec above is a function
 $`f: K \to \mathcal{Z}`$ on the tuples $`K \subseteq \mathcal{G} \times \mathcal{T}`$
 that `zone_of` lists.
 
-Each member is a map too: `zone_of[generator]` and `zone_of[snapshot]` send a
-tuple to its labels. A dimension with members and no declared map has only
-these maps, so one generator may sit in several tuples, each with its own
+Each member is a mapping too: `zone_of[generator]` and `zone_of[snapshot]` send a
+tuple to its labels. A dimension with members and no declared mapping has only
+these mappings, so one generator may sit in several tuples, each with its own
 snapshot.
 
 ## A join and group-by as a contraction
@@ -92,16 +92,16 @@ With the data in the figure, the join pairs each row of `p` with the tuple of
 pairs in zone `north` at snapshot `0`, so the result `y` has three rows.
 
 The typesetter [prints](../reference/notation.md) the right-hand form. The left-hand form is a sum over an index that two factors share (a
-**tensor contraction**). The maps page describes each column of the table
+**tensor contraction**). The mappings page describes each column of the table
 by two properties. Each pair of properties is a position that an index can
 take in the formula:
 
-| On the maps page                      | In the formula                                                       |
-| ------------------------------------- | -------------------------------------------------------------------- |
-| joined on, the subject in `over=`     | $`k`$ is on both factors and summed. It is not in the result.        |
-| grouped by, a map in `by=`            | $`z`$ is on the indicator alone and not summed. It is in the result. |
-| grouped by, a member in `by=`         | $`t`$ is read off $`k`$ and not summed. It is in the result.         |
-| neither, a map the call does not name | The map is not in the formula, and the sum does not use it.          |
+| On the mappings page                      | In the formula                                                       |
+| ----------------------------------------- | -------------------------------------------------------------------- |
+| joined on, the subject in `over=`         | $`k`$ is on both factors and summed. It is not in the result.        |
+| grouped by, a mapping in `by=`            | $`z`$ is on the indicator alone and not summed. It is in the result. |
+| grouped by, a member in `by=`             | $`t`$ is read off $`k`$ and not summed. It is in the result.         |
+| neither, a mapping the call does not name | The mapping is not in the formula, and the sum does not use it.      |
 
 The result has the **free indices**, which are the indices that are not
 summed. They are the indices of the operand and of the indicator together,
@@ -123,7 +123,7 @@ $`y_t = M_t\, p_t`$. Over all snapshots, the member `snapshot` that the call
 groups by makes the matrix zero outside one block per snapshot
 (**block-diagonal**).
 
-## A lookup through a map
+## A lookup through a mapping
 
 `at(zone_cap, by=zone_of[snapshot, zone])` joins the same table, and sums
 over the other index:
@@ -223,12 +223,12 @@ for `gas` at snapshot `1`, so the lookup has no row there either.
 
 ## Partitions and tests
 
-The other two uses of a map, a
-[partition](../reference/language/maps.md#partitions) and a
-[test](../reference/language/maps.md#tests), are not matrix products. An
+The other two uses of a mapping, a
+[partition](../reference/language/mappings.md#partitions) and a
+[test](../reference/language/mappings.md#tests), are not matrix products. An
 operator with `within=`, such as `shift`, works separately on each set of
 members that $`f`$ sends to one value (a fibre). The dimensions of the result
-do not change. With the map `snapshot: { season: { dim: season } }`,
+do not change. With the mapping `snapshot: { season: { dim: season } }`,
 `shift(soc, along=snapshot, offset=1, edge='wrap', within=snapshot[season])`
 steps back within each season:
 
@@ -240,20 +240,20 @@ Each season is one fibre of `snapshot[season]`, so no value crosses from winter 
 summer.
 
 A test is an indicator. In a `where`, the bare name of a dimension with
-members is $`\mathbf{1}_K`$ at the coordinate of the entry, and a map alone,
+members is $`\mathbf{1}_K`$ at the coordinate of the entry, and a mapping alone,
 such as `zone_of[zone]`, is the indicator of the domain of $`f`$.
 
-You can now judge the dimensions of a sum or an `at` through a map, and
+You can now judge the dimensions of a sum or an `at` through a mapping, and
 why the language has no `join` operator.
 
 !!! info "See also"
 
-    - [maps](../reference/language/maps.md), for every key a map accepts
+    - [mappings](../reference/language/mappings.md), for every key a mapping accepts
     - [how dimensions combine](../reference/language/expressions.md#how-dimensions-combine),
       for the rule that sets the free indices of every expression
     - [how absence travels](../reference/language/absence.md#how-absence-travels),
       for figures of the rows that absence removes
-    - [sums through a map](../reference/language/maps.md#sums),
+    - [sums through a mapping](../reference/language/mappings.md#sums),
       for the messages mathspec prints when it refuses a sum
     - [constructs the language already has](limits.md#constructs-the-language-already-has),
       for the refused `join` operator and what you write instead

@@ -48,7 +48,7 @@ PIECEWISE = {
 BEGIN, END = '<!-- notation:begin -->', '<!-- notation:end -->'
 
 #: The sections of the fixture that declare math. ``dimensions``,
-#: ``maps`` and ``parameters`` are absent on purpose: they declare no equation, and what
+#: ``mappings`` and ``parameters`` are absent on purpose: they declare no equation, and what
 #: they print is the legend, which the page shows once rather than a row at a
 #: time.
 SECTIONS = ('objective', 'constraints', 'expressions', 'conditions', 'variables', 'piecewise', 'sos', 'assumptions')
@@ -81,22 +81,22 @@ FAMILIES: dict[str, dict[str, str]] = {
     'Objective': {
         'objective': 'Products and powers in the objective',
     },
-    'Maps and tuples': {
-        'balance': 'Sum through a map',
+    'Mappings and tuples': {
+        'balance': 'Sum through a mapping',
         'total': 'Sum over every dimension',
-        'lookup': '`at` through a map',
-        'grouped_once': 'Sum into two maps',
-        'looked_up_once': '`at` through two maps',
-        'within_bus': 'Shift within one map',
+        'lookup': '`at` through a mapping',
+        'grouped_once': 'Sum into two mappings',
+        'looked_up_once': '`at` through two mappings',
+        'within_bus': 'Shift within one mapping',
         'relational': 'Sum over a tuple',
         'connected': 'Tuple as a condition',
-        'representative': 'Map into its own dimension',
+        'representative': 'Mapping into its own dimension',
         'flow_angle': 'Alias of a dimension',
         'exchanged': 'Sum under an alias of its dimension',
-        'zonal': 'Sum through a map of a tuple',
+        'zonal': 'Sum through a mapping of a tuple',
         'zonal_history': 'Sum keeping the other member of a tuple',
         'zonal_membership': 'Sum grouped by one member of a tuple',
-        'zonal_lookup': '`at` through a map of a tuple',
+        'zonal_lookup': '`at` through a mapping of a tuple',
     },
     'Arithmetic and literals': {
         'arithmetic': 'Signs, division and number literals',
@@ -146,18 +146,18 @@ FAMILIES: dict[str, dict[str, str]] = {
         'bounds_do_not_cross': 'Two parameters compared',
         'efficiency_is_a_fraction': 'Connective in an assumption',
         'lead_times_are_short': 'Parameter compared to a literal',
-        'zones_agree': 'Two maps compared',
+        'zones_agree': 'Two mappings compared',
         'budget_covers_the_peak': 'Reduction in an assumption',
         'ramps_are_gentle': 'Shift in an assumption',
         'flexible_units_have_headroom': 'Assumption with a boolean condition',
-        'northern_demand_is_real': 'Assumption with a map condition',
+        'northern_demand_is_real': 'Assumption with a mapping condition',
     },
     'Where conditions': {
         'scalar': 'Parameter as a condition',
         'running': 'Variable and label conditions',
         'first': 'Position in a dimension',
         'last': 'Position counted from the end',
-        'northern': 'Map compared to a label',
+        'northern': 'Mapping compared to a label',
         'always': 'Constant true condition',
         'redundant': 'Constant true inside a condition',
         'never': 'Constant false condition',
@@ -167,7 +167,7 @@ FAMILIES: dict[str, dict[str, str]] = {
         'counted': 'Count over a dimension',
         'counted_here': 'Count along a dimension of the frame',
         'run_start': 'Condition at the previous coordinate',
-        'zoned': 'Condition through a map',
+        'zoned': 'Condition through a mapping',
     },
 }
 
@@ -298,11 +298,11 @@ def legend() -> str:
 
 #: What the legend is made of. No equation comes from these, so they are shown
 #: once, together, above the tables they turn into.
-DECLARED = ('dimensions', 'maps', 'parameters')
+DECLARED = ('dimensions', 'mappings', 'parameters')
 
 
 def preamble(text: str) -> str:
-    """The fixture's ``dimensions``/``maps``/``parameters`` sections, verbatim."""
+    """The fixture's ``dimensions``/``mappings``/``parameters`` sections, verbatim."""
     sections = []
     for name in DECLARED:
         body = text[text.index(f'\n{name}:') + 1 :]
@@ -316,7 +316,7 @@ def block() -> str:
     rendered = to_markdown(MODEL, numbered=False)
     parts = [
         '### Legend',
-        'A dimension, a map and a parameter declare no equation; what they print is the legend every spec opens with.',
+        'A dimension, a mapping and a parameter declare no equation; what they print is the legend every spec opens with.',
         f'```yaml\n{preamble(MODEL.read_text())}\n```',
         legend(),
     ]

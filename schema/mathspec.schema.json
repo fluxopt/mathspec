@@ -167,7 +167,7 @@
     },
     "DimensionSpec": {
       "additionalProperties": false,
-      "description": "A declared dimension, the dtype its coordinates must be, and whether their order means anything.\n\nA dimension is an axis and nothing else: it declares that the axis exists\nand what its coordinates are typed as. Which coordinates there are is data,\nand arrives when the data is attached; a ``one_of`` only names the labels a\ncoordinate may have. The labels its members carry \u2014 a\ngenerator's bus, a snapshot's period \u2014 are its ``maps:``\n([`MapSpec`][]).",
+      "description": "A declared dimension, the dtype its coordinates must be, and whether their order means anything.\n\nA dimension is an axis and nothing else: it declares that the axis exists\nand what its coordinates are typed as. Which coordinates there are is data,\nand arrives when the data is attached; a ``one_of`` only names the labels a\ncoordinate may have. The labels its members carry \u2014 a\ngenerator's bus, a snapshot's period \u2014 are its ``mappings:``\n([`MappingSpec`][]).",
       "properties": {
         "alias": {
           "anyOf": [
@@ -636,9 +636,9 @@
       "title": "MacroSpec",
       "type": "object"
     },
-    "MapSpec": {
+    "MappingSpec": {
       "additionalProperties": false,
-      "description": "A map: one label per label of its subject, a dimension, from the dimension that ``dim:`` names.\n\nWritten in YAML under its subject, with ``dim:`` always written::\n\n    maps:\n      unit:\n        carrier: {dim: carrier, missing: absent}\n      connection:\n        bus: {dim: bus}\n      line:\n        bus0: {dim: bus}\n        bus1: {dim: bus}\n\nThe map's name is a column of its subject's table, beside the subject's\nown columns. A call reads it as ``subject[map]``: ``sum(by=)`` totals\nalong it, ``at(by=)`` reads through it, ``within=`` works in each group\nof rows it sends to one label, and a condition compares it or tests that\na row has a label.",
+      "description": "A mapping: one label per label of its subject, a dimension, from the dimension that ``dim:`` names.\n\nWritten in YAML under its subject, with ``dim:`` always written::\n\n    mappings:\n      unit:\n        carrier: {dim: carrier, missing: absent}\n      connection:\n        bus: {dim: bus}\n      line:\n        bus0: {dim: bus}\n        bus1: {dim: bus}\n\nThe mapping's name is a column of its subject's table, beside the subject's\nown columns. A call reads it as ``subject[mapping]``: ``sum(by=)`` totals\nalong it, ``at(by=)`` reads through it, ``within=`` works in each group\nof rows it sends to one label, and a condition compares it or tests that\na row has a label.",
       "properties": {
         "description": {
           "anyOf": [
@@ -669,7 +669,7 @@
       "required": [
         "dim"
       ],
-      "title": "MapSpec",
+      "title": "MappingSpec",
       "type": "object"
     },
     "ObjectiveSpec": {
@@ -789,7 +789,7 @@
       "anyOf": [
         {
           "additionalProperties": false,
-          "description": "One link of a piecewise entry: an expression tied to the curve through a values parameter.\n\nWritten in YAML as ``[expression, values]`` or ``[expression, values,\nsign]``, and serialised back to exactly that form, so a round trip through\n[`Spec.to_yaml`][] reproduces the file.\n\nA link that names ``by: subject[map]`` reads the curve's weights\nthrough the map, as ``at`` reads an array, and is written as a\nmapping. Its row is the entry's ``dims:`` with the dims the lookup reads\nreplaced by the key columns it arrives at, so one link emits a row per fine\ncoordinate and each reads the curve of the coarse coordinate it maps to.",
+          "description": "One link of a piecewise entry: an expression tied to the curve through a values parameter.\n\nWritten in YAML as ``[expression, values]`` or ``[expression, values,\nsign]``, and serialised back to exactly that form, so a round trip through\n[`Spec.to_yaml`][] reproduces the file.\n\nA link that names ``by: subject[mapping]`` reads the curve's weights\nthrough the mapping, as ``at`` reads an array, and is written as a\nmapping. Its row is the entry's ``dims:`` with the dims the lookup reads\nreplaced by the key columns it arrives at, so one link emits a row per fine\ncoordinate and each reads the curve of the coarse coordinate it maps to.",
           "properties": {
             "by": {
               "anyOf": [
@@ -841,7 +841,7 @@
     },
     "PiecewiseSpec": {
       "additionalProperties": false,
-      "description": "Expressions tied to one breakpoint-indexed piecewise curve per coordinate of ``dims:``.\n\nMirrors ``linopy.Spec.add_piecewise_formulation``. ``links:`` maps a name\nto ``[expression, values_parameter]`` or ``[expression, values_parameter,\nsign]``: *expression* is any affine expression string over ``dims:``,\n*values_parameter* names a parameter carrying ``along`` and no dim the\nlink's row lacks, and *sign* bounds the link by the curve instead of\npinning it. The name is the link's row in the expansion, ``<entry>_<link>``.\n\n``dims:`` alone decides how many curves the entry builds: one set of\nweights per coordinate of it. ``where:`` says which of those coordinates\nhave a curve, and how far each runs along ``along`` where it reads that\ndim too; ``activity:`` whether a curve that exists is switched on. A link\nthat walks a map builds a row per fine coordinate, each reading the\none curve its coarse coordinate has, so how many expressions a curve ties\nis data.",
+      "description": "Expressions tied to one breakpoint-indexed piecewise curve per coordinate of ``dims:``.\n\nMirrors ``linopy.Spec.add_piecewise_formulation``. ``links:`` maps a name\nto ``[expression, values_parameter]`` or ``[expression, values_parameter,\nsign]``: *expression* is any affine expression string over ``dims:``,\n*values_parameter* names a parameter carrying ``along`` and no dim the\nlink's row lacks, and *sign* bounds the link by the curve instead of\npinning it. The name is the link's row in the expansion, ``<entry>_<link>``.\n\n``dims:`` alone decides how many curves the entry builds: one set of\nweights per coordinate of it. ``where:`` says which of those coordinates\nhave a curve, and how far each runs along ``along`` where it reads that\ndim too; ``activity:`` whether a curve that exists is switched on. A link\nthat walks a mapping builds a row per fine coordinate, each reading the\none curve its coarse coordinate has, so how many expressions a curve ties\nis data.",
       "properties": {
         "activity": {
           "anyOf": [
@@ -1098,15 +1098,15 @@
       "title": "Macros",
       "type": "object"
     },
-    "maps": {
+    "mappings": {
       "additionalProperties": {
         "additionalProperties": {
-          "$ref": "#/$defs/MapSpec"
+          "$ref": "#/$defs/MappingSpec"
         },
         "type": "object"
       },
       "default": {},
-      "title": "Maps",
+      "title": "Mappings",
       "type": "object"
     },
     "objective": {

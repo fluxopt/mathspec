@@ -11,7 +11,7 @@ through numbered ports. Each port number matches one of the `bus0`, `bus1`, …
 columns of an open-source power system modelling framework
 ([PyPSA](https://pypsa.org)). The dimension `connection` lists the pairs of a
 unit and a port, its [members](../reference/language/dimensions.md#over), and
-its maps give the bus and the role of each pair. Its label is the pair, not
+its mappings give the bus and the role of each pair. Its label is the pair, not
 the bus, so two ports of one unit may attach to the same bus.
 
 `efficiency` is declared over every connection and snapshot. Its
@@ -35,7 +35,7 @@ dimensions:
     description: the bus each port of a unit attaches to, and whether the port draws or delivers
     over: [unit, port]
 
-maps:
+mappings:
   connection: { bus: { dim: bus }, role: { dim: role } }
 
 parameters:

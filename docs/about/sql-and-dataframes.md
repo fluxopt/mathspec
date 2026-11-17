@@ -19,7 +19,7 @@ dimensions:
   snapshot: { dtype: int, ordered: true }
   generator: { dtype: str }
   bus: { dtype: str }
-maps:
+mappings:
   generator: { bus: { dim: bus } }
 parameters:
   load: { dims: [snapshot, bus] }
@@ -72,11 +72,11 @@ coordinate of `(snapshot, bus)`.
 
 A dimension with [members](../reference/language/dimensions.md#over) is a
 table whose member columns are its primary key, so it lists which
-combinations of labels exist. A [map](../reference/language/maps.md#maps) is a column of the
-table of its subject. `generator: { bus: { dim: bus } }` under `maps:` is a table
+combinations of labels exist. A [mapping](../reference/language/mappings.md#mappings) is a column of the
+table of its subject. `generator: { bus: { dim: bus } }` under `mappings:` is a table
 `generator` with the columns `generator` and `bus`, and one row per generator.
 Under the default `missing: refused`, every generator needs a bus. Under
-[`missing: absent`](../reference/language/maps.md#missing), the bus of a
+[`missing: absent`](../reference/language/mappings.md#missing), the bus of a
 generator may be null.
 
 ## Absence

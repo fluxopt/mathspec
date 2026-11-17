@@ -142,7 +142,7 @@ dimensions:
   snapshot: { dtype: int }
   port: { dtype: str }
   generator: { dtype: str }
-maps:
+mappings:
   generator: { port: { dim: port } }
 variables:
   gen_p: { dims: [snapshot, generator], bounds: { lower: 0 } }
@@ -448,7 +448,7 @@ either, because the parameter has no row there.
 
 A tool evaluates the condition from the data alone, before it reads the
 parameter. So the condition may contain [dimensions](dimensions.md),
-dimensions with [members](dimensions.md#over), [maps](maps.md) and parameters
+dimensions with [members](dimensions.md#over), [mappings](mappings.md) and parameters
 without a `where:`.
 
 mathspec refuses four conditions at load:
@@ -462,10 +462,10 @@ For a `where:` on `efficiency` that contains the variable `p`, the message
 is:
 
 ```text
-Parameter 'efficiency': its `where:` contains variable 'p', and a tool evaluates the `where:` of a parameter from the data alone, before any variable has a value. Test a parameter or a map instead.
+Parameter 'efficiency': its `where:` contains variable 'p', and a tool evaluates the `where:` of a parameter from the data alone, before any variable has a value. Test a parameter or a mapping instead.
 ```
 
-mathspec suggests a parameter or a map as the rewrite.
+mathspec suggests a parameter or a mapping as the rewrite.
 
 The typeset legend lists the condition beside the dimensions, after
 `only where`. For `efficiency`, the legend entry ends in

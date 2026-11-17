@@ -91,7 +91,7 @@ and a constraint has one row at each coordinate.
 ## Data preparation
 
 Before the data is attached, data preparation is the work of turning raw data
-into the tables that a spec declares as parameters, dimensions and maps. You compute
+into the tables that a spec declares as parameters, dimensions and mappings. You compute
 in data preparation anything that the mathspec language cannot state
 ([what counts as data preparation](../about/limits.md#data-preparation)).
 
@@ -149,9 +149,9 @@ does not build](reading.md#what-a-program-does-not-build)).
 ## Group
 
 A group is the set of labels of a dimension to which one
-[map](#map) gives one label. `within=<subject>[<map>]` makes `shift`,
+[mapping](#mapping) gives one label. `within=<subject>[<mapping>]` makes `shift`,
 `sum_back` or `position()` work separately in each group, such as each season
-of a year ([partitions](language/maps.md#partitions)).
+of a year ([partitions](language/mappings.md#partitions)).
 
 ## Label
 
@@ -174,23 +174,23 @@ expression before any tool reads it. A file declares its own macros under
 `macros:`, so a macro is the one construct a file can add
 ([macros](language/named.md#macros)).
 
-## Map
+## Mapping
 
-A map gives each label of a dimension (its
+A mapping gives each label of a dimension (its
 [subject](#subject)) one label of a dimension, such as the bus of each
-generator. A condition or an operator reads it as `subject[map]`, as in
-`generator[bus]` ([maps](language/maps.md#maps)).
+generator. A condition or an operator reads it as `subject[mapping]`, as in
+`generator[bus]` ([mappings](language/mappings.md#mappings)).
 
 ## Member
 
 A member is a dimension that another dimension lists under `over:`. A label
 of the listing dimension combines one label of each member, and a call reads
-a member as a map of the dimension, as in `connection[unit]`
+a member as a mapping of the dimension, as in `connection[unit]`
 ([`over`](language/dimensions.md#over)).
 
 ## Missing row
 
-A missing row is a coordinate for which the table of a parameter or a map
+A missing row is a coordinate for which the table of a parameter or a mapping
 has no row. The `missing:` key of the entry sets how a tool treats that
 coordinate ([`missing` on a
 parameter](language/absence.md#missing-on-a-parameter)).
@@ -287,8 +287,8 @@ most two consecutive elements are non-zero ([sos](language/piecewise.md#sos)).
 
 ## Subject
 
-The subject of a map is a dimension, such as `generator` in
-`generator[bus]` ([maps](language/maps.md#maps)).
+The subject of a mapping is a dimension, such as `generator` in
+`generator[bus]` ([mappings](language/mappings.md#mappings)).
 
 ## Surface
 

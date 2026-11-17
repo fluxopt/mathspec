@@ -14,7 +14,7 @@ dimensions:
     description: the bus each port of a unit attaches to, and whether the port draws or delivers
     over: [unit, port]
 
-maps:
+mappings:
   connection: { bus: { dim: bus }, role: { dim: role } }
 
 parameters:

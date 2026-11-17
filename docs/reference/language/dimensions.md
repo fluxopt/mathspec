@@ -59,7 +59,7 @@ mathspec loads a dimension that no entry uses, and for that dimension
 ([advice](../glossary.md#advice)).
 
 The label of another dimension that each label has, such as the carrier of
-each generator, is a [map](maps.md#maps), not a dimension.
+each generator, is a [mapping](mappings.md#mappings), not a dimension.
 
 ## `one_of`
 
@@ -71,13 +71,13 @@ compares against.
 dimensions:
   carrier: { dtype: str, one_of: [ccgt, ocgt, wind] }
   generator: { dtype: str }
-maps:
+mappings:
   generator: { carrier: { dim: carrier } }
 variables:
   p: { dims: [generator], where: "generator[carrier] == 'wind'" }
 ```
 
-`p` exists only at the generators whose carrier is `wind`. The map
+`p` exists only at the generators whose carrier is `wind`. The mapping
 `generator[carrier]` gives each generator one carrier, and `one_of` makes `wind`
 one of three allowed labels.
 
@@ -95,7 +95,7 @@ The order of the list changes nothing. mathspec sorts it by name at load, so
 `one_of: [wind, ccgt, ocgt]` declares the same dimension.
 
 At load, mathspec refuses a [condition](expressions.md#conditions) that
-compares the dimension, or a map into it, against a label that is not in the
+compares the dimension, or a mapping into it, against a label that is not in the
 list. With `generator[carrier] == 'gnrtr'` in place of `generator[carrier] == 'wind'` above, mathspec prints:
 
 ```text
@@ -106,7 +106,7 @@ mathspec lists the allowed labels and suggests two rewrites.
 
 With data attached, a tool refuses a label
 outside the list: in the table of the dimension, in every field of a tuple of
-a dimension it is a member of, and in the column of every map into it.
+a dimension it is a member of, and in the column of every mapping into it.
 
 Only a dimension takes `one_of`, and a `one_of` key on a parameter is refused
 as an unknown key.
@@ -177,7 +177,7 @@ dimensions:
   bus: { dtype: str }
   snapshot: { dtype: int, ordered: true }
   connection: { over: [unit, port] }
-maps:
+mappings:
   connection:
     bus: { dim: bus }
 parameters:
@@ -218,12 +218,12 @@ dimensions:
 A member has the name of its dimension. The order of the
 members changes nothing, because mathspec sorts them by name at load.
 
-### The maps of the dimension
+### The mappings of the dimension
 
-Each member is also a [map](maps.md#maps) of the dimension, named after
+Each member is also a [mapping](mappings.md#mappings) of the dimension, named after
 the member, with `dim:` the dimension of the member and `missing: refused`. So
-`connection` above has the maps `unit` and `port` beside the map `bus` that
-the file declares, and a call reads a member as it reads any map:
+`connection` above has the mappings `unit` and `port` beside the mapping `bus` that
+the file declares, and a call reads a member as it reads any mapping:
 
 | Written                                           | Result                                                      |
 | ------------------------------------------------- | ----------------------------------------------------------- |
@@ -234,12 +234,12 @@ the file declares, and a call reads a member as it reads any map:
 | `where: "at(active, by=connection[unit])"`        | the connections whose unit is in the condition `active`     |
 
 A fact about a tuple that is not a member, such as the bus of a connection,
-is a map that the file declares under `maps: connection:`, as `bus` is above.
-mathspec refuses a declared map with the name of a member. With
-`maps: { connection: { unit: { dim: unit } } }`, mathspec prints:
+is a mapping that the file declares under `mappings: connection:`, as `bus` is above.
+mathspec refuses a declared mapping with the name of a member. With
+`mappings: { connection: { unit: { dim: unit } } }`, mathspec prints:
 
 ```text
-maps: 'connection': map 'unit' has the name of a member of 'connection', which already gives each tuple its label of 'unit'. Read the member as connection[unit], or rename the map.
+mappings: 'connection': mapping 'unit' has the name of a member of 'connection', which already gives each tuple its label of 'unit'. Read the member as connection[unit], or rename the mapping.
 ```
 
 ### One dimension in every operator
@@ -253,7 +253,7 @@ prints:
 Constraint 'limit': an operand over ['unit'] meets one over 'connection'. 'unit' is a member of 'connection', which is one dimension here. Read the operand at each tuple: at(capacity, by=connection[unit]), or sum flow to the member: sum(flow, over=connection, by=connection[unit]).
 ```
 
-mathspec suggests the lookup through the map of the member, or the sum
+mathspec suggests the lookup through the mapping of the member, or the sum
 of `flow` to the member. The same refusal applies wherever the two operands
 meet: in a product, in a sum, and in the objective, as in
 `sum(flow * capacity)`, in an [assumption](assumptions.md), and in the
@@ -357,7 +357,7 @@ With data attached, a label of `connection` is one tuple with one field per
 member, named after the member: `{unit: u1, port: out}`. A tool or a data store
 chooses how it stores the tuples: one column of records, or one column per
 member. Either form gives the same labels, so the choice changes no spec. The
-[maps of the members](#the-maps-of-the-dimension) take their labels from the
+[mappings of the members](#the-mappings-of-the-dimension) take their labels from the
 fields. A tool requires three things of the tuples:
 
 - Each tuple appears once.
@@ -389,7 +389,7 @@ constraints:
 `from_region` has the labels, the `dtype` and the order of `region`, so it
 takes no `dtype:`, `one_of:` or `ordered:` of its own. The data of `ire_flo`
 has the columns `from_region`, `region` and `value`, and the data has no table
-for `from_region`. An alias has the map `from_region[region]`, which sends
+for `from_region`. An alias has the mapping `from_region[region]`, which sends
 each label to itself, so `at(exp, by=from_region[region])` reads `exp` at the
 region a row comes from. The typesetter prints the alias as the index of
 `region`, primed, over the same set:
@@ -403,7 +403,7 @@ An alias names a declared dimension that is no alias itself. A second alias of
 
 !!! info "See also"
 
-    - [Maps](maps.md#maps), for the calls that read a member.
+    - [Mappings](mappings.md#mappings), for the calls that read a member.
 
-    - [choose between a dimension, a map and a parameter](../../howto/declare-a-column.md)
+    - [choose between a dimension, a mapping and a parameter](../../howto/declare-a-column.md)
       for a column of data.

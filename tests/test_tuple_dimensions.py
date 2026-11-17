@@ -5,7 +5,7 @@
 """A dimension that lists its members under `over:`: what loads, what it implies, and what is refused.
 
 Its label is the tuple of its members, and it is one plain dimension in every
-operator. Each member is a map of the dimension, read as `dimension[member]`.
+operator. Each member is a mapping of the dimension, read as `dimension[member]`.
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ MODEL: dict[str, Any] = {
         'trade': {'over': ['from_region', 'region']},
         'active': {'over': ['unit', 'period']},
     },
-    'maps': {'connection': {'bus': {'dim': 'bus'}}},
+    'mappings': {'connection': {'bus': {'dim': 'bus'}}},
     'parameters': {
         'capacity': {'dims': ['unit']},
         'rating': {'dims': ['unit', 'port']},
@@ -85,9 +85,9 @@ def test_each_member_is_a_map_of_the_dimension():
         ('connection',),
         'refused',
         members=('port', 'unit'),
-    ), 'the table of the dimension has a map per member beside the maps the file declares'
+    ), 'the table of the dimension has a mapping per member beside the mappings the file declares'
     assert program.relations['trade'].members == ('from_region', 'region'), (
-        'a dimension with no declared map has its members'
+        'a dimension with no declared mapping has its members'
     )
     assert program.dimensions['trade'].over == (('from_region', 'from_region'), ('region', 'region')), (
         'a member is named after its dimension, an alias where the tuple holds one dimension twice'
@@ -363,9 +363,9 @@ def test_a_sparse_set_with_an_ordered_member_is_read_at_a_tuple():
             id='a-dimension-twice',
         ),
         pytest.param(
-            {'maps.connection.unit': {'dim': 'unit'}},
-            ("maps: 'connection': map 'unit' has the name of a member of 'connection'", 'connection[unit]'),
-            id='a-declared-map-named-after-a-member',
+            {'mappings.connection.unit': {'dim': 'unit'}},
+            ("mappings: 'connection': mapping 'unit' has the name of a member of 'connection'", 'connection[unit]'),
+            id='a-declared-mapping-named-after-a-member',
         ),
         pytest.param(
             _constraint("shift(flow, along=connection, offset=1, edge='wrap') >= 0", ['connection', 'snapshot']),
@@ -426,7 +426,7 @@ def test_a_sparse_set_with_an_ordered_member_is_read_at_a_tuple():
         pytest.param(
             _constraint('sum(flow, over=unit, by=connection[bus]) >= 0', ['bus', 'snapshot']),
             ("over=unit names a member of 'connection'", 'sum(..., over=connection, by=connection[bus])'),
-            id='over-names-a-member-beside-a-declared-map',
+            id='over-names-a-member-beside-a-declared-mapping',
         ),
         pytest.param(
             _constraint('sum(flow, over=[unit, port]) >= 0', ['snapshot']),
@@ -587,7 +587,7 @@ def test_the_legend_prints_the_members(fmt, missing, relation):
     c, p, u = ((r'cal(%s)' if fmt == 'typst' else r'\mathcal{%s}') % letter for letter in 'CPU')
     assert f'{c} {ops[relation]} {p} {ops["times"]} {u}' in typeset(spec, fmt), f'{fmt} prints the product'
     member = r'upright("unit")' if fmt == 'typst' else r'\mathrm{unit}'
-    assert member not in typeset(spec, fmt), 'a member prints as the product, not as a map of its own'
+    assert member not in typeset(spec, fmt), 'a member prints as the product, not as a mapping of its own'
 
 
 def test_a_set_of_type_1_runs_along_a_dimension_with_members():

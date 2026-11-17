@@ -1605,7 +1605,7 @@ parameters:
     dims: [global_constraint, process]
     missing: absent
 
-maps:
+mappings:
   snapshot:
     period:
       description: the investment period a snapshot falls in

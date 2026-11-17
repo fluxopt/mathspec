@@ -155,7 +155,7 @@ def test_a_fill_and_a_group_take_the_operators_two_slots(name: FormatName, fmt: 
     """
     model = {
         'dimensions': {'snapshot': {'dtype': 'int', 'ordered': True}, 'season': {'dtype': 'str'}},
-        'maps': {'snapshot': {'season': {'dim': 'season'}}},
+        'mappings': {'snapshot': {'season': {'dim': 'season'}}},
         'variables': {'p': {'dims': ['snapshot'], 'bounds': {'lower': 0}}},
         'constraints': {
             'held': {
@@ -180,7 +180,7 @@ def test_a_translation_by_nothing_takes_no_legend_row(name: FormatName):
     translation as printed and explained a grouped operator the page never shows."""
     model = {
         'dimensions': {'snapshot': {'dtype': 'int', 'ordered': True}, 'season': {'dtype': 'str'}},
-        'maps': {'snapshot': {'season': {'dim': 'season'}}},
+        'mappings': {'snapshot': {'season': {'dim': 'season'}}},
         'variables': {'p': {'dims': ['snapshot'], 'bounds': {'lower': 0}}},
         'constraints': {
             'held': {
@@ -209,7 +209,7 @@ def test_a_translation_under_a_lookup_survives_it(name: FormatName, fmt: Format)
             'snapshot': {'dtype': 'int', 'ordered': True},
             'period': {'dtype': 'int', 'ordered': True},
         },
-        'maps': {'snapshot': {'period': {'dim': 'period'}}},
+        'mappings': {'snapshot': {'period': {'dim': 'period'}}},
         'parameters': {'cap': {'dims': ['period']}},
         'variables': {'p': {'dims': ['snapshot'], 'bounds': {'lower': 0}}},
         'constraints': {
@@ -318,7 +318,7 @@ def _selected(mask: str) -> dict[str, Any]:
     """One constraint carrying *mask*, over a dimension a relation groups."""
     return {
         'dimensions': {'snapshot': {'dtype': 'int', 'ordered': True}, 'season': {'dtype': 'str'}},
-        'maps': {'snapshot': {'season': {'dim': 'season'}}},
+        'mappings': {'snapshot': {'season': {'dim': 'season'}}},
         'variables': {'soc': {'dims': ['snapshot'], 'bounds': {'lower': 0}}},
         'constraints': {'seed': {'dims': ['snapshot'], 'where': mask, 'expression': 'soc == 0'}},
     }
@@ -464,7 +464,7 @@ def test_inlining_keeps_the_definition_of_an_entry_the_math_never_reads(name: Fo
 
 @EVERY_FORMAT
 def test_a_dual_prints_the_constraint_symbol_not_a_same_named_variable(name: FormatName, fmt: Format):
-    """`dual(c)` subscripts λ from a map of its own, so a variable sharing the
+    """`dual(c)` subscripts λ from a mapping of its own, so a variable sharing the
     constraint's name — a legal collision, constraints sit outside the flat
     namespace (#74) — cannot lend the dual its italic letter."""
     model = varied(
@@ -658,9 +658,9 @@ def test_every_operator_probe_renders(path, name: FormatName, fmt: Format):
 # ---------------------------------------------------------------------------
 
 
-#: Two tables a call can leave a map unread. A sum over `zone_of` grouped by
-#: a member reads no declared map, and a sum that consumes one of
-#: `generator`'s two maps leaves the other one.
+#: Two tables a call can leave a mapping unread. A sum over `zone_of` grouped by
+#: a member reads no declared mapping, and a sum that consumes one of
+#: `generator`'s two mappings leaves the other one.
 UNREAD = {
     'dimensions': {
         'snapshot': {'dtype': 'int', 'ordered': True},
@@ -670,7 +670,7 @@ UNREAD = {
         'technology': {'dtype': 'str'},
         'zone_of': {'over': ['generator', 'snapshot'], 'missing': 'refused'},
     },
-    'maps': {
+    'mappings': {
         'zone_of': {'zone': {'dim': 'zone'}},
         'generator': {'bus': {'dim': 'bus'}, 'technology': {'dim': 'technology'}},
     },
@@ -691,29 +691,29 @@ def _grouped(dims: list[str], expression: str) -> str:
 
 
 def test_a_sum_that_reads_no_map_asks_only_for_the_member_it_groups_by():
-    """A sum through a relation's own two columns died with `KeyError: 'zone'`, the map it did not read.
+    """A sum through a relation's own two columns died with `KeyError: 'zone'`, the mapping it did not read.
 
-    The sum over the tuple groups by a member and reads no declared map, so
-    the map `zone` is written nowhere.
+    The sum over the tuple groups by a member and reads no declared mapping, so
+    the mapping `zone` is written nowhere.
     """
     row = _grouped(['snapshot'], 'sum(at(u, by=zone_of[generator]), over=zone_of, by=zone_of[snapshot]) <= cap')
     assert r'\mathrm{snapshot}(o) = t' in row, 'the condition is the member the sum groups by'
-    assert 'zone(' not in row.replace('zone\\_of', ''), 'the unread map is written nowhere'
+    assert 'zone(' not in row.replace('zone\\_of', ''), 'the unread mapping is written nowhere'
 
 
-def test_a_map_the_call_consumes_is_a_condition_like_a_produced_one():
+def test_a_mapping_the_call_consumes_is_a_condition_like_a_produced_one():
     """`sum(f, over=[generator, bus], by=generator[technology])` bound `b` and then
     said nothing about it, so the sum ran over every bus rather than over the
     one the table puts each generator on.
 
-    The conditions were written per *produced* column. A call fixes a map by
-    consuming it too, and either way the map is one lookup at the row.
+    The conditions were written per *produced* column. A call fixes a mapping by
+    consuming it too, and either way the mapping is one lookup at the row.
     """
     row = _grouped(['technology'], 'sum(f, over=[generator, bus], by=generator[technology]) <= cap')
     assert (
         r'\sum_{g \in \mathcal{G},\ b \in \mathcal{B} \,:\, '
         r'\mathrm{bus}(g) = b \wedge \mathrm{technology}(g) = e}'
-    ) in row, 'both maps the call touches are read'
+    ) in row, 'both mappings the call touches are read'
 
 
 # ---------------------------------------------------------------------------
@@ -729,7 +729,7 @@ BUSES = {
         'generator': {'dtype': 'str', 'ordered': True},
         'bus': {'dtype': 'str'},
     },
-    'maps': {'generator': {'bus': {'dim': 'bus'}}},
+    'mappings': {'generator': {'bus': {'dim': 'bus'}}},
     'parameters': {'load': {'dims': ['snapshot']}, 'k': {'dims': []}, 'flag': {'dims': ['snapshot'], 'dtype': 'bool'}},
     'variables': {'p': {'dims': ['snapshot', 'generator']}, 'q': {'dims': ['snapshot', 'generator']}},
 }

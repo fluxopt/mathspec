@@ -74,7 +74,7 @@ __all__ = [
     'GivenSpec',
     'GivenVariableSpec',
     'MacroSpec',
-    'MapSpec',
+    'MappingSpec',
     'ObjectiveSpec',
     'ParameterSpec',
     'PiecewiseLinkSpec',
@@ -231,12 +231,12 @@ def _also_written_as(
     return {'anyOf': [dict(generated), shorthand]}
 
 
-class MapSpec(_StrictSpec):
-    """A map: one label per label of its subject, a dimension, from the dimension that ``dim:`` names.
+class MappingSpec(_StrictSpec):
+    """A mapping: one label per label of its subject, a dimension, from the dimension that ``dim:`` names.
 
     Written in YAML under its subject, with ``dim:`` always written::
 
-        maps:
+        mappings:
           unit:
             carrier: {dim: carrier, missing: absent}
           connection:
@@ -245,17 +245,17 @@ class MapSpec(_StrictSpec):
             bus0: {dim: bus}
             bus1: {dim: bus}
 
-    The map's name is a column of its subject's table, beside the subject's
-    own columns. A call reads it as ``subject[map]``: ``sum(by=)`` totals
+    The mapping's name is a column of its subject's table, beside the subject's
+    own columns. A call reads it as ``subject[mapping]``: ``sum(by=)`` totals
     along it, ``at(by=)`` reads through it, ``within=`` works in each group
     of rows it sends to one label, and a condition compares it or tests that
     a row has a label.
     """
 
-    _label: ClassVar[str] = 'a map entry'
+    _label: ClassVar[str] = 'a mapping entry'
 
     dim: str
-    """The dimension whose label the map gives each row of its subject."""
+    """The dimension whose label the mapping gives each row of its subject."""
     missing: RelationMissing = 'refused'
     """Whether every row of the subject has a label. Under ``refused``, a tool refuses data that leaves one out. Under
     ``absent``, that row has none.
@@ -265,12 +265,12 @@ class MapSpec(_StrictSpec):
     @field_validator('missing', mode='before')
     @classmethod
     def _refused_or_absent(cls, v: object) -> object:
-        """A label is data, so no value fills a gap in a map."""
-        return _refused_or_absent(v, 'a map', 'Write absent where a row may have no label, or leave it out.')
+        """A label is data, so no value fills a gap in a mapping."""
+        return _refused_or_absent(v, 'a mapping', 'Write absent where a row may have no label, or leave it out.')
 
 
 def _refused_or_absent(v: object, kind: str, rewrite: str) -> object:
-    """*v* where it is ``refused`` or ``absent``, the two words a ``missing:`` of a map takes."""
+    """*v* where it is ``refused`` or ``absent``, the two words a ``missing:`` of a mapping takes."""
     if v is None:
         raise _missing_null(kind, rewrite)
     if v not in get_args(RelationMissing):
@@ -289,8 +289,8 @@ class DimensionSpec(_StrictSpec):
     and what its coordinates are typed as. Which coordinates there are is data,
     and arrives when the data is attached; a ``one_of`` only names the labels a
     coordinate may have. The labels its members carry — a
-    generator's bus, a snapshot's period — are its ``maps:``
-    ([`MapSpec`][]).
+    generator's bus, a snapshot's period — are its ``mappings:``
+    ([`MappingSpec`][]).
     """
 
     _label: ClassVar[str] = 'a dimension entry'
@@ -301,7 +301,7 @@ class DimensionSpec(_StrictSpec):
         | None
     ) = None
     """The labels a ``str`` dimension allows, at least one and each once, sorted by name. At load, mathspec refuses a
-    condition that compares the dimension, or a map into it, with any other label.
+    condition that compares the dimension, or a mapping into it, with any other label.
     """
     ordered: bool = False
     """Whether the order in which the data gives the labels is part of the spec. An operator may step or count only along
@@ -309,7 +309,7 @@ class DimensionSpec(_StrictSpec):
     """
     over: Dims | None = None
     """The members of the dimension, each a dimension listed once. A label of the dimension is then one tuple of member
-    labels, and each member is a map of the dimension, read as ``dimension[member]``. Where a tuple holds two labels of
+    labels, and each member is a mapping of the dimension, read as ``dimension[member]``. Where a tuple holds two labels of
     one dimension, one member is an alias of it. The order of the members has no meaning.
     """
     missing: RelationMissing = 'absent'
@@ -318,13 +318,13 @@ class DimensionSpec(_StrictSpec):
     """
     alias: str | None = None
     """The dimension whose labels this one has, under a second name, so an entry can be over the same labels twice. It
-    takes that dimension's dtype, labels and order, and has the map ``<this>[<that>]`` from each label to itself.
+    takes that dimension's dtype, labels and order, and has the mapping ``<this>[<that>]`` from each label to itself.
     """
     description: str | None = None
 
     @property
     def members(self) -> tuple[tuple[str, str], ...]:
-        """``(member, dimension)`` per member, sorted by name, each a map named after its dimension; empty without ``over:``."""
+        """``(member, dimension)`` per member, sorted by name, each a mapping named after its dimension; empty without ``over:``."""
         return () if self.over is None else tuple((d, d) for d in sorted(self.over))
 
     @field_validator('over', mode='after')
@@ -942,8 +942,8 @@ class PiecewiseLinkSpec(_StrictSpec):
     sign]``, and serialised back to exactly that form, so a round trip through
     [`Spec.to_yaml`][] reproduces the file.
 
-    A link that names ``by: subject[map]`` reads the curve's weights
-    through the map, as ``at`` reads an array, and is written as a
+    A link that names ``by: subject[mapping]`` reads the curve's weights
+    through the mapping, as ``at`` reads an array, and is written as a
     mapping. Its row is the entry's ``dims:`` with the dims the lookup reads
     replaced by the key columns it arrives at, so one link emits a row per fine
     coordinate and each reads the curve of the coarse coordinate it maps to.
@@ -955,11 +955,11 @@ class PiecewiseLinkSpec(_StrictSpec):
     values: str
     sign: Sense = '=='
     by: str | None = None
-    """The subject and map that the link reads the weights of the curve at, as ``at(..., by=)`` names them."""
+    """The subject and mapping that the link reads the weights of the curve at, as ``at(..., by=)`` names them."""
 
     @property
     def walks(self) -> bool:
-        """Whether the link reads the curve's weights through a map, rather than on the entry's own dims."""
+        """Whether the link reads the curve's weights through a mapping, rather than on the entry's own dims."""
         return self.by is not None
 
     @model_validator(mode='before')
@@ -1028,7 +1028,7 @@ class PiecewiseSpec(_StrictSpec):
     weights per coordinate of it. ``where:`` says which of those coordinates
     have a curve, and how far each runs along ``along`` where it reads that
     dim too; ``activity:`` whether a curve that exists is switched on. A link
-    that walks a map builds a row per fine coordinate, each reading the
+    that walks a mapping builds a row per fine coordinate, each reading the
     one curve its coarse coordinate has, so how many expressions a curve ties
     is data.
     """
@@ -1051,7 +1051,7 @@ class PiecewiseSpec(_StrictSpec):
     activity: str | None = None
     """The variable that switches each curve off where it is 0, or no switch when the key is left out. A binary variable,
     or an integer one under ``method: incremental``, which from 1 up moves the curve by its point at the first breakpoint
-    once per unit above 1. Written as the name of the variable, or as ``at(<variable>, by=<subject>[<map>])``.
+    once per unit above 1. Written as the name of the variable, or as ``at(<variable>, by=<subject>[<mapping>])``.
     """
     description: str | None = None
 
@@ -1071,7 +1071,7 @@ class PiecewiseSpec(_StrictSpec):
             msg = (
                 'a piecewise entry declares dims:, the dimensions with one curve per coordinate, as a variable '
                 'declares its own. Write the dimensions its links are over, without any that a link adds through '
-                'a map: dims: [generator, snapshot] for a link on p over [generator, snapshot].'
+                'a mapping: dims: [generator, snapshot] for a link on p over [generator, snapshot].'
             )
             raise ValueError(msg)
         return data
@@ -1091,7 +1091,7 @@ class PiecewiseSpec(_StrictSpec):
         walked = [key for key, link in self.links.items() if link.walks]
         if walked and self.method in ('convex', 'lp'):
             msg = (
-                f"method: {self.method} does not take a link that walks a map (link '{walked[0]}'). "
+                f"method: {self.method} does not take a link that walks a mapping (link '{walked[0]}'). "
                 f'{_NO_WALK[self.method]} Use method: adjacency, sos2 or incremental.'
             )
             raise ValueError(msg)
@@ -1122,7 +1122,7 @@ class PiecewiseSpec(_StrictSpec):
         if len(v) < 2 and not any(link.walks for link in v.values()):
             msg = (
                 'piecewise needs at least two links ([expression, values, sign?]), or one link that walks a '
-                'map. One quantity on a curve is a bound, not a curve.'
+                'mapping. One quantity on a curve is a bound, not a curve.'
             )
             raise ValueError(msg)
         if all(link.sign != '==' for link in v.values()):
@@ -1213,8 +1213,8 @@ class Spec(_StrictSpec):
     given: GivenSpec = GivenSpec()
     """What this file uses and does not build ([`GivenSpec`][]). It is empty when the file has no ``given:``."""
     dimensions: ByName[DimensionSpec] = Frozen({})
-    maps: ByName[ByName[MapSpec]] = Frozen({})
-    """Each subject's maps, by subject, a dimension, and then by map ([`MapSpec`][])."""
+    mappings: ByName[ByName[MappingSpec]] = Frozen({})
+    """Each subject's mappings, by subject, a dimension, and then by mapping ([`MappingSpec`][])."""
     parameters: ByName[ParameterSpec] = Frozen({})
     conditions: ByName[ConditionSpec] = Frozen({})
     variables: ByName[VariableSpec] = Frozen({})
@@ -1407,28 +1407,28 @@ def labels_of(spec: Spec, name: str) -> DimensionSpec:
 
 
 def subject_tables(spec: Spec) -> dict[str, Relation]:
-    """Each table the data supplies, by name: a dimension with maps, or with members.
+    """Each table the data supplies, by name: a dimension with mappings, or with members.
 
     A dimension's table has one row per label, keyed by the dimension, and an
-    alias has the map to the dimension it aliases. Each map is a column of its
-    subject's table, and a map under ``missing: absent`` is listed as
+    alias has the mapping to the dimension it aliases. Each mapping is a column of its
+    subject's table, and a mapping under ``missing: absent`` is listed as
     [`partial`][mathspec.program.Relation.partial]. A dimension with members
-    has a table whether or not the file declares maps of it: each member is a
-    map that every label has, listed as [`members`][mathspec.program.Relation.members].
+    has a table whether or not the file declares mappings of it: each member is a
+    mapping that every label has, listed as [`members`][mathspec.program.Relation.members].
     A subject the file does not declare is left out, which the load refuses.
     """
     tables: dict[str, Relation] = {}
     tuples = {d: dd.members for d, dd in spec.dimensions.items() if dd.over}
     aliases = {name: d.alias for name, d in spec.dimensions.items() if d.alias in spec.dimensions}
-    for name in sorted({*spec.maps, *tuples, *aliases}):
+    for name in sorted({*spec.mappings, *tuples, *aliases}):
         if name not in spec.dimensions:
             continue
-        maps = spec.maps.get(name, Frozen({}))
+        mappings = spec.mappings.get(name, Frozen({}))
         if name in aliases:
-            maps = {aliases[name]: MapSpec(dim=aliases[name]), **maps}
+            mappings = {aliases[name]: MappingSpec(dim=aliases[name]), **mappings}
         members = tuples.get(name, ())
-        values = tuple(sorted((*members, *((role, m.dim) for role, m in maps.items()))))
-        partial = tuple(role for role, m in maps.items() if m.missing == 'absent')
+        values = tuple(sorted((*members, *((role, m.dim) for role, m in mappings.items()))))
+        partial = tuple(role for role, m in mappings.items() if m.missing == 'absent')
         tables[name] = Relation(
             ((name, name), *values), (name,), 'refused', None, partial, tuple(role for role, _ in members)
         )

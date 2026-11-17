@@ -6,7 +6,7 @@ SPDX-License-Identifier: CC-BY-4.0
 # Loads
 
 This [fragment](../../reference/glossary.md#fragment) states `Load` from an open-source power system framework ([PyPSA](https://pypsa.org)).
-The file declares the map `load[port]`, the parameter `Load_p_set` and the
+The file declares the mapping `load[port]`, the parameter `Load_p_set` and the
 constraint `Load_withdrawal`. The minus sign in front of `Load_p_set` is the
 only place where the file uses the sign convention of
 [the surface](surface.md).
@@ -23,7 +23,7 @@ dimensions:
   snapshot: { dtype: datetime, description: dispatch periods }
   port: { dtype: str, description: "the connections components make, one label per connection" }
   load: { dtype: str, description: "demands, each on one port" }
-maps:
+mappings:
   load: { port: { dim: port } }
 parameters:
   Load_p_set: { dims: [snapshot, load], description: "`Load-p_set` — what a load takes in a snapshot" }

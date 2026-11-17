@@ -22,7 +22,7 @@ data already has, and no label is invented.
 `balance` adds the imports of each region and commodity through the members
 `region` and `commodity` of each link. It sums the exports to each
 `from_region` and `from_commodity`, and reads those back onto `region` and
-`commodity` through the map of each alias.
+`commodity` through the mapping of each alias.
 
 The vintage and the timeslice of `IRE_FLO` are left out.
 

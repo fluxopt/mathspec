@@ -40,7 +40,7 @@ dimensions:
   connection: { over: [unit, port], description: the ports a unit has }
   active: { over: [unit, period], description: the periods a unit runs in }
 
-maps:
+mappings:
   connection:
     bus: { dim: bus, description: the bus a port feeds }
 
