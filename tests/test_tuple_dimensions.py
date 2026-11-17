@@ -275,6 +275,27 @@ def test_a_tuple_dimension_tests_membership_only_where_the_entry_has_every_membe
     assert 'outside the declared dims' in message
 
 
+_STEPPED = {'dimensions.span': {'over': ['unit', 'period']}, 'variables.out': {'dims': ['span']}}
+
+
+@pytest.mark.parametrize(
+    'patch',
+    [
+        pytest.param(_constraint('out - shift(out, along=period, offset=1) <= 1', ['span']), id='shift'),
+        pytest.param(_constraint('sum_back(out, along=period, window=2) <= 1', ['span']), id='sum-back'),
+        pytest.param(
+            {'constraints.probe': {'dims': ['span'], 'where': 'position(period) > 0', 'expression': 'out <= 1'}},
+            id='position',
+        ),
+    ],
+)
+def test_a_step_along_a_member_of_an_entry_over_the_tuple_names_the_flat_entry(patch):
+    """The entry is over the tuple, which has no order, so the rewrite is the entry over the members, confined by the tuple."""
+    message = _refusal(**_STEPPED, **patch)
+    assert "'period' is a member of 'span'" in message, message
+    assert "dims: ['period', 'unit'], with where: span" in message, message
+
+
 def test_a_condition_compares_a_member_label():
     spec = to_spec(varied(MODEL, **{'variables.flow.where': "connection[unit] == 'gas'"}))
     (atom,) = spec.program.variables['flow'].where.atoms

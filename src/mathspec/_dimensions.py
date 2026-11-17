@@ -169,14 +169,8 @@ def _check_translation(node: Translate | WindowSum, inner: frozenset[str], spec:
     """``shift`` and ``sum_back`` keep every dim, and a named amount and a partition are checked here."""
     verb = _VERBS[type(node)]
     if node.along not in inner:
-        raise DimensionError(
-            _not_carried(
-                context,
-                f'{verb}(along={node.along})',
-                inner,
-                f'Name a dimension the operand carries, or remove the {verb}',
-            )
-        )
+        rewrite = _step_member(node.along, inner, spec) or f'Name a dimension the operand carries, or remove the {verb}'
+        raise DimensionError(_not_carried(context, f'{verb}(along={node.along})', inner, rewrite))
     _check_named_amount(node, verb, inner, spec, context)
     if node.partition is not None:
         within = f'{node.partition.name}[{", ".join(node.partition.grouped)}]'
@@ -253,6 +247,20 @@ def _at_member(
             continue
         read = read or operand_over(operands, wanted, name)
         return f'{_one_dimension(wanted, name)}. Read the operand at each tuple: at({read}, by={name}[{columns}])'
+    return None
+
+
+def _step_member(along: str, frame: Iterable[str], spec: Spec) -> str | None:
+    """The rewrite for a step along *along*, a member of a dimension in *frame*, or ``None`` where it is no member.
+
+    A tuple has no order, so the step runs in an entry over the members,
+    confined to the tuples by the bare name of the dimension.
+    """
+    for name in sorted(frame):
+        members = sorted({dim for _, dim in spec.dimensions[name].members})
+        if along in members:
+            flat = sorted({*members, *frame} - {name})
+            return f'{_one_dimension([along], name)}. Declare the entry over dims: {flat}, with where: {name}'
     return None
 
 
@@ -473,8 +481,11 @@ def _check_condition_dims(mask: Mask | None, frame: frozenset[str], context: str
             case _:
                 assert_never(atom)
         read = atom.name if isinstance(atom, ParameterDefined | ParameterComparison | VariableDefined) else None
+        stepped = _step_member(atom.name, frame, spec) if isinstance(atom, DimensionPosition) else None
         rewrite = (
-            _at_member(outside, frame, spec, read=read) or 'Add them to dims:, or test a name over the declared dims'
+            stepped
+            or _at_member(outside, frame, spec, read=read)
+            or 'Add them to dims:, or test a name over the declared dims'
         )
         raise DimensionError(
             f'{context}: {leaf} reads dims {outside} outside the declared dims {sorted(frame)}. {rewrite}.'

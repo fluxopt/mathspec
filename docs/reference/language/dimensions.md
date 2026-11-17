@@ -353,18 +353,16 @@ $`\subseteq`$. mathspec refuses `missing:` on a dimension without `over:`.
 
 ### The data contract
 
-With data attached, the labels of `connection` are one column whose values
-have one field per member, named after the member: `{unit: u1, port: out}`.
-The [maps of the members](#the-maps-of-the-dimension) take their labels from
-these fields, so a tool reads no column of the table of the dimension for
-them. A tool requires three things of the column:
+With data attached, a label of `connection` is one tuple with one field per
+member, named after the member: `{unit: u1, port: out}`. A tool or a data store
+chooses how it stores the tuples: one column of records, or one column per
+member. Either form gives the same labels, so the choice changes no spec. The
+[maps of the members](#the-maps-of-the-dimension) take their labels from the
+fields. A tool requires three things of the tuples:
 
 - Each tuple appears once.
 - Every field is a label of its dimension.
 - Under `missing: refused`, every combination of member labels appears.
-
-mathspec declares no type for the tuple, so a tool may store the label in any
-form that keeps the fields.
 
 ## `alias`
 
