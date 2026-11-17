@@ -12,6 +12,7 @@ it releases that version ([RELEASING.md](https://github.com/energy-models/mathsp
 
 ## Upcoming version
 
+- feat(language): a dimension lists its members, strictly ([#9](https://github.com/fluxopt/mathspec/pull/9))
 - feat(language): a dimension lists its members ([#1017](https://github.com/energy-models/mathspec/pull/1017))
 - feat(language): a dimension may alias another's labels ([#1020](https://github.com/energy-models/mathspec/pull/1020))
 - feat(language)!: maps give labels, relations give rows ([#1015](https://github.com/energy-models/mathspec/pull/1015))
