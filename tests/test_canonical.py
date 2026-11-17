@@ -252,9 +252,9 @@ def test_the_order_a_macro_lists_its_keywords_in_is_no_difference():
         pytest.param(
             raw_of(EXAMPLES / 'operators' / 'sum_by_column_lists.yaml'),
             'constraints.slot_cap.expression',
-            'sum(p, over=[generator, period], by=slot_of[bus, technology]) <= cap',
-            'sum(p, over=[generator, period], by=slot_of[technology, bus]) <= cap',
-            id='the-columns-of-a-relation',
+            'sum(at(p, by=slot_of[generator, period]), over=slot_of, by=slot_of[bus, technology]) <= cap',
+            'sum(at(p, by=slot_of[period, generator]), over=slot_of, by=slot_of[technology, bus]) <= cap',
+            id='the-maps-of-a-tuple-dimension',
         ),
         pytest.param(
             DISPATCH_MODEL,

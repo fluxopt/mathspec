@@ -47,13 +47,14 @@ def unordered(context: str, construct: str, dimension: str, members: Iterable[tu
     """The refusal for *construct* reading the order of *dimension*, which is not declared ordered.
 
     A dimension with *members*, each a ``(role, dimension)``, cannot be
-    declared ordered, so its rewrite is the entry over the members.
+    declared ordered, so its rewrite is the entry over the members, confined
+    to the tuples by the bare name of the dimension.
     """
     if over := sorted({dim for _, dim in members}):
         return (
             f"{context}: {construct} reads the order of '{dimension}', which lists its members and so has no "
-            f'order. Declare the entry over {over}, with `where:` a relation that lists the tuples, and step '
-            f'along a member that is declared ordered.'
+            f'order. Declare the entry over {over}, with `where: {dimension}`, and step along a member that is '
+            f'declared ordered.'
         )
     return (
         f"{context}: {construct} reads the order of '{dimension}', which is not declared ordered, so the "

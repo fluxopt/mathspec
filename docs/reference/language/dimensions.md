@@ -268,7 +268,7 @@ With `site: { over: [unit, bus] }` and `dims: [connection, site, snapshot]`,
 mathspec prints:
 
 ```text
-Variable 'flow': 'connection' and 'site' in dims: share the member 'unit', so the entry would be indexed by 'unit' twice. Keep 'connection' in dims:, list ['bus'] beside it, and confine the entry with where: "at(<relation>, by=connection[unit])", where <relation> is a relation over ['bus', 'unit'] that lists the tuples of 'site'. Or declare an alias of 'unit', such as from_unit: {alias: unit}, and list it in 'site' in place of 'unit', so the members differ.
+Variable 'flow': 'connection' and 'site' in dims: share the member 'unit', so the entry would be indexed by 'unit' twice. Keep 'connection' in dims:, list ['bus'] beside it, and confine the entry with where: "at(site, by=connection[unit])". Or declare an alias of 'unit', such as from_unit: {alias: unit}, and list it in 'site' in place of 'unit', so the members differ.
 ```
 
 With `dims: [connection, unit, snapshot]`, mathspec prints:
@@ -297,20 +297,46 @@ tuple that the dimension does not list. A
 
 At load, mathspec also refuses each of these, and prints the rewrite:
 
-| Refused                                                                                  | What you write instead                                                    |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| a member that has members of its own                                                     | the members themselves, in one list                                       |
-| a dimension twice, as in `over: [region, region]`                                        | an [alias](#alias) of the dimension as one of the members                 |
-| `ordered: true`, `dtype:` or `one_of:` beside `over:`                                    | the key on a member                                                       |
-| `shift`, `sum_back`, `position`, `piecewise:` or `sos:` of `type: 2` along the dimension | an entry over the members, with `where:` a relation that lists the tuples |
-| a comparison of the dimension with a label, as in `connection == 'a'`                    | a comparison of a member, as in `connection[unit] == 'u1'`                |
-| two dimensions in one `dims:` that share a member, or a dimension beside its own member  | [one of the two, and a `where:`, or an alias](#each-member-once-in-dims)  |
+| Refused                                                                                  | What you write instead                                                   |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| a member that has members of its own                                                     | the members themselves, in one list                                      |
+| a dimension twice, as in `over: [region, region]`                                        | an [alias](#alias) of the dimension as one of the members                |
+| `ordered: true`, `dtype:` or `one_of:` beside `over:`                                    | the key on a member                                                      |
+| `shift`, `sum_back`, `position`, `piecewise:` or `sos:` of `type: 2` along the dimension | an entry over the members, with `where:` the bare name of the dimension  |
+| a comparison of the dimension with a label, as in `connection == 'a'`                    | a comparison of a member, as in `connection[unit] == 'u1'`               |
+| two dimensions in one `dims:` that share a member, or a dimension beside its own member  | [one of the two, and a `where:`, or an alias](#each-member-once-in-dims) |
 
-A set of tuples with an ordered member, such as the periods in which each unit
-is active, therefore stays a [bare relation](relations.md) over `unit` and
-`period`. An entry over `unit` and `period` uses it as `where: active`, and an
-entry over `connection` and `period` reads it as
-`where: "at(active, by=connection[unit])"`.
+### The bare name in a condition
+
+The bare name of a dimension with members is true where the frame's member
+labels form a tuple that the dimension lists. The entry must be over every
+member, each as a plain dimension. A set of tuples with an ordered member,
+such as the periods in which each unit is active, is a dimension that an entry
+over its members tests:
+
+```yaml
+dimensions:
+  active: { over: [unit, period] }
+variables:
+  output: { dims: [unit, period], where: active }
+constraints:
+  ramp_up:
+    dims: [unit, period]
+    where: active
+    expression: output - shift(output, along=period, offset=1) <= ramp
+```
+
+`output` has a column at each unit and period that `active` lists, and
+`ramp_up` steps along the ordered member `period`. The typeset condition is
+$`(p, u) \in \mathrm{active}`$, the tuple of the member indices. An entry over `connection` and
+`period` reads the set through a member: `where: "at(active, by=connection[unit])"`.
+
+The test aligns nothing by name. An entry over `[unit]`, or over `[active]`,
+does not have every member, so mathspec refuses `where: active` there:
+
+```text
+Variable 'built': where-relation 'active' reads dims ['period'] outside the declared dims ['unit']. Add them to dims:, or test a name over the declared dims.
+```
 
 ### `missing`
 

@@ -18,7 +18,7 @@ from mathspec import merge, override, rename, to_spec
 from mathspec._advising import advice
 from mathspec._typesetting import FORMATS, typeset
 from mathspec.errors import LanguageError
-from mathspec.program import JoinedCondition, Relation, RelationComparison
+from mathspec.program import JoinedCondition, Relation, RelationComparison, RelationDefined
 from tests.fixtures import varied
 
 #: The example of #1011: `connection` lists (unit, port) pairs and maps each to a
@@ -200,6 +200,79 @@ def test_a_member_is_read_as_a_map_of_the_dimension(expression, dims):
 def test_a_frame_over_the_dimension_and_its_member_is_refused(patch):
     """Rule 11 of #1011 read these as the cross product; a later reading by member name would read them as a join."""
     assert "'connection' and 'unit' in dims: share the member 'unit'" in _refusal(**patch)
+
+
+_SPAN = {'dimensions.span': {'over': ['unit', 'period']}}
+
+
+@pytest.mark.parametrize(
+    ('patch', 'read'),
+    [
+        pytest.param(
+            {'variables.built': {'dims': ['unit', 'period'], 'where': 'span'}},
+            lambda spec: spec.program.variables['built'].where,
+            id='a-variable-where',
+        ),
+        pytest.param(
+            {'parameters.cost': {'dims': ['period', 'unit'], 'where': 'span'}},
+            lambda spec: spec.program.parameters['cost'].where,
+            id='a-parameter-where',
+        ),
+        pytest.param(
+            {
+                'variables.built': {'dims': ['unit', 'period']},
+                'constraints.probe': {'dims': ['unit', 'period'], 'expression': 'built >= 0', 'where': 'span'},
+            },
+            lambda spec: spec.program.constraints['probe'].where,
+            id='a-constraint-where',
+        ),
+        pytest.param(
+            {'conditions.on': 'span', 'variables.built': {'dims': ['unit', 'period'], 'where': 'on'}},
+            lambda spec: spec.program.variables['built'].where,
+            id='a-named-condition',
+        ),
+    ],
+)
+def test_a_tuple_dimension_tests_membership_on_an_entry_over_every_member(patch, read):
+    """The bare name keeps the rows whose member labels the dimension lists; it aligns nothing by name."""
+    spec = to_spec(varied(MODEL, **_SPAN, **patch))
+    assert read(spec).atoms == (RelationDefined('span', ('period', 'unit')),), 'a test of the member tuple'
+
+
+@pytest.mark.parametrize('fmt', FORMATS)
+def test_a_membership_test_prints_the_member_indices(fmt):
+    """It prints as the bare relation over the same members does, not at an index of the dimension."""
+    patch = {
+        'variables.built': {'dims': ['unit', 'period'], 'where': 'span'},
+        'variables.kept': {'dims': ['unit', 'period'], 'where': 'active'},
+    }
+    text = typeset(to_spec(varied(MODEL, **_SPAN, **patch)), fmt)
+    name = r'upright("%s")' if fmt == 'typst' else r'\mathrm{%s}'
+    line = next(line for line in text.splitlines() if 'built' in line and name % 'span' in line)
+    condition = line[line.index('forall') :]
+    assert condition.replace(name % 'span', name % 'active') in text, condition
+
+
+def test_a_tuple_dimension_tests_membership_in_a_case():
+    case = {'when': 'span', 'expression': 'capacity'}
+    named = {'dims': ['unit', 'period'], 'cases': {'on': case}, 'otherwise': '0'}
+    spec = to_spec(varied(MODEL, **_SPAN, **{'expressions.e': named}))
+    expression = repr(spec.program.expressions['e'].expression)
+    assert repr(RelationDefined('span', ('period', 'unit'))) in expression, 'the case tests the member tuple'
+
+
+@pytest.mark.parametrize(
+    'patch',
+    [
+        pytest.param({'variables.built': {'dims': ['unit'], 'where': 'span'}}, id='a-member-missing'),
+        pytest.param({'variables.built': {'dims': ['span'], 'where': 'span'}}, id='over-the-dimension-itself'),
+        pytest.param({'variables.built': {'dims': ['unit', 'snapshot'], 'where': 'span'}}, id='a-member-replaced'),
+    ],
+)
+def test_a_tuple_dimension_tests_membership_only_where_the_entry_has_every_member(patch):
+    message = _refusal(**_SPAN, **patch)
+    assert "where-relation 'span' reads dims" in message, message
+    assert 'outside the declared dims' in message
 
 
 def test_a_condition_compares_a_member_label():
@@ -464,7 +537,7 @@ def test_a_sparse_set_with_an_ordered_member_is_read_at_a_tuple():
         ),
         pytest.param(
             {'variables.flow.where': 'connection'},
-            ('a bare dimension name is true at every coordinate', 'where: "connection[port] == \'...\'"'),
+            ("where-relation 'connection' reads dims ['port', 'unit'] outside the declared dims",),
             id='a-bare-dimension-with-members',
         ),
         pytest.param(

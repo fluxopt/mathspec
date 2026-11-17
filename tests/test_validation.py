@@ -3566,7 +3566,7 @@ _SHARED_MEMBER: dict[str, Any] = {
             {'variables.pair': {'dims': ['connection', 'site']}},
             (
                 "Variable 'pair': 'connection' and 'site' in dims: share the member 'unit'",
-                'where: "at(<relation>, by=connection[unit])"',
+                'where: "at(site, by=connection[unit])"',
                 "declare an alias of 'unit'",
             ),
             id='two-tuple-dimensions-in-a-variable',
@@ -3611,3 +3611,10 @@ def test_a_member_shared_by_two_dimensions_of_one_frame_is_refused(patch, fragme
     message = _refusal(_SHARED_MEMBER, **patch)
     for fragment in fragments:
         assert fragment in message
+
+
+def test_the_rewrite_of_a_shared_member_loads():
+    """The entry keeps one dimension and reads the other as a condition through the shared member."""
+    rewrite = {'dims': ['connection', 'bus'], 'where': 'at(site, by=connection[unit])'}
+    spec = to_spec(varied(_SHARED_MEMBER, **{'variables.pair': rewrite}))
+    assert spec.program.variables['pair'].where.dims == ('bus', 'connection'), 'the where stays on the frame'

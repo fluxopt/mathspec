@@ -408,8 +408,8 @@ The typesetter prints each form from the smallest spec that uses it.
 | `sum(array, over=dim)` | $`\sum_{g \in \mathcal{G}} p_{g,t} \le \mathrm{limit}_{t} \qquad \forall\, t \in \mathcal{T}`$ |
 | `sum(array, over=[a, …])` | $`\sum_{g \in \mathcal{G},\ t \in \mathcal{T}} p_{c,g,t} \le \mathrm{limit}_{c} \qquad \forall\, c \in \mathcal{C}`$ |
 | `sum(array, over=dim, by=subject[m])` | $`\sum_{g \in \mathcal{G} \,:\, \mathrm{bus}(g) = b} p_{g,t} \le \mathrm{limit}_{b,t} \qquad \forall\, b \in \mathcal{B},\ t \in \mathcal{T}`$ |
-| `sum(array, over=dim, by=subject[m]), joining on the rest of the key` | $`\sum_{g \in \mathcal{G} \,:\, \mathrm{zone}(g,\ e) = z} p_{g,e} \ge \mathrm{demand}_{e,z} \qquad \forall\, e \in \mathcal{E},\ z \in \mathcal{Z}`$ |
-| `sum(array, over=[dim, …], by=subject[m, …])` | $`\sum_{g \in \mathcal{G},\ e \in \mathcal{E} \,:\, \mathrm{bus}(g,\ e) = b \wedge \mathrm{technology}(g,\ e) = t} p_{g,e} \le \mathrm{cap}_{b,t} \qquad \forall\, b \in \mathcal{B},\ t \in \mathcal{T}`$ |
+| `sum(array, over=dim, by=subject[m]), joining on the rest of the key` | $`\sum_{o \in \mathcal{O} \,:\, \mathrm{period}(o) = e \wedge \mathrm{zone}(o) = z} p_{\mathrm{generator}(o),\mathrm{period}(o)} \ge \mathrm{demand}_{e,z} \qquad \forall\, e \in \mathcal{E},\ z \in \mathcal{Z}`$ |
+| `sum(array, over=[dim, …], by=subject[m, …])` | $`\sum_{s \in \mathcal{S} \,:\, \mathrm{bus}(s) = b \wedge \mathrm{technology}(s) = t} p_{\mathrm{generator}(s),\mathrm{period}(s)} \le \mathrm{cap}_{b,t} \qquad \forall\, b \in \mathcal{B},\ t \in \mathcal{T}`$ |
 | `at(array, by=subject[m])` | $`p_{t} \le \mathrm{cap}_{\mathrm{period}(t)} \qquad \forall\, t \in \mathcal{T}`$ |
 | `at(array, by=subject[m]), two maps into one dimension` | $`f_{l} \le \mathrm{cap}_{\mathrm{bus0}(l)} \qquad \forall\, l \in \mathcal{L}`$ |
 | `shift(array, along=dim, offset=n)` | $`p_{t} \le p_{t - 1} \qquad \forall\, t \in \mathcal{T}`$ |

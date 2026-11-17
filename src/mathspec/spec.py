@@ -421,7 +421,7 @@ class DimensionSpec(_StrictSpec):
         if self.ordered:
             raise ValueError(
                 f'`ordered: true` is on a dimension with `over:`, and a tuple of member labels has no order. '
-                f'Declare the entry that steps over {members}, with `where:` a relation that lists the tuples, and '
+                f'Declare the entry that steps over {members}, with `where:` the bare name of this dimension, and '
                 f'declare the member it steps along `ordered: true`.'
             )
         for key in ('dtype', 'one_of'):

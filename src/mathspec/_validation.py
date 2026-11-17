@@ -224,9 +224,8 @@ def _shared_members(kind: str, name: str, dims: Iterable[str], spec: Spec) -> It
         rest = sorted({dim for _, dim in spec.dimensions[other].members} - {member})
         yield (
             f"{head}, so the entry would be indexed by '{member}' twice. Keep '{one}' in dims:, list {rest} "
-            f'beside it, and confine the entry with where: "at(<relation>, by={one}[{member}])", where '
-            f"<relation> is a relation over {sorted({member, *rest})} that lists the tuples of '{other}'. Or "
-            f"{alias}, and list it in '{other}' in place of {member!r}, so the members differ."
+            f'beside it, and confine the entry with where: "at({other}, by={one}[{member}])". Or {alias}, and '
+            f"list it in '{other}' in place of {member!r}, so the members differ."
         )
 
 

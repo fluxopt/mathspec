@@ -172,12 +172,12 @@ class ConditionResolver:
                     return node
                 return ParameterDefined(node.name, ns.leaf_dims[node.name])
             case 'dimension':
-                members = ns.spec.dimensions[node.name].members
-                compared = f"{node.name}[{members[0][0]}] == '...'" if members else f'{node.name} > 0'
+                if members := ns.spec.dimensions[node.name].members:
+                    return RelationDefined(node.name, tuple(sorted(dim for _, dim in members)))
                 self.errors.append(
                     f"{context}: '{node.name}' is a dimension, and a bare dimension "
                     f'name is true at every coordinate. '
-                    f'Remove it, or compare it: where: "{compared}".'
+                    f'Remove it, or compare it: where: "{node.name} > 0".'
                 )
             case 'relation':
                 shape = ns.relations[node.name]
