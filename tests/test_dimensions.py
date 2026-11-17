@@ -673,13 +673,17 @@ EVERY_SPEC = [
 
 
 def _derived(node: Expression, spec: Spec) -> frozenset[str]:
-    """The dims of *node* by the rules of the language reference, derived from the spec without reading ``dims``."""
+    """The dims of *node* by the rules of the language reference, derived from the entries without reading ``dims``.
+
+    An entry over members its file reads by name is over them in the program, so a leaf takes the program entry's dims.
+    """
     if isinstance(node, Constant):
         return frozenset()
     if isinstance(node, ParameterReference):
-        return frozenset({**spec.parameters, **spec.given.parameters}[node.name].dims)
+        return frozenset({**spec.given.parameters, **spec.program.parameters}[node.name].dims)
     if isinstance(node, VariableReference):
-        return frozenset({**spec.variables, **spec.given.variables, **spec.given.expressions}[node.name].dims or ())
+        declared = {**spec.given.variables, **spec.given.expressions, **spec.program.variables}
+        return frozenset(declared[node.name].dims or ())
     if isinstance(node, Dual):
         return frozenset({**spec.constraints, **spec.given.constraints}[node.constraint].dims)
     if isinstance(node, ExpressionReference):

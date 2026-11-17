@@ -12,6 +12,7 @@ it releases that version ([RELEASING.md](https://github.com/energy-models/mathsp
 
 ## Upcoming version
 
+- feat(language): a dimension's members are read by name ([#8](https://github.com/fluxopt/mathspec/pull/8))
 - feat(language)!: a dimension lists its members, strictly ([#9](https://github.com/fluxopt/mathspec/pull/9))
   - Breaks a file: `relations:` is gone. A set of combinations of labels is a dimension with `over:`, read through its members with `at()` and tested by its bare name in a `where:`. A dimension twice in a relation is an alias member.
 - feat(language): a dimension lists its members ([#1017](https://github.com/energy-models/mathspec/pull/1017))

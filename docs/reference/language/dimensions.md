@@ -242,54 +242,50 @@ mathspec refuses a declared mapping with the name of a member. With
 mappings: 'connection': mapping 'unit' has the name of a member of 'connection', which already gives each tuple its label of 'unit'. Read the member as connection[unit], or rename the mapping.
 ```
 
-### One dimension in every operator
+### Members by name
 
-A dimension with members is one dimension wherever a `dims:` list or an
-operator names it. mathspec does not align an entry over a member with an
-entry over the dimension. With `flow <= capacity` in `limit` above, mathspec
-prints:
+A member is a dimension of its own, so an entry may name it where it means the
+dimension that lists it. mathspec reads the name as the call through the
+dimension that it stands for, and builds the same program. With `flow` over
+`[connection, snapshot]`, `capacity` over `[unit]` and `active` over
+`[unit, period]`:
 
-```text
-Constraint 'limit': an operand over ['unit'] meets one over 'connection'. 'unit' is a member of 'connection', which is one dimension here. Read the operand at each tuple: at(capacity, by=connection[unit]), or sum flow to the member: sum(flow, over=connection, by=connection[unit]).
-```
+| Written                                                                   | Read as                                                                |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `flow <= capacity`                                                        | `flow <= at(capacity, by=connection[unit])`                            |
+| `sum(flow, over=port)`                                                    | `sum(flow, over=connection, by=connection[unit])`                      |
+| `sum(flow, over=[port, unit])`                                            | `sum(flow, over=connection)`                                           |
+| `dims: [active, connection, snapshot]`                                    | `dims: [period, port, snapshot, unit]`, `where: active AND connection` |
+| `output: { dims: [active] }`, and `shift(output, along=period, offset=1)` | `output: { dims: [period, unit], where: active }`                      |
 
-mathspec suggests the lookup through the mapping of the member, or the sum
-of `flow` to the member. The same refusal applies wherever the two operands
-meet: in a product, in a sum, and in the objective, as in
-`sum(flow * capacity)`, in an [assumption](assumptions.md), and in the
-`where:` of a `piecewise:` entry.
+The first three rows read one operand through the dimension:
 
-### Each member once in `dims:`
+- An operand over a member meets an operand over the dimension in a product,
+  a sum, a comparison, the objective, a condition or an
+  [assumption](assumptions.md), and mathspec reads it at each tuple.
+- A `sum` over members of a dimension that its operand is over sums over the
+  dimension, grouped by the members that `over=` leaves.
 
-A tool may store a dimension with members as the columns of its members. So a
-`dims:` list reaches each member once. mathspec refuses two dimensions in one
-`dims:` that share a member, and a dimension beside one of its own members.
-With `site: { over: [unit, bus] }` and `dims: [connection, site, snapshot]`,
-mathspec prints:
+The last two rows read the entry over the members:
 
-```text
-Variable 'flow': 'connection' and 'site' in dims: share the member 'unit', so the entry would be indexed by 'unit' twice. Keep 'connection' in dims:, list ['bus'] beside it, and confine the entry with where: "at(site, by=connection[unit])". Or declare an alias of 'unit', such as from_unit: {alias: unit}, and list it in 'site' in place of 'unit', so the members differ.
-```
+- Two dimensions in one `dims:` that share a member, or a dimension beside one
+  of its own members, make the entry over the members, each once. The entry is
+  confined to the tuples that every dimension lists, by a `where:` that names
+  them.
+- A `shift`, `sum_back` or `position` along a member makes the entry it steps
+  in, and the entry it steps, over the members, with `where:` the dimension.
+  The dimension has no order, and the member can have one.
 
-With `dims: [connection, unit, snapshot]`, mathspec prints:
+An entry over the members reads an operand over the dimension at the members,
+as `sum(flow, over=connection, by=connection[port, unit])` does. An entry over
+the dimension reads an entry over the members at each tuple, as
+`at(output, by=active[period, unit])` does.
 
-```text
-Variable 'flow': 'connection' and 'unit' in dims: share the member 'unit', so the entry would be indexed by 'unit' twice. Delete 'unit' from dims: and read it as connection[unit], or declare an alias of 'unit', such as from_unit: {alias: unit}, and list it in place of 'unit'.
-```
-
-The refusal applies to every `dims:` list: a parameter, a variable, a
-constraint, a named expression, a given entry and a `piecewise:` entry. A
-different unit at each connection is an alias of `unit`, which is a member of
-its own.
-
-A sum over a member is refused the same way. With `sum(flow, over=unit)`,
-mathspec prints:
-
-```text
-Constraint 'balance': sum(over=unit) but the expression has only the dims ['connection', 'snapshot']. 'unit' is a member of 'connection', which is one dimension here. Write sum(..., over=connection, by=connection[port]).
-```
-
-mathspec suggests the sum over the dimension, grouped by the other member.
+A parameter over two dimensions that share a member differs in one way from
+its spelling with `where:`. A tool refuses a data row outside the tuples that
+both list, where it drops a row outside a `where:`. The program holds those
+tuples as the
+[`domain`](../program.md#mathspec.program.Parameter.domain) of the parameter.
 
 A `dims:` list is the domain of an entry, so a tool refuses a data row at a
 tuple that the dimension does not list. A
@@ -297,14 +293,14 @@ tuple that the dimension does not list. A
 
 At load, mathspec also refuses each of these, and prints the rewrite:
 
-| Refused                                                                                  | What you write instead                                                   |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| a member that has members of its own                                                     | the members themselves, in one list                                      |
-| a dimension twice, as in `over: [region, region]`                                        | an [alias](#alias) of the dimension as one of the members                |
-| `ordered: true`, `dtype:` or `one_of:` beside `over:`                                    | the key on a member                                                      |
-| `shift`, `sum_back`, `position`, `piecewise:` or `sos:` of `type: 2` along the dimension | an entry over the members, with `where:` the bare name of the dimension  |
-| a comparison of the dimension with a label, as in `connection == 'a'`                    | a comparison of a member, as in `connection[unit] == 'u1'`               |
-| two dimensions in one `dims:` that share a member, or a dimension beside its own member  | [one of the two, and a `where:`, or an alias](#each-member-once-in-dims) |
+| Refused                                                                                  | What you write instead                                                            |
+| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| a member that has members of its own                                                     | the members themselves, in one list                                               |
+| a dimension twice, as in `over: [region, region]`                                        | an [alias](#alias) of the dimension as one of the members                         |
+| `ordered: true`, `dtype:` or `one_of:` beside `over:`                                    | the key on a member                                                               |
+| `shift`, `sum_back`, `position`, `piecewise:` or `sos:` of `type: 2` along the dimension | a step along a member, which [reads the entry over the members](#members-by-name) |
+| a comparison of the dimension with a label, as in `connection == 'a'`                    | a comparison of a member, as in `connection[unit] == 'u1'`                        |
+| two dimensions in the `dims:` of a `piecewise:` entry that share a member                | the members themselves in `dims:`, and a `where:` that names the dimensions       |
 
 ### The bare name in a condition
 

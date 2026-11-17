@@ -43,7 +43,7 @@ expressions:
     dims: [connection, snapshot]
     cases:
       draws: { when: "connection[role] == 'input'", expression: "-at(flow, by=connection[unit])" }
-    otherwise: efficiency * at(flow, by=connection[unit])
+    otherwise: efficiency * flow
 
 constraints:
   balance:

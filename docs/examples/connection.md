@@ -18,7 +18,8 @@ the bus, so two ports of one unit may attach to the same bus.
 [`where:`](../reference/language/parameters-variables-constraints.md#where)
 keeps only the output ports, and `missing: 1` applies only there. At an input
 port, `injection` takes its case, and elsewhere `efficiency` times the flow of
-the unit, read with `at`. The sum in `balance` adds each connection to the bus
+the unit, read at each connection
+[by member name](../reference/language/dimensions.md#members-by-name). The sum in `balance` adds each connection to the bus
 it attaches to.
 
 <!-- gallery:begin -->
@@ -64,7 +65,7 @@ expressions:
     dims: [connection, snapshot]
     cases:
       draws: { when: "connection[role] == 'input'", expression: "-at(flow, by=connection[unit])" }
-    otherwise: efficiency * at(flow, by=connection[unit])
+    otherwise: efficiency * flow
 
 constraints:
   balance:

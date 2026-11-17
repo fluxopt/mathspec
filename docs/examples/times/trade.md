@@ -19,8 +19,10 @@ as TIMES' `TOP_IRE` does, each a tuple of its five members, and `ire_flo`,
 exist is refused. The data of `ire_flo` has the five columns that the TIMES
 data already has, and no label is invented.
 
-`balance` adds the imports of each region and commodity through the members
-`region` and `commodity` of each link. It sums the exports to each
+`balance` adds the imports of each region and commodity: it sums over the
+other three members of each link, which
+[groups by the two it leaves](../../reference/language/dimensions.md#members-by-name).
+It sums the exports to each
 `from_region` and `from_commodity`, and reads those back onto `region` and
 `commodity` through the mapping of each alias.
 
@@ -66,9 +68,9 @@ constraints:
     dims: [commodity, region]
     expression: >-
       supply
-      + sum(ire_flo * export, over=top_ire, by=top_ire[commodity, region])
-      - sum(sum(sum(export, over=top_ire, by=top_ire[from_commodity, from_region]),
-        over=from_region, by=from_region[region]), over=from_commodity, by=from_commodity[commodity])
+      + sum(ire_flo * export, over=[from_commodity, from_region, process])
+      - sum(sum(sum(export, over=[commodity, process, region]), over=from_region, by=from_region[region]),
+        over=from_commodity, by=from_commodity[commodity])
       >= demand
 
 objective:

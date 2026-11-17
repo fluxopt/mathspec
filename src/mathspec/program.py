@@ -753,6 +753,10 @@ class Parameter:
     ``dims``. Where the condition is false, the parameter is absent and a tool drops its rows of data there. ``missing``
     applies where the condition is true.
     """
+    domain: Mask | None = None
+    """The tuples of the dimensions with members that the file lists in ``dims:``, where the program reads the parameter
+    over their members, or ``None``. A tool refuses a row of data outside them, where it drops a row outside ``where``.
+    """
 
 
 @dataclass(frozen=True)

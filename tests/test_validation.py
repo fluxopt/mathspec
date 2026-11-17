@@ -3311,28 +3311,6 @@ _SHARED_MEMBER: dict[str, Any] = {
     ('patch', 'fragments'),
     [
         pytest.param(
-            {'variables.pair': {'dims': ['connection', 'site']}},
-            (
-                "Variable 'pair': 'connection' and 'site' in dims: share the member 'unit'",
-                'where: "at(site, by=connection[unit])"',
-                "declare an alias of 'unit'",
-            ),
-            id='two-tuple-dimensions-in-a-variable',
-        ),
-        pytest.param(
-            {'constraints.pair': {'dims': ['connection', 'site'], 'expression': 'flow >= 0'}},
-            ("Constraint 'pair': 'connection' and 'site' in dims: share the member 'unit'",),
-            id='two-tuple-dimensions-in-a-constraint',
-        ),
-        pytest.param(
-            {'parameters.rating': {'dims': ['connection', 'unit']}},
-            (
-                "Parameter 'rating': 'connection' and 'unit' in dims: share the member 'unit'",
-                'read it as connection[unit]',
-            ),
-            id='a-tuple-dimension-beside-its-own-member',
-        ),
-        pytest.param(
             {
                 'dimensions.period': {'dtype': 'int', 'ordered': True},
                 'parameters.xs': {'dims': ['period']},

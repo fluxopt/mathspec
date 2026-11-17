@@ -19,10 +19,12 @@ the sets in one way:
 
 `connection` is a dimension whose labels are the pairs of a unit and a port.
 `efficiency` and `flow` are over it, so `missing: 1` fills only the ports it
-lists, and a data row for a port it does not list is refused. `active` is a
-dimension over `unit` and `period`. `output` is over both members, and
-`where: active` keeps the pairs that `active` lists, so `ramp_up` can step
-along the ordered member `period`.
+lists, and a data row for a port it does not list is refused. `port_limit`
+reads `capacity` at the unit of each connection, and `split` sums over `port`,
+both [by member name](../reference/language/dimensions.md#members-by-name).
+`active` is a dimension over `unit` and `period`, and `output` is over it.
+`ramp_up` steps `output` along the ordered member `period`, so mathspec reads
+`output` over `unit` and `period`, confined to the pairs that `active` lists.
 [#1019](https://github.com/energy-models/mathspec/issues/1019) compares how
 three designs for sparse sets write this spec.
 
@@ -51,18 +53,18 @@ parameters:
   load: { dims: [bus, period], description: demand to be met }
 
 variables:
-  output: { dims: [unit, period], where: active, bounds: { lower: 0 }, description: what a unit produces }
+  output: { dims: [active], bounds: { lower: 0 }, description: what a unit produces }
   flow: { dims: [connection, period], bounds: { lower: 0 }, description: what a port takes of it }
 
 constraints:
   port_limit:
     description: a port takes no more than the unit's capacity
     dims: [connection, period]
-    expression: flow <= at(capacity, by=connection[unit])
+    expression: flow <= capacity
   split:
     description: the ports of a unit take what it produces
     dims: [unit, period]
-    expression: sum(flow, over=connection, by=connection[unit]) == output
+    expression: sum(flow, over=port) == output
   ramp_up:
     description: output rises by at most the ramp from one active period to the next
     dims: [unit, period]
