@@ -47,7 +47,6 @@ MODEL: dict[str, Any] = {
     'variables': {
         'flow': {'dims': ['connection', 'snapshot'], 'bounds': {'lower': 0}},
         'shipped': {'dims': ['trade'], 'bounds': {'lower': 0}},
-        'both': {'dims': ['connection', 'unit']},
     },
     'constraints': {
         'limit': {'dims': ['connection', 'snapshot'], 'expression': 'flow <= at(capacity, by=connection[unit])'},
@@ -119,7 +118,6 @@ def test_missing_says_whether_the_full_product_is_required(missing):
             'sum(flow, over=connection, by=connection[port]) >= 0', ['port', 'snapshot'], id='sum-to-a-member'
         ),
         pytest.param('sum(flow, over=connection) >= 0', ['snapshot'], id='sum-the-tuples-away'),
-        pytest.param('both <= capacity', ['connection', 'unit'], id='an-entry-over-the-dimension-and-a-member'),
     ],
 )
 def test_a_member_is_read_as_a_map_of_the_dimension(expression, dims):
@@ -136,15 +134,23 @@ def test_a_member_is_read_as_a_map_of_the_dimension(expression, dims):
             id='a-named-expression',
         ),
         pytest.param(
-            _constraint('sum(flow * capacity, over=snapshot) <= both', ['connection', 'unit']),
+            _constraint('sum(flow * capacity, over=snapshot) <= 1', ['connection', 'unit']),
             id='under-a-sum-that-keeps-both',
         ),
-        pytest.param({'variables.both.where': 'at(rating, by=connection[unit, port]) > capacity'}, id='a-condition'),
+        pytest.param(
+            {
+                'variables.both': {
+                    'dims': ['connection', 'unit'],
+                    'where': 'at(rating, by=connection[unit, port]) > capacity',
+                }
+            },
+            id='a-condition',
+        ),
         pytest.param(
             {
                 'constraints.probe': {
                     'dims': ['connection', 'unit'],
-                    'expression': 'both <= 1',
+                    'expression': 'at(rating, by=connection[unit, port]) <= capacity',
                     'where': 'at(rating, by=connection[unit, port]) > capacity',
                 }
             },
@@ -191,9 +197,9 @@ def test_a_member_is_read_as_a_map_of_the_dimension(expression, dims):
         ),
     ],
 )
-def test_a_frame_over_the_dimension_and_its_member_takes_the_cross_product(patch):
-    """Rule 11 of #1011: where `dims:` declares both, a member operand meets the dimension, and the entry loads."""
-    to_spec(varied(MODEL, **patch))
+def test_a_frame_over_the_dimension_and_its_member_is_refused(patch):
+    """Rule 11 of #1011 read these as the cross product; a later reading by member name would read them as a join."""
+    assert "'connection' and 'unit' in dims: share the member 'unit'" in _refusal(**patch)
 
 
 def test_a_condition_compares_a_member_label():
@@ -307,11 +313,11 @@ def test_a_sparse_set_with_an_ordered_member_is_read_at_a_tuple():
             id='sos-of-type-2',
         ),
         pytest.param(
-            _constraint('at(both, by=connection[unit]) >= 0', ['connection']),
+            {'variables.both': {'dims': ['connection', 'unit']}}
+            | _constraint('at(both, by=connection[unit]) >= 0', ['connection']),
             (
-                "at(by=connection[unit]) reads through 'connection'",
-                "carries both 'connection' and its member ['unit']",
-                "Sum ['unit'] out of the operand first",
+                "Variable 'both': 'connection' and 'unit' in dims: share the member 'unit'",
+                'read it as connection[unit]',
             ),
             id='an-operand-with-the-tuple-and-a-member',
         ),
@@ -371,12 +377,12 @@ def test_a_sparse_set_with_an_ordered_member_is_read_at_a_tuple():
             id='a-member-operand-meets-the-tuple-under-a-sum',
         ),
         pytest.param(
-            _constraint('sum(flow * capacity, over=unit) <= both', ['connection', 'unit', 'snapshot']),
-            ("meets one over 'connection'", 'at(capacity, by=connection[unit])'),
+            _constraint('sum(flow * capacity, over=unit) <= 1', ['connection', 'unit', 'snapshot']),
+            ("Constraint 'probe': 'connection' and 'unit' in dims: share the member 'unit'",),
             id='a-member-operand-meets-the-tuple-under-a-sum-over-the-member-the-frame-declares',
         ),
         pytest.param(
-            _constraint('sum(flow * capacity) <= both', ['connection', 'unit']),
+            _constraint('sum(flow * capacity) <= 1', ['connection', 'snapshot']),
             ("meets one over 'connection'", 'at(capacity, by=connection[unit])'),
             id='a-member-operand-meets-the-tuple-under-a-sum-over-everything',
         ),
@@ -389,9 +395,9 @@ def test_a_sparse_set_with_an_ordered_member_is_read_at_a_tuple():
             {
                 'parameters.xs': {'dims': ['period']},
                 'parameters.ys': {'dims': ['period']},
-                'variables.y': {'dims': ['connection', 'unit']},
+                'variables.y': {'dims': ['connection']},
                 'piecewise.curve': {
-                    'dims': ['connection', 'unit'],
+                    'dims': ['connection'],
                     'along': 'period',
                     'links': {'x': ['y', 'xs'], 'y': ['y', 'ys']},
                     'where': 'at(rating, by=connection[unit, port]) > capacity',

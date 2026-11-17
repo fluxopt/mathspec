@@ -3545,3 +3545,69 @@ def test_a_divisor_a_shift_fills_with_zero_is_refused(divisor, patch):
 def test_a_divisor_a_shift_fills_with_another_value_loads(divisor):
     spec = to_spec(varied(SMALL_MODEL, **{'constraints.cap': {'dims': ['g'], 'expression': f'p / ({divisor}) <= 1'}}))
     assert 'cap' in spec.program.constraints
+
+
+_SHARED_MEMBER: dict[str, Any] = {
+    'dimensions': {
+        'unit': {},
+        'port': {},
+        'bus': {},
+        'connection': {'over': ['unit', 'port']},
+        'site': {'over': ['unit', 'bus']},
+    },
+    'variables': {'flow': {'dims': ['connection']}},
+}
+
+
+@pytest.mark.parametrize(
+    ('patch', 'fragments'),
+    [
+        pytest.param(
+            {'variables.pair': {'dims': ['connection', 'site']}},
+            (
+                "Variable 'pair': 'connection' and 'site' in dims: share the member 'unit'",
+                'where: "at(<relation>, by=connection[unit])"',
+                "declare an alias of 'unit'",
+            ),
+            id='two-tuple-dimensions-in-a-variable',
+        ),
+        pytest.param(
+            {'constraints.pair': {'dims': ['connection', 'site'], 'expression': 'flow >= 0'}},
+            ("Constraint 'pair': 'connection' and 'site' in dims: share the member 'unit'",),
+            id='two-tuple-dimensions-in-a-constraint',
+        ),
+        pytest.param(
+            {'parameters.rating': {'dims': ['connection', 'unit']}},
+            (
+                "Parameter 'rating': 'connection' and 'unit' in dims: share the member 'unit'",
+                'read it as connection[unit]',
+            ),
+            id='a-tuple-dimension-beside-its-own-member',
+        ),
+        pytest.param(
+            {
+                'dimensions.period': {'dtype': 'int', 'ordered': True},
+                'parameters.xs': {'dims': ['period']},
+                'parameters.ys': {'dims': ['period']},
+                'variables.w': {'dims': ['connection']},
+                'variables.v': {'dims': ['site']},
+                'piecewise.curve': {
+                    'dims': ['connection', 'site'],
+                    'along': 'period',
+                    'links': {'x': ['w', 'xs'], 'y': ['v', 'ys']},
+                },
+            },
+            ("piecewise 'curve': 'connection' and 'site' in dims: share the member 'unit'",),
+            id='two-tuple-dimensions-in-a-piecewise-entry',
+        ),
+    ],
+)
+def test_a_member_shared_by_two_dimensions_of_one_frame_is_refused(patch, fragments):
+    """A tuple dimension is flat over its members, so two that share one would index an entry by it twice.
+
+    The merged tree loaded both as their cross product, which a later reading by
+    name would turn into a join.
+    """
+    message = _refusal(_SHARED_MEMBER, **patch)
+    for fragment in fragments:
+        assert fragment in message
