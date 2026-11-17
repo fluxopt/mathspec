@@ -715,104 +715,64 @@ def _partition_of(row):
     return partition
 
 
-def test_a_relation_lowers_with_the_join_each_call_names():
-    """Every node reading a relation carries its columns, its key and the join, so a consumer joins on the right columns."""
+def test_a_tuple_lowers_with_the_join_each_call_names():
+    """Every node reading a tuple's maps carries the table, its key and the join, so a consumer joins on the right columns."""
     program = to_spec(
         {
-            'dimensions': {'snapshot': {'dtype': 'int', 'ordered': True}, 'generator': {'ordered': True}, 'zone': {}},
-            'relations': {'zone_of': {'dims': ['generator', 'snapshot'], 'missing': 'absent'}},
+            'dimensions': {
+                'snapshot': {'dtype': 'int', 'ordered': True},
+                'generator': {},
+                'zone': {},
+                'zone_of': {'over': ['generator', 'snapshot']},
+            },
             'maps': {'zone_of': {'zone': {'dim': 'zone'}}},
             'parameters': {'price': {'dims': ['snapshot', 'zone']}},
-            'variables': {
-                'p': {'dims': ['snapshot', 'generator'], 'where': "zone_of AND zone_of[zone] == 'A'"},
-                'first': {
-                    'dims': ['snapshot', 'generator'],
-                    'where': 'position(generator, within=zone_of[zone]) == 0',
-                },
-            },
+            'variables': {'p': {'dims': ['zone_of']}},
             'constraints': {
                 'zonal': {
                     'dims': ['snapshot', 'zone'],
-                    'expression': 'sum(p, over=generator, by=zone_of[zone]) <= 1',
+                    'expression': 'sum(p, over=zone_of, by=zone_of[snapshot, zone]) <= 1',
                 },
-                'priced': {
-                    'dims': ['snapshot', 'generator'],
-                    'expression': 'p <= at(price, by=zone_of[zone])',
-                },
-                'history': {
-                    'dims': ['generator', 'zone'],
-                    'expression': 'sum(p, over=snapshot, by=zone_of[zone]) <= 1',
-                },
+                'priced': {'dims': ['zone_of'], 'expression': 'p <= at(price, by=zone_of[snapshot, zone])'},
             },
         }
     ).program
 
-    columns = (('generator', 'generator'), ('snapshot', 'snapshot'), ('zone', 'zone'))
-    declared = Relation(columns, ('generator', 'snapshot'), missing='absent')
-    assert program.relations == {'zone_of': declared}, 'the relation sits once in the program, under its name'
+    columns = (('zone_of', 'zone_of'), ('generator', 'generator'), ('snapshot', 'snapshot'), ('zone', 'zone'))
+    table = Relation(columns, ('zone_of',), members=('generator', 'snapshot'))
+    assert program.relations == {'zone_of': table}, 'the tuple has one table, keyed by itself, a column per member'
     zonal = program.constraints['zonal'].lhs
-    columns = JoinColumns('zone_of', declared, ('generator', 'snapshot'), ('snapshot', 'zone'))
     assert zonal == Sum(
-        Join(VariableReference('p', dims=('generator', 'snapshot')), columns, dims=('snapshot', 'zone')),
-        (Axis('generator', Column('zone_of', 'generator')),),
+        Join(
+            VariableReference('p', dims=('zone_of',)),
+            JoinColumns('zone_of', table, ('zone_of',), ('snapshot', 'zone')),
+            dims=('snapshot', 'zone'),
+        ),
+        (Axis('zone_of', Column('zone_of', 'zone_of')),),
         dims=('snapshot', 'zone'),
-    ), (
-        'a grouped sum is a sum over a join: the join names the column over the over= dim and the unnamed key '
-        'column as joined on, the by= column and that key column as grouped by, and the sum stands over the axis '
-        'the join opens for the column it drops'
-    )
+    ), 'a grouped sum is a sum over a join on the tuple, grouped by the member and the map it names'
     assert isinstance(zonal, Sum) and isinstance(zonal.operand, Join)
-    assert (zonal.operand.columns.dropped_dims, zonal.operand.columns.added_dims, zonal.operand.columns.kept) == (
-        ('generator',),
-        ('zone',),
-        ('snapshot',),
-    ), 'the dims a consumer reads are read off the join: dropped, added, and the key columns kept'
     assert zonal.operand.columns.relation is program.relations['zone_of'], (
         'the join holds the one entry the program holds, not an equal copy built again'
     )
-    assert program.constraints['history'].lhs == Sum(
-        Join(
-            VariableReference('p', dims=('generator', 'snapshot')),
-            JoinColumns('zone_of', declared, ('generator', 'snapshot'), ('generator', 'zone')),
-            dims=('generator', 'zone'),
-        ),
-        (Axis('snapshot', Column('zone_of', 'snapshot')),),
-        dims=('generator', 'zone'),
-    ), 'the same table joined on its other key column'
-    priced = program.constraints['priced'].rhs
-    assert priced == Join(
+    assert program.constraints['priced'].rhs == Join(
         ParameterReference('price', dims=('snapshot', 'zone')),
-        JoinColumns('zone_of', declared, ('snapshot', 'zone'), ('generator', 'snapshot')),
-        dims=('generator', 'snapshot'),
-    ), 'and an at is the bare join, on the value column, grouped by the key columns'
-    assert isinstance(priced, Join)
-    assert (priced.columns.dropped_dims, priced.columns.added_dims, priced.columns.kept) == (
-        ('zone',),
-        ('generator',),
-        ('snapshot',),
-    ), 'an at joins on the coarse dims, groups by the fine, and keeps the rest of the key'
-    p_where = program.variables['p'].where
-    assert p_where is not None
-    assert [(type(a).__name__, a.dims) for a in p_where.atoms] == [
-        ('RelationDefined', ('generator', 'snapshot')),
-        ('RelationComparison', ('generator', 'snapshot')),
-    ], 'a row and a comparison are both read at the key of a keyed relation'
-    first_where = program.variables['first'].where
-    assert first_where is not None
-    assert first_where.dims == ('generator', 'snapshot'), 'a position within a group is read at every key column'
+        JoinColumns('zone_of', table, ('snapshot', 'zone'), ('zone_of',)),
+        dims=('zone_of',),
+    ), 'an at is the bare join: on the member and the map it names, grouped by the tuple'
 
 
 @pytest.mark.parametrize(
     ('variable', 'entry', 'atom'),
     [
-        pytest.param('q', {'where': 'link'}, RelationDefined('link', ('g', 'h')), id='a-bare-relation-tests-a-row'),
+        pytest.param('q', {'where': 'link'}, RelationDefined('link', ('g', 'h')), id='a-bare-tuple-tests-its-members'),
         pytest.param('p', {'where': 'g[h]'}, RelationDefined('g', ('g',), 'h'), id='a-map-alone-tests-a-label'),
     ],
 )
 def test_a_condition_tests_a_row_or_a_label_by_how_it_is_written(variable, entry, atom):
-    """A relation's bare name asks for a row, and `subject[map]` alone asks whether the map gives the row a label."""
+    """A tuple's bare name asks for its member tuple, and `subject[map]` alone asks whether the map gives a label."""
     patch = {
-        'relations.link': {'dims': ['g', 'h'], 'missing': 'absent'},
+        'dimensions.link': {'over': ['g', 'h']},
         'maps.g.h': {'dim': 'h', 'missing': 'absent'},
         **{f'variables.{variable}.{key}': value for key, value in entry.items()},
     }
@@ -891,23 +851,22 @@ def test_walk_is_the_node_column_of_walk_regions():
     assert list(walk(NESTED)) == [node for node, _ in walk_regions(NESTED)]
 
 
-def test_a_relation_is_declared_as_the_file_declares_it():
-    """One table per subject, keyed by its name: a relation's rows, and a dimension's labels once it has maps."""
+def test_a_subject_is_declared_as_the_file_declares_it():
+    """One table per subject, keyed by its name: a tuple with its members, and a dimension once it has maps."""
     program = to_spec(
         varied(
             TINY,
-            dimensions={'g': {}, 'bus': {}, 'season': {}},
-            relations={'link': {'dims': ['g', 'bus'], 'missing': 'absent'}},
+            dimensions={'g': {}, 'bus': {}, 'season': {}, 'link': {'over': ['g', 'bus']}},
             maps={'g': {'season': {'dim': 'season'}, 'bus': {'dim': 'bus', 'missing': 'absent'}}},
         )
     ).program
 
     assert program.relations == {
         'g': Relation((('g', 'g'), ('bus', 'bus'), ('season', 'season')), ('g',), partial=('bus',)),
-        'link': Relation((('bus', 'bus'), ('g', 'g')), ('bus', 'g'), missing='absent'),
-    }, 'a table per subject, its own columns first, then one column per map'
+        'link': Relation((('link', 'link'), ('bus', 'bus'), ('g', 'g')), ('link',), members=('bus', 'g')),
+    }, 'a table per subject, its own column first, then one column per member or map'
     assert program.relations['g'].values == ('bus', 'season'), 'the maps are what a row of the subject determines'
-    assert program.relations['link'].values == (), 'a relation with no maps determines nothing'
+    assert program.relations['link'].values == ('bus', 'g'), 'a tuple determines its members'
     assert program.dimensions['g'] == Dimension(dtype='str'), 'a dimension carries its dtype and no map'
 
 

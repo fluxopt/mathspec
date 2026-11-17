@@ -59,7 +59,7 @@ if TYPE_CHECKING:
     from mathspec.spec import ConditionSpec, ExpressionSpec, Spec
 
 
-NameKind = Literal['variable', 'parameter', 'dimension', 'relation']
+NameKind = Literal['variable', 'parameter', 'dimension']
 
 
 class Namespace:
@@ -266,8 +266,6 @@ class Namespace:
             return 'parameter'
         if name in self.dimensions:
             return 'dimension'
-        if name in self.relations:
-            return 'relation'
         return None
 
     def unknown(self, name: str, context: str, *, allow_dims: bool, formals: Iterable[str] = ()) -> str:
@@ -277,8 +275,8 @@ class Namespace:
             name: The name the file wrote.
             context: The entry it was found in.
             allow_dims: Whether a dimension would have been accepted there. It marks a
-                condition, which reads a relation as readily as a parameter, so the
-                listing carries the relations too; an expression, where a relation is not a
+                condition, which reads a dimension as readily as a parameter, so the
+                listing carries the dimensions too; an expression, where a dimension is not a
                 value, lists the variables instead.
             formals: A macro's formals, listed first when there are any.
         """
@@ -287,7 +285,6 @@ class Namespace:
             [
                 ('Parameters', self.parameters),
                 ('Dimensions', self.dimensions),
-                ('Relations', [r for r in self.relations if r not in self.dimensions]),
                 *([('Conditions', self.conditions)] if self.conditions else []),
             ]
             if allow_dims

@@ -176,21 +176,20 @@ The objective is the one that `network.yaml` sets.
 ### Each kind of entry
 
 Two fragments may share a [dimension](language/dimensions.md), a
-[relation](language/relations.md#relations), a [map](language/relations.md#maps), a given entry or a
-sum.
+[map](language/maps.md#maps), a given entry or a sum.
 
-| The entry                                              | What `merge` does                                                                                                      |
-| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| a dimension, a relation or a map                       | accepts it from every fragment that declares it, where every fragment declares it the same way                         |
-| a `description` on a shared dimension, relation or map | keeps the first wording in the list                                                                                    |
-| `ordered: true` on a shared dimension                  | makes the dimension ordered if one fragment sets it                                                                    |
-| `missing:` on a shared relation or map                 | requires the same value from every fragment that declares it, where `missing: refused` and no `missing:` are one value |
-| an entry under `given:`                                | checks it against the fragment that declares the name, then folds it in ([given entries](#given-entries))              |
-| an expression with `adds_to:`                          | adds it as a term to the sum in its `adds_to:` ([terms and sums](#terms-and-sums))                                     |
-| `objective`                                            | takes it from the one fragment that sets it, and refuses a second                                                      |
-| `version`                                              | requires the same value from every fragment                                                                            |
-| `description` at the top of a fragment                 | drops it                                                                                                               |
-| any other entry                                        | takes it from the one fragment that declares it, and refuses a second                                                  |
+| The entry                                    | What `merge` does                                                                                               |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| a dimension or a map                         | accepts it from every fragment that declares it, where every fragment declares it the same way                  |
+| a `description` on a shared dimension or map | keeps the first wording in the list                                                                             |
+| `ordered: true` on a shared dimension        | makes the dimension ordered if one fragment sets it                                                             |
+| `missing:` on a shared dimension or map      | requires the same value from every fragment that declares it, where the default and no `missing:` are one value |
+| an entry under `given:`                      | checks it against the fragment that declares the name, then folds it in ([given entries](#given-entries))       |
+| an expression with `adds_to:`                | adds it as a term to the sum in its `adds_to:` ([terms and sums](#terms-and-sums))                              |
+| `objective`                                  | takes it from the one fragment that sets it, and refuses a second                                               |
+| `version`                                    | requires the same value from every fragment                                                                     |
+| `description` at the top of a fragment       | drops it                                                                                                        |
+| any other entry                              | takes it from the one fragment that declares it, and refuses a second                                           |
 
 ### Terms and sums
 
@@ -432,10 +431,10 @@ patched `dispatch` has no row at `old`.
 | a whole entry under a new name                                       | adds it                                                                                                                                                                        |
 | a named expression as a [bare string](language/named.md#expressions) | replaces only its body, `expression:` or `cases:`, and keeps its `dims:`, description and `adds_to:`, so the new body may have no dimension outside those `dims:`              |
 | `null` on an entry, a field or a section                             | applies the rule in [`null` in a patch](#null-in-a-patch)                                                                                                                      |
-| a dimension, a relation or a map                                     | adds it, or accepts it restated as the base declares it, field by field, where a field left out equals its default                                                             |
-| `description:` on a dimension, a relation or a map of the base       | replaces the description of the base, alone or with other fields, and `null` removes it                                                                                        |
+| a dimension or a map                                                 | adds it, or accepts it restated as the base declares it, field by field, where a field left out equals its default                                                             |
+| `description:` on a dimension or a map of the base                   | replaces the description of the base, alone or with other fields, and `null` removes it                                                                                        |
 | `ordered:` on a restated dimension                                   | makes the dimension ordered for `true`, and refuses `false` over an ordered dimension                                                                                          |
-| `missing:` on a relation or a map, alone or with other fields        | changes whether every combination needs a row, or every row a label, as on a parameter                                                                                         |
+| `missing:` on a map, alone or with other fields                      | changes whether every label of the subject needs a label of the map, as on a parameter                                                                                         |
 | an entry under one kind of `given:`                                  | edits, adds or removes it like any entry, and keeps the other kinds                                                                                                            |
 | `version`, `description`                                             | replaces the value of the base                                                                                                                                                 |
 | a field that an earlier patch writes                                 | replaces that value                                                                                                                                                            |
@@ -522,8 +521,8 @@ A second call with the inverse map returns a spec with the
 | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | a name as the key of an entry, in `dims:`, under `maps:`, in `adds_to:` or in `given:` | replaces the name                                                 |
 | a name in an expression, `where:`, bound, case or assumption                           | replaces the name, and keeps the spaces and line breaks around it |
-| a map or a relation column named after its dimension, such as `bus` in `unit[bus]`     | replaces it with the dimension                                    |
-| a map or a relation column named after something else, such as `bus0` in `{bus0: bus}` | keeps it, and refuses a map that changes a name to or from it     |
+| a map or a member named after its dimension, such as `bus` in `unit[bus]`              | replaces it with the dimension                                    |
+| a map named after something else, such as `bus0` in `{bus0: bus}`                      | keeps it, and refuses a map that changes a name to or from it     |
 | a longer name that contains a renamed name, such as `Unit_p_nom` for `Unit_p`          | keeps the longer name                                             |
 | a keyword of an operator, such as `over=`                                              | keeps the keyword                                                 |
 | a quoted label, a label under `one_of:`, or a number such as `1e6`                     | keeps the label or the number                                     |
@@ -601,9 +600,8 @@ patch 'project.yaml' edits the constraint 'power_balnce', which its base does no
 
 ### A dimension restated differently
 
-Over a dimension, a relation or a map that its base declares, a patch may
-change only `description`, a dimension's `ordered`, and the `missing` of a
-relation or a map. A patch
+Over a dimension or a map that its base declares, a patch may change only
+`description`, a dimension's `ordered`, and the `missing` of a map. A patch
 that writes any other field restates the entry. Every other field must then be
 as the base declares it, and a field the patch leaves out equals its default.
 
@@ -697,8 +695,7 @@ rename gives the parameter 'Unit_marginal_cost' the name 'x', which is an argume
 ### A name that is also a map
 
 `rename` refuses a map that changes a name to or from the name of a
-[map](language/relations.md#maps) or a relation column that is not named after
-its dimension. An expression such as `line[bus0]` reads the map by its name,
+[map](language/maps.md#maps) that is not named after its dimension. An expression such as `line[bus0]` reads the map by its name,
 so the rename would change the map too. Here `line` has the maps
 `{bus0: bus, bus1: bus}`, and the map is `{'bus0': 'price'}`:
 

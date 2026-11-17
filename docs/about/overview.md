@@ -93,8 +93,8 @@ generator either. The file specifies the condition that the data must meet,
 and the engine that attaches the data checks the condition.
 
 - [`missing:`](../reference/language/absence.md#missing) on a parameter, a table that pairs labels
-  ([a relation](../reference/language/relations.md)) or a
-  [map](../reference/language/relations.md#maps) sets what a missing row or
+  ([a map](../reference/language/maps.md)) or a
+  [map](../reference/language/maps.md#maps) sets what a missing row or
   label means. When the engine attaches the data, it refuses a missing row by default.
 - An [`assumptions:`](../reference/language/assumptions.md) entry is a
   condition that the data must meet.

@@ -185,7 +185,7 @@ class ExpressionResolver:
         return False
 
     def _name(self, node: NameNode) -> Expression | None:
-        """A bare name as the variable, parameter or named expression it declares; a dimension or relation is not a value.
+        """A bare name as the variable, parameter or named expression it declares; a dimension is not a value.
 
         A named expression arrives as the one node [`Namespace.named`][]
         built for it; the cast is the one place a
@@ -216,13 +216,6 @@ class ExpressionResolver:
                 self.errors.append(
                     f"{self.context}: '{node.name}' is a dimension, and a dimension is "
                     f'not a value. To use its coordinates as data, declare a parameter over it.'
-                )
-                return None
-            case 'relation':
-                self.errors.append(
-                    f"{self.context}: '{node.name}' is a relation, and a relation is not a value. Sum through it "
-                    f'as sum(x, over=<column>, by={node.name}[<column>]), test it in a condition, or declare a '
-                    f'parameter to carry numbers.'
                 )
                 return None
             case _:
@@ -750,9 +743,9 @@ class ExpressionResolver:
                 f'under maps: {name}:, or read a subject that has it: {key}=<subject>[<map>].'
             )
         kinds = (
-            'a relation, a dimension with maps or a formal argument of this macro'
+            'a dimension with maps or members, or a formal argument of this macro'
             if self.formals
-            else 'a relation or a dimension with maps'
+            else 'a dimension with maps or members'
         )
         return (
             f'{context}: {operator}({key}={name}[...]): {name!r} is not {kinds}. '
@@ -775,13 +768,6 @@ def not_a_number(name: str, dtype: str, context: str) -> str:
 
 
 def _undeclared_dim(context: str, operator: str, call: str, name: str, ns: Namespace, formals: frozenset[str]) -> str:
-    if name in ns.relations and name not in ns.dimensions:
-        dims = list(ns.relations[name].dims)
-        which = 'its dimensions' if call.startswith('over=') else 'one of its dimensions'
-        return (
-            f"{context}: {operator}({call}) names the relation '{name}', and a relation is not a dimension. "
-            f'Name {which}, {dims}.'
-        )
     return (
         f'{context}: {operator}({call}) does not name a declared dimension{_or_a_formal(formals)}. '
         f'{did_you_mean(name, ns.dimensions, label="Dimensions")}\n'

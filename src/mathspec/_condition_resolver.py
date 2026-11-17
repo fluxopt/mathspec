@@ -138,7 +138,7 @@ class ConditionResolver:
         return cast('Condition', self.build(node))
 
     def _bare_name(self, node: NameNode) -> Condition | UnresolvedConditionNode:
-        """A bare name: a named condition's body, a parameter's or relation's definedness, or a variable's existence."""
+        """A bare name: a named condition's body, a parameter's definedness, a tuple's membership, or a variable's existence."""
         ns, context = self.ns, self.context
         if node.name in ns.conditions:
             try:
@@ -179,16 +179,6 @@ class ConditionResolver:
                     f'name is true at every coordinate. '
                     f'Remove it, or compare it: where: "{node.name} > 0".'
                 )
-            case 'relation':
-                shape = ns.relations[node.name]
-                dims = tuple(sorted(shape.dim(k) for k in shape.key))
-                if len(set(dims)) < len(dims):
-                    self.errors.append(
-                        f"{context}: '{node.name}' has two columns over one dimension ({list(shape.roles)}), so a "
-                        f'bare name is ambiguous. Declare the rows it tests as a bool parameter over {dims[0]!r}.'
-                    )
-                    return node
-                return RelationDefined(node.name, dims)
             case 'variable':
                 if node.name == self.self_variable:
                     self.errors.append(
@@ -566,13 +556,13 @@ class ConditionResolver:
         shape = ns.relations[name]
         if not shape.values:
             self.errors.append(
-                f"{context}: '{spelling}' compares the relation '{name}', which has no map, so its rows hold no "
-                f"label. Test the bare name '{name}' for whether a row exists, or declare a map under maps: {name}:."
+                f"{context}: '{spelling}' compares '{name}', which has no map, so it holds no label. Declare a map "
+                f'under maps: {name}:.'
             )
             return None
         if column is None:
             self.errors.append(
-                f"{context}: '{spelling}' compares the relation '{name}' itself, and a comparison reads a label. "
+                f"{context}: '{spelling}' compares '{name}' itself, and a comparison reads a label. "
                 f'Name one of its maps: {name}[{shape.values[0]}].'
             )
             return None

@@ -54,7 +54,6 @@ if TYPE_CHECKING:
 SOURCE = Path('examples/pypsa.yaml')
 SECTIONS = (
     'dimensions',
-    'relations',
     'maps',
     'parameters',
     'variables',
@@ -64,7 +63,7 @@ SECTIONS = (
     'constraints',
     'assumptions',
 )
-FRAME = ('dimensions', 'relations', 'maps')
+FRAME = ('dimensions', 'maps')
 IDENT = re.compile(r'[A-Za-z_][A-Za-z0-9_]*')
 READ = re.compile(r'(?<![\w.])([A-Za-z_]\w*)\[')
 HEADER = '# SPDX-FileCopyrightText: mathspec Contributors\n#\n# SPDX-License-Identifier: MIT\n'
@@ -235,7 +234,7 @@ class Model:
             if s not in ('maps', 'piecewise', 'constraints', 'assumptions')
             for n in self.data.get(s, {})
         }
-        #: Every subject with maps. A subject shares its name with its dimension or relation, so it is not in `kind`.
+        #: Every subject with maps. A subject shares its name with its dimension, so it is not in `kind`.
         self.subjects = set(self.data.get('maps', {}))
         #: hub -> the topic of each term -> the term, in the order the topics sort in.
         self.shares: dict[str, dict[str, str]] = {}

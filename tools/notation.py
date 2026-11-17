@@ -47,7 +47,7 @@ PIECEWISE = {
 }
 BEGIN, END = '<!-- notation:begin -->', '<!-- notation:end -->'
 
-#: The sections of the fixture that declare math. ``dimensions``, ``relations``,
+#: The sections of the fixture that declare math. ``dimensions``,
 #: ``maps`` and ``parameters`` are absent on purpose: they declare no equation, and what
 #: they print is the legend, which the page shows once rather than a row at a
 #: time.
@@ -81,22 +81,22 @@ FAMILIES: dict[str, dict[str, str]] = {
     'Objective': {
         'objective': 'Products and powers in the objective',
     },
-    'Relations and maps': {
+    'Maps and tuples': {
         'balance': 'Sum through a map',
         'total': 'Sum over every dimension',
         'lookup': '`at` through a map',
         'grouped_once': 'Sum into two maps',
         'looked_up_once': '`at` through two maps',
         'within_bus': 'Shift within one map',
-        'relational': 'Sum through a relation',
-        'connected': 'Relation as a condition',
+        'relational': 'Sum over a tuple',
+        'connected': 'Tuple as a condition',
         'representative': 'Map into its own dimension',
         'flow_angle': 'Alias of a dimension',
         'exchanged': 'Sum under an alias of its dimension',
-        'zonal': 'Sum through a map of a relation',
-        'zonal_history': 'Sum over the other column of a relation',
-        'zonal_membership': 'Sum between the two columns of a relation',
-        'zonal_lookup': '`at` through a map of a relation',
+        'zonal': 'Sum through a map of a tuple',
+        'zonal_history': 'Sum keeping the other member of a tuple',
+        'zonal_membership': 'Sum grouped by one member of a tuple',
+        'zonal_lookup': '`at` through a map of a tuple',
     },
     'Arithmetic and literals': {
         'arithmetic': 'Signs, division and number literals',
@@ -298,11 +298,11 @@ def legend() -> str:
 
 #: What the legend is made of. No equation comes from these, so they are shown
 #: once, together, above the tables they turn into.
-DECLARED = ('dimensions', 'relations', 'maps', 'parameters')
+DECLARED = ('dimensions', 'maps', 'parameters')
 
 
 def preamble(text: str) -> str:
-    """The fixture's ``dimensions``/``relations``/``maps``/``parameters`` sections, verbatim."""
+    """The fixture's ``dimensions``/``maps``/``parameters`` sections, verbatim."""
     sections = []
     for name in DECLARED:
         body = text[text.index(f'\n{name}:') + 1 :]
@@ -316,8 +316,7 @@ def block() -> str:
     rendered = to_markdown(MODEL, numbered=False)
     parts = [
         '### Legend',
-        'A dimension, a relation, a map and a parameter declare no equation; what they '
-        'print is the legend every spec opens with.',
+        'A dimension, a map and a parameter declare no equation; what they print is the legend every spec opens with.',
         f'```yaml\n{preamble(MODEL.read_text())}\n```',
         legend(),
     ]

@@ -290,8 +290,8 @@ def test_macro_collisions_rejected(patch, match):
         ),
         pytest.param(
             {'grouped': {'args': ['x'], 'template': 'sum(x, over=g, by=nope[h])'}},
-            r"Macro 'grouped'.*sum\(by=nope\[\.\.\.\]\): 'nope' is not a relation",
-            id='a-typo-in-a-relation-kwarg',
+            r"Macro 'grouped'.*sum\(by=nope\[\.\.\.\]\): 'nope' is not a dimension with maps or members",
+            id='a-typo-in-a-subject-kwarg',
         ),
         pytest.param(
             {'grouped': {'args': ['x'], 'template': 'sum(x, over=g, by=[nope, also])'}},
@@ -300,8 +300,8 @@ def test_macro_collisions_rejected(patch, match):
         ),
         pytest.param(
             {'grouped': {'args': ['x', 'a', 'b'], 'template': 'sum(x, over=a, by=nope[b])'}},
-            r"Macro 'grouped'.*sum\(by=nope\[\.\.\.\]\): 'nope' is not a relation, a dimension with maps or a formal argument of this macro",
-            id='a-typo-in-a-relation-beside-formal-columns',
+            r"Macro 'grouped'.*sum\(by=nope\[\.\.\.\]\): 'nope' is not a dimension with maps or members, or a formal argument of this macro",
+            id='a-typo-in-a-subject-beside-formal-columns',
         ),
         pytest.param(
             {'reduced': {'args': ['x'], 'template': 'sum(x, over=nope)'}},
@@ -370,7 +370,7 @@ def test_an_unknown_operator_names_no_construct_the_language_lacks():
     [
         pytest.param(['x', 'e'], 'shift(x, along=g, offset=1, edge=e)', id='an-edge'),
         pytest.param(['row'], 'dual(row)', id='a-constraint'),
-        pytest.param(['x', 'rel', 'a', 'b'], 'sum(x, over=a, by=rel[b])', id='a-relation-and-its-columns'),
+        pytest.param(['x', 'rel', 'a', 'b'], 'sum(x, over=a, by=rel[b])', id='a-subject-and-its-columns'),
         pytest.param(['x', 'a', 'b'], 'sum(x, over=a, by=g[b])', id='the-maps-of-a-declared-subject'),
         pytest.param(
             ['x', 'd'], 'shift(x, along=d, offset=1, within=g[h])', id='the-dimension-a-partition-steps-along'

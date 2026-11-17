@@ -54,7 +54,7 @@ nav:
           - File shape: reference/language/file.md
           - Given, parameters, variables, objective and constraints: reference/language/parameters-variables-constraints.md
           - Dimensions: reference/language/dimensions.md
-          - Relations and maps: reference/language/relations.md
+          - Maps: reference/language/maps.md
           - Expressions: reference/language/expressions.md
           - Named expressions, conditions and macros: reference/language/named.md
           - Operators: reference/language/operators.md
@@ -102,7 +102,7 @@ nav:
       - How mathspec works: about/overview.md
       - The limits of the language: about/limits.md
       - Versions: about/versions.md
-      - Relations as linear maps: about/relations-as-linear-maps.md
+      - Maps as linear maps: about/relations-as-linear-maps.md
       - Understanding a spec in SQL and dataframe terms: about/sql-and-dataframes.md
       - What counts as language: about/what-counts-as-language.md
       - What counts as public API: about/what-counts-as-public-api.md

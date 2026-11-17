@@ -70,13 +70,13 @@ are tables of the rows that a tool builds. `dispatch` has one decision variable
 per coordinate of `(snapshot, generator)`, and `power_balance` has one row per
 coordinate of `(snapshot, bus)`.
 
-A [relation](../reference/language/relations.md#relations) is a table whose
-columns are all in its primary key, so it lists which combinations of labels
-exist. A [map](../reference/language/relations.md#maps) is a column of the
+A dimension with [members](../reference/language/dimensions.md#over) is a
+table whose member columns are its primary key, so it lists which
+combinations of labels exist. A [map](../reference/language/maps.md#maps) is a column of the
 table of its subject. `generator: { bus: { dim: bus } }` under `maps:` is a table
 `generator` with the columns `generator` and `bus`, and one row per generator.
 Under the default `missing: refused`, every generator needs a bus. Under
-[`missing: absent`](../reference/language/relations.md#missing), the bus of a
+[`missing: absent`](../reference/language/maps.md#missing), the bus of a
 generator may be null.
 
 ## Absence
@@ -141,7 +141,7 @@ exact except in four cases:
 ## Queries outside the language
 
 A spec combines two tables only through arithmetic, `sum(by=)` and `at(by=)`.
-Each of `sum(by=)` and `at(by=)` joins with the table of a relation or a
+Each of `sum(by=)` and `at(by=)` joins with the table of a
 subject, and drops the key column of the join in the same call. A separate `join` would return a table with a key
 column that no dimension declares, so mathspec has no `join` operator.
 

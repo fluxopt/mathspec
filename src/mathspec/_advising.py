@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 
 from mathspec._boundedness import unbounded_notes
 from mathspec._validation import to_spec
-from mathspec.program import Advice, Join, Program, walk
+from mathspec.program import Advice, Join, Program, walk, walk_regions
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -110,6 +110,7 @@ def _never_an_axis(program: Program) -> list[Advice]:
     ):
         reached.update(entry.dims)
     reached |= _grouped_axes(program)
+    reached |= _tested_tuples(program)
     for lk in program.relations.values():
         declared = [role for role in lk.values if role not in lk.members]
         if declared or not lk.members:
@@ -121,12 +122,23 @@ def _never_an_axis(program: Program) -> list[Advice]:
             'never-an-axis',
             name,
             f"dimension '{name}' is never used: nothing is indexed by it, nothing "
-            f'sums into it, and no relation or map is over it. Remove it, or keep it '
+            f'sums into it, no condition tests it, and no map is over it. Remove it, or keep it '
             f'if the entries that use it are still to be written.',
         )
         for name in program.dimensions
         if name not in reached
     ]
+
+
+def _tested_tuples(program: Program) -> set[str]:
+    """The dimensions a condition tests by bare name: a tuple named only in a ``where`` is in use."""
+    masks = [
+        entry.where
+        for entry in (*program.parameters.values(), *program.variables.values(), *program.constraints.values())
+        if entry.where is not None
+    ]
+    masks += [mask for _, regions in walk_regions(*program.roots) for mask in regions]
+    return {name for mask in masks for name in mask.names_read if name in program.dimensions}
 
 
 def _grouped_axes(program: Program) -> set[str]:

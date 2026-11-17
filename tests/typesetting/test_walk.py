@@ -658,8 +658,8 @@ def test_every_operator_probe_renders(path, name: FormatName, fmt: Format):
 # ---------------------------------------------------------------------------
 
 
-#: Two tables a call can leave a map unread. A sum between `gen_zone`'s own
-#: two columns reads no map at all, and a sum that consumes one of
+#: Two tables a call can leave a map unread. A sum over `zone_of` grouped by
+#: a member reads no declared map, and a sum that consumes one of
 #: `generator`'s two maps leaves the other one.
 UNREAD = {
     'dimensions': {
@@ -668,17 +668,17 @@ UNREAD = {
         'zone': {'dtype': 'str'},
         'bus': {'dtype': 'str'},
         'technology': {'dtype': 'str'},
+        'zone_of': {'over': ['generator', 'snapshot'], 'missing': 'refused'},
     },
-    'relations': {'gen_zone': {'dims': ['generator', 'snapshot']}},
     'maps': {
-        'gen_zone': {'zone': {'dim': 'zone'}},
+        'zone_of': {'zone': {'dim': 'zone'}},
         'generator': {'bus': {'dim': 'bus'}, 'technology': {'dim': 'technology'}},
     },
     'parameters': {'cap': {'dims': []}},
     'variables': {
         'p': {'dims': ['snapshot', 'generator']},
         'f': {'dims': ['generator', 'bus']},
-        # indexed by the column of gen_zone the sum consumes alone, so the column it lands on is one it brings
+        # indexed by the member of zone_of the sum reads it at
         'u': {'dims': ['generator']},
     },
 }
@@ -690,18 +690,15 @@ def _grouped(dims: list[str], expression: str) -> str:
     return next(line for line in to_latex(model, legend=False).splitlines() if line.startswith(r'\text{c}'))
 
 
-def test_a_sum_that_reads_no_map_asks_only_that_the_relation_has_the_row():
-    """`sum(u, over=generator, by=gen_zone[snapshot])` died with `KeyError: 'zone'`.
+def test_a_sum_that_reads_no_map_asks_only_for_the_member_it_groups_by():
+    """A sum through a relation's own two columns died with `KeyError: 'zone'`, the map it did not read.
 
-    The domain was written as a whole row of the table, which needs an index
-    for every column, and this sum goes between the relation's own two
-    columns: it reads no map, so there is no index to write in `zone`'s place.
-    What the sum asks of the relation is that it has the row at all.
+    The sum over the tuple groups by a member and reads no declared map, so
+    the map `zone` is written nowhere.
     """
-    row = _grouped(['snapshot'], 'sum(u, over=generator, by=gen_zone[snapshot]) <= cap')
-    assert r'\sum_{g \in \mathcal{G} \,:\, \left( g,\ t \right) \in \mathrm{gen\_zone}}' in row, (
-        'the condition is that the row is in the relation, and the unread map is written nowhere'
-    )
+    row = _grouped(['snapshot'], 'sum(at(u, by=zone_of[generator]), over=zone_of, by=zone_of[snapshot]) <= cap')
+    assert r'\mathrm{snapshot}(o) = t' in row, 'the condition is the member the sum groups by'
+    assert 'zone(' not in row.replace('zone\\_of', ''), 'the unread map is written nowhere'
 
 
 def test_a_map_the_call_consumes_is_a_condition_like_a_produced_one():
@@ -753,7 +750,7 @@ def _row(expression: str, where: str | None = None, **patch: object) -> str:
         pytest.param(
             'p == at(sum(q, over=generator, by=generator[bus]), by=generator[bus])',
             r"\sum_{g' \in \mathcal{G} \,:\, \mathrm{bus}(g') = \mathrm{bus}(g)} q_{g',t}",
-            id='grouped-by-a-relation',
+            id='grouped-by-a-subject',
         ),
         pytest.param('p == q - sum(q, over=generator)', r"\sum_{g' \in \mathcal{G}} q_{g',t}", id='over-the-whole-dim'),
     ],

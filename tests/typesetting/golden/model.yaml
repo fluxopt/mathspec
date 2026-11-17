@@ -23,10 +23,8 @@ dimensions:
   bp: { dtype: int, ordered: true } # the breakpoints every curve below runs through
   site: { over: [generator, bus] } # a dimension that lists its members: the legend prints it as a subset of their product
   corridor: { over: [from_bus, bus], missing: refused } # a member and its alias, and every combination required: the product itself
-
-relations:
-  gen_zone: { dims: [generator, snapshot] } # a relation over two dimensions, with a map: a call sums one away and joins on the other
-  connection: { dims: [generator, bus], missing: absent } # a relation with no map: many-to-many, read only by sum with both ends named
+  gen_zone: { over: [generator, snapshot], missing: refused } # a tuple over two dimensions, with a map: a call reads an entry at each tuple and groups by a member
+  connection: { over: [generator, bus] } # a tuple with no map: many-to-many, read only through its members
 
 maps:
   generator: { bus: { dim: bus }, technology: { dim: technology } } # two maps of one subject, read to both at once
@@ -281,29 +279,29 @@ constraints:
     dims: [generator]
     where: "position(generator, within=generator[bus, technology]) == 0"
     expression: units <= shift(units, along=generator, offset=1, edge=0, within=generator[bus])
-  relational: # a sum through a relation with no map: the domain is a row of the relation rather than a label
+  relational: # a sum over a tuple with no map: the domain is a tuple rather than a label
     dims: [snapshot, bus]
-    expression: sum(p, over=generator, by=connection[bus]) <= load
-  connected: # a relation as a where: the row of the frame has to be a member of the relation
+    expression: sum(at(p, by=connection[generator]), over=connection, by=connection[bus]) <= load
+  connected: # a tuple as a where: the frame's member labels have to form a listed tuple
     dims: [snapshot, generator, bus]
     where: "connection"
     expression: p <= load
   representative: # a map into its own dimension, read both ways: the frame is unchanged and the index is primed
     dims: [snapshot]
     expression: sum(spill, over=snapshot, by=snapshot[rep]) <= at(spill, by=snapshot[rep])
-  zonal: # a grouping through a two-key map, summing one key away: the condition reads the other, and the row keeps it
+  zonal: # a grouping through a map of a tuple, keeping one member: the row keeps the snapshot
     dims: [snapshot, zone]
-    expression: sum(p, over=generator, by=gen_zone[zone]) <= zone_cap
-  zonal_history: # the same table summing its other key away
+    expression: sum(at(p, by=gen_zone[generator, snapshot]), over=gen_zone, by=gen_zone[snapshot, zone]) <= zone_cap
+  zonal_history: # the same tuple keeping its other member
     dims: [generator, zone]
-    expression: sum(p, over=snapshot, by=gen_zone[zone]) <= zone_cap
-  zonal_membership: # the same relation read between its own two columns: no map is read, so the domain asks only that the row is there
+    expression: sum(at(p, by=gen_zone[generator, snapshot]), over=gen_zone, by=gen_zone[generator, zone]) <= zone_cap
+  zonal_membership: # the same tuple grouped by a member alone: no map is read, so the domain asks only that the tuple is there
     dims: [snapshot]
-    expression: sum(units, over=generator, by=gen_zone[snapshot]) <= budget
-  zonal_lookup: # the same table joined the other way, reading the slot the row's own snapshot puts the generator in
-    dims: [snapshot, generator]
-    where: "gen_zone[zone] == 'north' AND position(generator, within=gen_zone[zone]) == 0"
-    expression: p <= at(spill * zone_cap, by=gen_zone[zone])
+    expression: sum(at(units, by=gen_zone[generator]), over=gen_zone, by=gen_zone[snapshot]) <= budget
+  zonal_lookup: # the same tuple as the frame, reading the zone each tuple maps to
+    dims: [gen_zone]
+    where: "gen_zone[zone] == 'north'"
+    expression: at(p, by=gen_zone[generator, snapshot]) <= at(spill * zone_cap, by=gen_zone[snapshot, zone])
   arithmetic: # division, both unary signs, a sign beside a sign, floats with and without an exponent, bracketing
     dims: [snapshot]
     expression: >-

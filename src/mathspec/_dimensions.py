@@ -195,7 +195,7 @@ def _check_joined(call: str, use: JoinColumns | Partition, inner: frozenset[str]
     if twice := sorted({d for d in dims if dims.count(d) > 1}):
         raise DimensionError(
             f"{context}: {call} joins '{use.name}' on {twice} through more than one column. Join on "
-            f'different dimensions, or use a relation whose columns are over different dimensions.'
+            f'different dimensions, or declare an alias so that the members differ.'
         )
 
 
@@ -467,7 +467,7 @@ def _check_condition_dims(mask: Mask | None, frame: frozenset[str], context: str
             case DimensionComparison() | DimensionPosition():
                 leaf = f"where-dimension '{atom.name}'"
             case RelationDefined(column=None):
-                leaf = f"where-relation '{atom.name}'"
+                leaf = f"where-tuple '{atom.name}'"
             case RelationComparison() | RelationPairComparison() | RelationDefined():
                 leaf = f"where-map '{atom.name}[{atom.column}]'"
             case ExpressionComparison():

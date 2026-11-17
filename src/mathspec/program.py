@@ -674,7 +674,7 @@ class Dimension:
     """
     one_of: tuple[str, ...] | None = None
     """The labels that the file lists under ``one_of:``, sorted by name, or ``None`` when it lists none. With data attached,
-    a tool refuses any other label, in the table of the dimension and in every relation column over it.
+    a tool refuses any other label, in the table of the dimension and in every field of a tuple over it.
     """
     ordered: bool = False
     """Whether the order of the labels is part of the spec. When it is, a tool keeps the labels in the order the data gives

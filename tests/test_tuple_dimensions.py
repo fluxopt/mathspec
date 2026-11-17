@@ -35,8 +35,8 @@ MODEL: dict[str, Any] = {
         'period': {'dtype': 'int', 'ordered': True},
         'connection': {'over': ['unit', 'port']},
         'trade': {'over': ['from_region', 'region']},
+        'active': {'over': ['unit', 'period']},
     },
-    'relations': {'active': {'dims': ['unit', 'period'], 'missing': 'absent'}},
     'maps': {'connection': {'bus': {'dim': 'bus'}}},
     'parameters': {
         'capacity': {'dims': ['unit']},
@@ -239,18 +239,18 @@ def test_a_tuple_dimension_tests_membership_on_an_entry_over_every_member(patch,
     assert read(spec).atoms == (RelationDefined('span', ('period', 'unit')),), 'a test of the member tuple'
 
 
-@pytest.mark.parametrize('fmt', FORMATS)
-def test_a_membership_test_prints_the_member_indices(fmt):
-    """It prints as the bare relation over the same members does, not at an index of the dimension."""
-    patch = {
-        'variables.built': {'dims': ['unit', 'period'], 'where': 'span'},
-        'variables.kept': {'dims': ['unit', 'period'], 'where': 'active'},
-    }
-    text = typeset(to_spec(varied(MODEL, **_SPAN, **patch)), fmt)
-    name = r'upright("%s")' if fmt == 'typst' else r'\mathrm{%s}'
-    line = next(line for line in text.splitlines() if 'built' in line and name % 'span' in line)
-    condition = line[line.index('forall') :]
-    assert condition.replace(name % 'span', name % 'active') in text, condition
+@pytest.mark.parametrize(
+    ('fmt', 'printed'),
+    [
+        pytest.param('latex', r'\left( p,\ u \right) \in \mathrm{span}', id='latex'),
+        pytest.param('markdown', r'\left( p,\ u \right) \in \mathrm{span}', id='markdown'),
+        pytest.param('typst', 'colon (p, u) in upright("span")', id='typst'),
+    ],
+)
+def test_a_membership_test_prints_the_member_indices(fmt, printed):
+    """It prints the tuple of the frame's member indices, not an index of the dimension."""
+    patch = {'variables.built': {'dims': ['unit', 'period'], 'where': 'span'}}
+    assert printed in typeset(to_spec(varied(MODEL, **_SPAN, **patch)), fmt)
 
 
 def test_a_tuple_dimension_tests_membership_in_a_case():
@@ -271,7 +271,7 @@ def test_a_tuple_dimension_tests_membership_in_a_case():
 )
 def test_a_tuple_dimension_tests_membership_only_where_the_entry_has_every_member(patch):
     message = _refusal(**_SPAN, **patch)
-    assert "where-relation 'span' reads dims" in message, message
+    assert "where-tuple 'span' reads dims" in message, message
     assert 'outside the declared dims' in message
 
 
@@ -303,7 +303,7 @@ def test_a_condition_compares_a_member_label():
 
 
 def test_a_sparse_set_with_an_ordered_member_is_read_at_a_tuple():
-    """Rule 9 of #1011: `active` stays a bare relation over (unit, period), and an entry over `connection` reads it with `at`."""
+    """Rule 9 of #1011: `active` is a tuple with an ordered member, and an entry over `connection` reads it with `at`."""
     built = {'dims': ['connection', 'period'], 'where': 'at(active, by=connection[unit])'}
     spec = to_spec(varied(MODEL, **{'variables.built': built}))
     (atom,) = spec.program.variables['built'].where.atoms
@@ -361,11 +361,6 @@ def test_a_sparse_set_with_an_ordered_member_is_read_at_a_tuple():
             {'dimensions.pair': {'over': ['region', 'region']}},
             ("Dimension 'pair' lists 'region' twice under 'over:'", "Declare an alias of 'region'"),
             id='a-dimension-twice',
-        ),
-        pytest.param(
-            {'relations.connection': {'dims': ['unit', 'port']}},
-            ("Relation 'connection' collides with the dimension of the same name",),
-            id='a-declared-relation-of-the-same-name',
         ),
         pytest.param(
             {'maps.connection.unit': {'dim': 'unit'}},
@@ -558,7 +553,7 @@ def test_a_sparse_set_with_an_ordered_member_is_read_at_a_tuple():
         ),
         pytest.param(
             {'variables.flow.where': 'connection'},
-            ("where-relation 'connection' reads dims ['port', 'unit'] outside the declared dims",),
+            ("where-tuple 'connection' reads dims ['port', 'unit'] outside the declared dims",),
             id='a-bare-dimension-with-members',
         ),
         pytest.param(
@@ -606,6 +601,9 @@ def test_a_set_of_type_1_runs_along_a_dimension_with_members():
     [
         pytest.param({'x': {'dims': ['snapshot']}}, ['connection', 'port', 'unit'], id='nothing-is-over-the-dimension'),
         pytest.param({'x': {'dims': ['connection']}}, ['snapshot'], id='an-entry-is-over-the-dimension'),
+        pytest.param(
+            {'x': {'dims': ['port', 'unit'], 'where': 'connection'}}, ['snapshot'], id='a-where-tests-the-dimension'
+        ),
     ],
 )
 def test_a_member_does_not_count_as_a_use(variables, unused):

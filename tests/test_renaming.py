@@ -24,8 +24,12 @@ from mathspec.errors import LanguageError
 #: One class written over placeholder names: the `unit` dimension and the
 #: `unit_` entries. Every place a name can stand appears once.
 UNIT = {
-    'dimensions': {'snapshot': {'dtype': 'int', 'ordered': True}, 'unit': {'dtype': 'str'}, 'bus': {'dtype': 'str'}},
-    'relations': {'unit_link': {'dims': ['bus', 'unit'], 'missing': 'absent'}},
+    'dimensions': {
+        'snapshot': {'dtype': 'int', 'ordered': True},
+        'unit': {'dtype': 'str'},
+        'bus': {'dtype': 'str'},
+        'unit_link': {'over': ['bus', 'unit']},
+    },
     'maps': {'unit': {'bus': {'dim': 'bus'}, 'bus0': {'dim': 'bus'}}},
     'given': {'expressions': {'total_cost': {'dims': []}}},
     'parameters': {
@@ -61,11 +65,8 @@ UNIT = {
 
 #: The placeholder names, as a class takes them.
 PLACEHOLDERS = (
-    *(
-        name
-        for section in ('relations', 'parameters', 'conditions', 'variables', 'expressions')
-        for name in UNIT[section]
-    ),
+    'unit_link',
+    *(name for section in ('parameters', 'conditions', 'variables', 'expressions') for name in UNIT[section]),
     'unit_ramp',
     'unit_bounded',
     'unit_twice',
@@ -91,12 +92,10 @@ COST = {
 @pytest.mark.parametrize(
     ('where', 'expected'),
     [
-        pytest.param(lambda s: list(s['dimensions']), ['bus', 'generator', 'snapshot'], id='dimension'),
         pytest.param(
-            lambda s: s['relations']['Generator_link'],
-            {'dims': ['bus', 'generator'], 'missing': 'absent'},
-            id='relation',
+            lambda s: list(s['dimensions']), ['Generator_link', 'bus', 'generator', 'snapshot'], id='dimension'
         ),
+        pytest.param(lambda s: s['dimensions']['Generator_link'], {'over': ['bus', 'generator']}, id='members'),
         pytest.param(lambda s: s['maps'], {'generator': {'bus': {'dim': 'bus'}, 'bus0': {'dim': 'bus'}}}, id='map'),
         pytest.param(lambda s: s['parameters']['Generator_cost']['dims'], ['generator', 'snapshot'], id='dims'),
         pytest.param(lambda s: s['variables']['Generator_p']['where'], 'Generator_on', id='where'),
@@ -348,14 +347,12 @@ def test_a_map_the_spec_cannot_take_is_refused(names, message):
     ('old', 'message'),
     [
         pytest.param('bus0', "'bus0' is also a map of 'line'", id='a-map'),
-        pytest.param('from_bus', "'from_bus' is also a column of the relation 'corridor'", id='a-relation-column'),
     ],
 )
-def test_a_name_that_is_also_a_map_or_a_relation_column_is_refused(old, message):
+def test_a_name_that_is_also_a_map_is_refused(old, message):
     """`line[bus0]` reads a map, and a rename of the parameter `bus0` would change it too."""
     spec = {
         'dimensions': {'line': {'dtype': 'str'}, 'bus': {'dtype': 'str'}},
-        'relations': {'corridor': {'dims': {'from_bus': 'bus', 'to_bus': 'bus'}}},
         'maps': {'line': {'bus0': {'dim': 'bus'}, 'bus1': {'dim': 'bus'}}},
         'parameters': {'bus0': {'dims': ['bus']}, 'from_bus': {'dims': ['bus']}},
         'variables': {'flow': {'dims': ['line']}},

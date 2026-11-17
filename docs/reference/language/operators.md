@@ -26,7 +26,7 @@ A file cannot add an operator, and only
 | `sum(array)`                                               | `sum` removes every [dimension](dimensions.md) of `array`. The result is a scalar                                                                              |
 | `sum(array, over=dim)`                                     | `sum` removes `dim`                                                                                                                                           |
 | `sum(array, over=[a, …])`                                  | `sum` removes each dimension in the list                                                                                                                      |
-| `sum(array, over=dim, by=subject[c])`                      | `sum` removes `dim`, and groups the result by the column `c` of the table of `subject`, a [map](relations.md#maps) or a column of a [relation](relations.md#relations). The call joins on the other key columns, so `array` and the result are indexed over them |
+| `sum(array, over=dim, by=subject[c])`                      | `sum` removes `dim`, and groups the result by the column `c` of the table of `subject`, a [map](maps.md#maps) or a [member](dimensions.md#over). The call joins on the key of `subject`, which `array` is indexed over                    |
 | `sum(array, over=[dim, …], by=subject[c, …])`              | The call does the same with several dimensions and several columns of one table, joins on them together, and groups by their product                            |
 | `at(array, by=subject[m])`                                 | The result is `array` read at the label that the map `m` gives each row of `subject`, once per row. The result gains the key of `subject`                                                |
 | `shift(array, along=dim, offset=n)`                        | The result is the value `n` positions earlier along `dim`, and the vacated edge is [absent](absence.md)                                                                         |
@@ -53,8 +53,8 @@ each dimension once. `sum(x, over=[a, b])` is the same as
 `sum(sum(x, over=a), over=b)`, and the [typesetter](../typeset.md) prints it as
 one sum over both sets.
 
-With `by=`, the sum adds up each group that a [map](relations.md#maps) or a
-column of a [relation](relations.md#relations) makes, and the result is
+With `by=`, the sum adds up each group that a [map](maps.md#maps) or a
+[member](dimensions.md#over) makes, and the result is
 indexed over that column. The balance at each bus (a nodal balance) is one
 `sum(by=)` per kind of component:
 
@@ -110,15 +110,15 @@ sum.
 
 !!! info "See also"
 
-    - [How relations and maps are used](relations.md#how-relations-and-maps-are-used),
-      for the dimensions that a call through a relation or a map joins on, and
+    - [How maps are used](maps.md#how-maps-are-used),
+      for the dimensions that a call through a map joins on, and
       those its result has.
 
 ## `at`
 
-`at` takes, for each row of the subject of a [map](relations.md#maps), the
+`at` takes, for each row of the subject of a [map](maps.md#maps), the
 value of an expression at the label that the map gives the row. `at` adds
-nothing up (a [lookup](relations.md#lookups)), and takes one row for each row
+nothing up (a [lookup](maps.md#lookups)), and takes one row for each row
 of the subject. Here
 `at` takes,
 for every line, the build decision of its bus:
@@ -228,7 +228,7 @@ zero, or no row.
 
 ### `within=`
 
-`within=` takes a [partition](relations.md#partitions), such as one into
+`within=` takes a [partition](maps.md#partitions), such as one into
 seasons, and the neighbour of a coordinate is then the one before it in its own
 group:
 
@@ -392,7 +392,7 @@ Constraint 'stays_up_its_own_time': sum_back(edge=...) takes 'wrap' or nothing. 
 mathspec suggests the rewrite: the constant, written in the expression.
 
 As for [`shift`](#within), `within=` takes a
-[partition](relations.md#partitions), and the window then stays inside each
+[partition](maps.md#partitions), and the window then stays inside each
 group.
 
 ## Every operator as math
@@ -428,8 +428,8 @@ The typesetter prints each form from the smallest spec that uses it.
 
     - [Absence and where](absence.md) for what each operator does with an absent
       input.
-    - [Relations and maps](relations.md#how-relations-and-maps-are-used) for the
-      relation or the map that `by=` and `within=` take.
+    - [Maps](maps.md#how-maps-are-used) for the
+      map or the member that `by=` and `within=` take.
     - [Macros](named.md#macros) for a composition of operators under one name.
     - [One construct per spec](../../examples/operators.md) for the smallest spec
       that uses each form.

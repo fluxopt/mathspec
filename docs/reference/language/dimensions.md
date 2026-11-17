@@ -59,7 +59,7 @@ mathspec loads a dimension that no entry uses, and for that dimension
 ([advice](../glossary.md#advice)).
 
 The label of another dimension that each label has, such as the carrier of
-each generator, is a [map](relations.md#maps), not a dimension.
+each generator, is a [map](maps.md#maps), not a dimension.
 
 ## `one_of`
 
@@ -105,8 +105,8 @@ Variable 'p': 'gnrtr' is not a label of 'carrier', which allows only ['ccgt', 'o
 mathspec lists the allowed labels and suggests two rewrites.
 
 With data attached, a tool refuses a label
-outside the list: in the table of the dimension, in every column of a relation
-over it, and in the column of every map into it.
+outside the list: in the table of the dimension, in every field of a tuple of
+a dimension it is a member of, and in the column of every map into it.
 
 Only a dimension takes `one_of`, and a `one_of` key on a parameter is refused
 as an unknown key.
@@ -220,7 +220,7 @@ members changes nothing, because mathspec sorts them by name at load.
 
 ### The maps of the dimension
 
-Each member is also a [map](relations.md#maps) of the dimension, named after
+Each member is also a [map](maps.md#maps) of the dimension, named after
 the member, with `dim:` the dimension of the member and `missing: refused`. So
 `connection` above has the maps `unit` and `port` beside the map `bus` that
 the file declares, and a call reads a member as it reads any map:
@@ -335,7 +335,7 @@ The test aligns nothing by name. An entry over `[unit]`, or over `[active]`,
 does not have every member, so mathspec refuses `where: active` there:
 
 ```text
-Variable 'built': where-relation 'active' reads dims ['period'] outside the declared dims ['unit']. Add them to dims:, or test a name over the declared dims.
+Variable 'built': where-tuple 'active' reads dims ['period'] outside the declared dims ['unit']. Add them to dims:, or test a name over the declared dims.
 ```
 
 ### `missing`
@@ -374,8 +374,7 @@ each pair of regions that trade:
 dimensions:
   region: { dtype: str }
   from_region: { alias: region }
-relations:
-  trade: { dims: [from_region, region], missing: absent }
+  trade: { over: [from_region, region] }
 parameters:
   ire_flo: { dims: [from_region, region], where: trade }
 variables:
@@ -404,7 +403,7 @@ An alias names a declared dimension that is no alias itself. A second alias of
 
 !!! info "See also"
 
-    - [Relations and maps](relations.md#maps), for the calls that read a member.
+    - [Maps](maps.md#maps), for the calls that read a member.
 
-    - [choose between a dimension, a relation, a map and a parameter](../../howto/declare-a-column.md)
+    - [choose between a dimension, a map and a parameter](../../howto/declare-a-column.md)
       for a column of data.

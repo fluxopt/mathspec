@@ -394,7 +394,7 @@ mathspec refuses a sign other than `<=`, `>=` and `==`.
 ### A link that walks a map
 
 On a link with `by: subject[map]`, mathspec looks the weights of the curve
-up through a [map](relations.md#lookups), as
+up through a [map](maps.md#lookups), as
 [`at(x, by=subject[map])`](operators.md#at) looks up the value of `x`. The
 row of the link is over `dims:`, with the dimension that `map` refers to
 replaced by the key columns of the subject. Each row lies on the curve of the
@@ -450,10 +450,10 @@ These rules apply to a walked link:
   subject that are over dimensions outside `dims:`, and joins on those over
   dimensions of `dims:`. mathspec refuses a key column over `along`, because a
   row could then take each breakpoint from a different curve.
-- mathspec holds a walk to every rule of [`at`](relations.md#lookups), and quotes
+- mathspec holds a walk to every rule of [`at`](maps.md#lookups), and quotes
   the link in the refusal.
 - If the map or its subject declares
-  [`missing: absent`](relations.md#missing), the expansion adds the map test
+  [`missing: absent`](maps.md#missing), the expansion adds the map test
   `flow[converter]` to the `where:` of the row, so a flow with no converter
   has no row.
 - `method: convex` and `method: lp` take no walked link, and the other methods
@@ -786,7 +786,7 @@ at every snapshot.
 
 On a gate written as
 [`at(<variable>, by=<subject>[<map>])`](operators.md#at), mathspec looks
-the variable up through a [map](relations.md#lookups), as `at` looks up
+the variable up through a [map](maps.md#lookups), as `at` looks up
 any value. Here `running` is per unit, and the status of its unit switches
 the curve of each generator:
 
@@ -824,7 +824,7 @@ objective:
 ```
 
 The weights of each curve sum to `at(running, by=generator[unit])`. Because
-`generator[unit]` declares [`missing: absent`](relations.md#missing), the
+`generator[unit]` declares [`missing: absent`](maps.md#missing), the
 data may give a generator no unit. That generator has no gate, so its curve is ungated. With
 `missing: 0` on the gate, the gate is `0` outside its `where:`, so the curve
 is switched off there. Only a generator with no unit then stays ungated.

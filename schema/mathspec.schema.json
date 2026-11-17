@@ -638,7 +638,7 @@
     },
     "MapSpec": {
       "additionalProperties": false,
-      "description": "A map: one label per row of its subject, a dimension or a relation, from the dimension that ``dim:`` names.\n\nWritten in YAML under its subject, with ``dim:`` always written::\n\n    maps:\n      unit:\n        carrier: {dim: carrier, missing: absent}\n      connection:\n        bus: {dim: bus}\n      line:\n        bus0: {dim: bus}\n        bus1: {dim: bus}\n\nThe map's name is a column of its subject's table, beside the subject's\nown columns. A call reads it as ``subject[map]``: ``sum(by=)`` totals\nalong it, ``at(by=)`` reads through it, ``within=`` works in each group\nof rows it sends to one label, and a condition compares it or tests that\na row has a label.",
+      "description": "A map: one label per label of its subject, a dimension, from the dimension that ``dim:`` names.\n\nWritten in YAML under its subject, with ``dim:`` always written::\n\n    maps:\n      unit:\n        carrier: {dim: carrier, missing: absent}\n      connection:\n        bus: {dim: bus}\n      line:\n        bus0: {dim: bus}\n        bus1: {dim: bus}\n\nThe map's name is a column of its subject's table, beside the subject's\nown columns. A call reads it as ``subject[map]``: ``sum(by=)`` totals\nalong it, ``at(by=)`` reads through it, ``within=`` works in each group\nof rows it sends to one label, and a condition compares it or tests that\na row has a label.",
       "properties": {
         "description": {
           "anyOf": [
@@ -789,7 +789,7 @@
       "anyOf": [
         {
           "additionalProperties": false,
-          "description": "One link of a piecewise entry: an expression tied to the curve through a values parameter.\n\nWritten in YAML as ``[expression, values]`` or ``[expression, values,\nsign]``, and serialised back to exactly that form, so a round trip through\n[`Spec.to_yaml`][] reproduces the file.\n\nA link that names ``by: subject[map]`` reads the curve's weights\nthrough the relation, as ``at`` reads an array, and is written as a\nmapping. Its row is the entry's ``dims:`` with the dims the lookup reads\nreplaced by the key columns it arrives at, so one link emits a row per fine\ncoordinate and each reads the curve of the coarse coordinate it maps to.",
+          "description": "One link of a piecewise entry: an expression tied to the curve through a values parameter.\n\nWritten in YAML as ``[expression, values]`` or ``[expression, values,\nsign]``, and serialised back to exactly that form, so a round trip through\n[`Spec.to_yaml`][] reproduces the file.\n\nA link that names ``by: subject[map]`` reads the curve's weights\nthrough the map, as ``at`` reads an array, and is written as a\nmapping. Its row is the entry's ``dims:`` with the dims the lookup reads\nreplaced by the key columns it arrives at, so one link emits a row per fine\ncoordinate and each reads the curve of the coarse coordinate it maps to.",
           "properties": {
             "by": {
               "anyOf": [
@@ -916,58 +916,6 @@
         "links"
       ],
       "title": "PiecewiseSpec",
-      "type": "object"
-    },
-    "RelationSpec": {
-      "additionalProperties": false,
-      "description": "A named relation: the combinations of its dimensions that exist, one row each.\n\n``dims:`` is a list of dimensions, or a mapping of column name to\ndimension where two columns share one. A row is its own identity, so the\nrelation is a subset of the product of its dimensions::\n\n    relations:\n      connection: {dims: [unit, port], missing: absent}\n      corridor: {dims: {from: bus, to: bus}}\n\nA relation is not a dimension. Its name stands in a condition, where it\nis true at the rows it lists, and before a\nbracket, where it reads one of its maps (``maps:``, [`MapSpec`][]). The\nrows are data, and arrive under the relation's name, one column per\ncolumn name, with a column per map beside them.",
-      "properties": {
-        "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Description"
-        },
-        "dims": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            },
-            {
-              "additionalProperties": {
-                "type": "string"
-              },
-              "type": "object"
-            }
-          ],
-          "title": "Dims"
-        },
-        "missing": {
-          "default": "refused",
-          "enum": [
-            "refused",
-            "absent"
-          ],
-          "title": "Missing",
-          "type": "string"
-        }
-      },
-      "required": [
-        "dims"
-      ],
-      "title": "RelationSpec",
       "type": "object"
     },
     "SosSpec": {
@@ -1186,14 +1134,6 @@
       },
       "default": {},
       "title": "Piecewise",
-      "type": "object"
-    },
-    "relations": {
-      "additionalProperties": {
-        "$ref": "#/$defs/RelationSpec"
-      },
-      "default": {},
-      "title": "Relations",
       "type": "object"
     },
     "sos": {
