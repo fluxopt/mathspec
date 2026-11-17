@@ -10,3 +10,6 @@ dimensions:
   vintage: { index: v, set: '\mathcal{V}' }
   process: { index: p, set: '\mathcal{P}' }
   timeslice: { index: s, set: '\mathcal{S}' }
+  rtp_vintyr: { index: k, set: '\mathcal{K}' }
+  prc_ts: { index: q, set: '\mathcal{Q}' }
+  ts_map: { index: m, set: '\mathcal{M}' }

@@ -25,18 +25,18 @@ dimensions:
     description: dispatch periods
     dtype: datetime
     ordered: true
+  covered_snapshot:
+    alias: snapshot
+    description: a snapshot that a maintenance event covers
   generator:
     description: generating units, each on one bus
-
-relations:
   Generator_maintenance_cover:
     description: >-
-      the snapshots a maintenance event covers, by the snapshot it starts in,
+      each snapshot a maintenance event starts in, with a snapshot it covers,
       data prep. In a scenario, they are the start and the snapshots after it,
       until their generator weightings reach that scenario's
       `maintenance_duration`. A generator that is not maintainable has no rows
-    dims: { scenario: scenario, generator: generator, start: snapshot, covered: snapshot }
-    missing: absent
+    over: [scenario, generator, snapshot, covered_snapshot]
 
 parameters:
   Generator_maintainable:
@@ -147,7 +147,9 @@ constraints:
       since the maintenance status is at most one
     dims: [scenario, snapshot, generator]
     where: Generator_maintainable AND Generator_active
-    expression: Generator_maintenance == sum(Generator_maintenance_start, over=start, by=Generator_maintenance_cover[covered])
+    expression: Generator_maintenance == sum(sum(at(Generator_maintenance_start, by=Generator_maintenance_cover[generator, scenario, snapshot]),
+      over=Generator_maintenance_cover, by=Generator_maintenance_cover[generator, covered_snapshot, scenario]),
+      over=covered_snapshot, by=covered_snapshot[snapshot])
   Generator_maint_start_horizon:
     description: "`Generator-maint-start-horizon` — no event starts where it could not run its whole duration"
     dims: [scenario, snapshot, generator]

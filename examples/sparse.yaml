@@ -12,12 +12,7 @@ dimensions:
   bus: { description: a node of the network }
   period: { dtype: int, ordered: true, description: a step of the horizon }
   connection: { over: [unit, port], description: the ports a unit has }
-
-relations:
-  active:
-    description: the periods a unit runs in
-    dims: [unit, period]
-    missing: absent
+  active: { over: [unit, period], description: the periods a unit runs in }
 
 maps:
   connection:

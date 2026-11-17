@@ -12,20 +12,16 @@ dimensions:
   vintage: { dtype: int, description: the period a capacity was built in }
   process: { description: a technology }
   timeslice: { description: "a slice of the year, at any level of the timeslice tree" }
-
-relations:
+  upper_timeslice: { alias: timeslice, description: a timeslice that another is at or below }
   rtp_vintyr:
     description: the vintages of a process that exist in a period (RTP_VINTYR)
-    dims: [region, vintage, period, process]
-    missing: absent
+    over: [region, vintage, period, process]
   prc_ts:
     description: the timeslices a process operates at (PRC_TS)
-    dims: [region, process, timeslice]
-    missing: absent
+    over: [region, process, timeslice]
   ts_map:
     description: each timeslice and the timeslices at or below it (TS_MAP)
-    dims: { region: region, s: timeslice, ts: timeslice }
-    missing: absent
+    over: [region, upper_timeslice, timeslice]
 
 parameters:
   coef_cpt: { dims: [region, vintage, period, process], description: the share of a vintage that still exists in a period }
@@ -42,7 +38,7 @@ variables:
   act:
     description: activity of a vintage of a process in a timeslice (VAR_ACT)
     dims: [region, vintage, period, process, timeslice]
-    where: rtp_vintyr AND prc_ts
+    where: "prc_ts AND rtp_vintyr"
     bounds: { lower: 0 }
 
 constraints:
@@ -55,7 +51,8 @@ constraints:
     dims: [region, period, process, timeslice]
     where: coef_af_up
     expression: >-
-      sum(sum(act, over=vintage), over=ts, by=ts_map[s])
+      sum(sum(at(sum(act, over=vintage), by=ts_map[region, timeslice]), over=ts_map, by=ts_map[region, upper_timeslice]),
+        over=upper_timeslice, by=upper_timeslice[timeslice])
       <= coef_af_up * prc_capact * g_yrfr * cap
 
 objective:

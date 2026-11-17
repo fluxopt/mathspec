@@ -213,7 +213,7 @@ Generator_com_p_before:
 ```
 
 ```math
-\overleftarrow{p}_{g,\xi,t} - \widetilde{\mathrm{rd}}^{\mathrm{dn}}_{g,\xi} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \cdot \overleftarrow{u}_{g,\xi,t} - \left( \overline{\mathrm{p}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} - \widetilde{\mathrm{rd}}^{\mathrm{dn}}_{g,\xi} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \right) \cdot \left( u_{g,\xi,t} - \mathit{up}_{g,\xi,t} \right) \le 0 \qquad \forall\, g \in \mathcal{G},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}_{g} \wedge \neg \mathrm{ext}_{g} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t' \in \mathcal{T} \,:\, \mathrm{c}^{\mathrm{up}}_{g,\xi',t'} \neq \mathrm{c}^{\mathrm{dn}}_{g,\xi',t'} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}_{g,t} \wedge \left( \mathrm{pos}(t) > 0 \vee \mathrm{u}^{0}_{g,\xi} = 0 \vee \mathrm{p}^{0}_{g,\xi} \text{ is defined} \right)
+\overleftarrow{p}_{g,\xi,t} - \widetilde{\mathrm{rd}}^{\mathrm{dn}}_{g,\xi} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \cdot \overleftarrow{u}_{g,\xi,t} - \left( \overline{\mathrm{p}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} - \widetilde{\mathrm{rd}}^{\mathrm{dn}}_{g,\xi} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \right) \cdot \left( u_{g,\xi,t} - \mathit{up}_{g,\xi,t} \right) \le 0 \qquad \forall\, g \in \mathcal{G},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}_{g} \wedge \neg \mathrm{ext}_{g} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t'' \in \mathcal{T} \,:\, \mathrm{c}^{\mathrm{up}}_{g,\xi',t''} \neq \mathrm{c}^{\mathrm{dn}}_{g,\xi',t''} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}_{g,t} \wedge \left( \mathrm{pos}(t) > 0 \vee \mathrm{u}^{0}_{g,\xi} = 0 \vee \mathrm{p}^{0}_{g,\xi} \text{ is defined} \right)
 ```
 
 ### `Generator-com-p-current`
@@ -233,7 +233,7 @@ Generator_com_p_current:
 ```
 
 ```math
-p_{g,\xi,t} - \overline{\mathrm{p}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \cdot u_{g,\xi,t} + \left( \overline{\mathrm{p}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} - \widetilde{\mathrm{ru}}^{\mathrm{up}}_{g,\xi} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \right) \cdot \mathit{up}_{g,\xi,t} \le 0 \qquad \forall\, g \in \mathcal{G},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}_{g} \wedge \neg \mathrm{ext}_{g} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t' \in \mathcal{T} \,:\, \mathrm{c}^{\mathrm{up}}_{g,\xi',t'} \neq \mathrm{c}^{\mathrm{dn}}_{g,\xi',t'} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}_{g,t}
+p_{g,\xi,t} - \overline{\mathrm{p}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \cdot u_{g,\xi,t} + \left( \overline{\mathrm{p}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} - \widetilde{\mathrm{ru}}^{\mathrm{up}}_{g,\xi} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \right) \cdot \mathit{up}_{g,\xi,t} \le 0 \qquad \forall\, g \in \mathcal{G},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}_{g} \wedge \neg \mathrm{ext}_{g} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t'' \in \mathcal{T} \,:\, \mathrm{c}^{\mathrm{up}}_{g,\xi',t''} \neq \mathrm{c}^{\mathrm{dn}}_{g,\xi',t''} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}_{g,t}
 ```
 
 ### `Generator-com-partly-start-up`
@@ -257,7 +257,7 @@ Generator_com_partly_start_up:
 ```
 
 ```math
-p_{g,\xi,t} - \overleftarrow{p}_{g,\xi,t} - \left( \underline{\mathrm{p}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} + \widetilde{\mathrm{ru}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \right) \cdot u_{g,\xi,t} + \underline{\mathrm{p}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \cdot \overleftarrow{u}_{g,\xi,t} + \left( \underline{\mathrm{p}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} + \widetilde{\mathrm{ru}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} - \widetilde{\mathrm{ru}}^{\mathrm{up}}_{g,\xi} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \right) \cdot \mathit{up}_{g,\xi,t} \le 0 \qquad \forall\, g \in \mathcal{G},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}_{g} \wedge \neg \mathrm{ext}_{g} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t' \in \mathcal{T} \,:\, \mathrm{c}^{\mathrm{up}}_{g,\xi',t'} \neq \mathrm{c}^{\mathrm{dn}}_{g,\xi',t'} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}_{g,t} \wedge \left( \mathrm{pos}(t) > 0 \vee \mathrm{u}^{0}_{g,\xi} = 0 \vee \mathrm{p}^{0}_{g,\xi} \text{ is defined} \right)
+p_{g,\xi,t} - \overleftarrow{p}_{g,\xi,t} - \left( \underline{\mathrm{p}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} + \widetilde{\mathrm{ru}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \right) \cdot u_{g,\xi,t} + \underline{\mathrm{p}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \cdot \overleftarrow{u}_{g,\xi,t} + \left( \underline{\mathrm{p}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} + \widetilde{\mathrm{ru}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} - \widetilde{\mathrm{ru}}^{\mathrm{up}}_{g,\xi} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \right) \cdot \mathit{up}_{g,\xi,t} \le 0 \qquad \forall\, g \in \mathcal{G},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}_{g} \wedge \neg \mathrm{ext}_{g} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t'' \in \mathcal{T} \,:\, \mathrm{c}^{\mathrm{up}}_{g,\xi',t''} \neq \mathrm{c}^{\mathrm{dn}}_{g,\xi',t''} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}_{g,t} \wedge \left( \mathrm{pos}(t) > 0 \vee \mathrm{u}^{0}_{g,\xi} = 0 \vee \mathrm{p}^{0}_{g,\xi} \text{ is defined} \right)
 ```
 
 ### `Generator-com-partly-shut-down`
@@ -280,7 +280,7 @@ Generator_com_partly_shut_down:
 ```
 
 ```math
-\overleftarrow{p}_{g,\xi,t} - p_{g,\xi,t} - \widetilde{\mathrm{rd}}^{\mathrm{dn}}_{g,\xi} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \cdot \overleftarrow{u}_{g,\xi,t} + \left( \widetilde{\mathrm{rd}}^{\mathrm{dn}}_{g,\xi} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} - \widetilde{\mathrm{rd}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \right) \cdot u_{g,\xi,t} - \left( \underline{\mathrm{p}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} + \widetilde{\mathrm{rd}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} - \widetilde{\mathrm{rd}}^{\mathrm{dn}}_{g,\xi} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \right) \cdot \mathit{up}_{g,\xi,t} \le 0 \qquad \forall\, g \in \mathcal{G},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}_{g} \wedge \neg \mathrm{ext}_{g} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t' \in \mathcal{T} \,:\, \mathrm{c}^{\mathrm{up}}_{g,\xi',t'} \neq \mathrm{c}^{\mathrm{dn}}_{g,\xi',t'} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}_{g,t} \wedge \left( \mathrm{pos}(t) > 0 \vee \mathrm{u}^{0}_{g,\xi} = 0 \vee \mathrm{p}^{0}_{g,\xi} \text{ is defined} \right)
+\overleftarrow{p}_{g,\xi,t} - p_{g,\xi,t} - \widetilde{\mathrm{rd}}^{\mathrm{dn}}_{g,\xi} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \cdot \overleftarrow{u}_{g,\xi,t} + \left( \widetilde{\mathrm{rd}}^{\mathrm{dn}}_{g,\xi} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} - \widetilde{\mathrm{rd}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \right) \cdot u_{g,\xi,t} - \left( \underline{\mathrm{p}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} + \widetilde{\mathrm{rd}}_{g,\xi,t} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} - \widetilde{\mathrm{rd}}^{\mathrm{dn}}_{g,\xi} \cdot \mathrm{p}^{\mathrm{nom}}_{g,\xi} \right) \cdot \mathit{up}_{g,\xi,t} \le 0 \qquad \forall\, g \in \mathcal{G},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}_{g} \wedge \neg \mathrm{ext}_{g} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t'' \in \mathcal{T} \,:\, \mathrm{c}^{\mathrm{up}}_{g,\xi',t''} \neq \mathrm{c}^{\mathrm{dn}}_{g,\xi',t''} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}_{g,t} \wedge \left( \mathrm{pos}(t) > 0 \vee \mathrm{u}^{0}_{g,\xi} = 0 \vee \mathrm{p}^{0}_{g,\xi} \text{ is defined} \right)
 ```
 
 ### `Link-com-p-before`
@@ -306,7 +306,7 @@ Link_com_p_before:
 ```
 
 ```math
-\overleftarrow{f}_{l,\xi,t} - \widetilde{\mathrm{rd}}^{f,\mathrm{dn}}_{l,\xi} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \cdot \overleftarrow{u}^{f}_{l,\xi,t} - \left( \overline{\mathrm{f}}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} - \widetilde{\mathrm{rd}}^{f,\mathrm{dn}}_{l,\xi} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \right) \cdot \left( u^{f}_{l,\xi,t} - \mathit{up}^{f}_{l,\xi,t} \right) \le 0 \qquad \forall\, l \in \mathcal{L},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}^{f}_{l} \wedge \neg \mathrm{ext}^{f}_{l} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t' \in \mathcal{T} \,:\, \mathrm{c}^{f,\mathrm{up}}_{l,\xi',t'} \neq \mathrm{c}^{f,\mathrm{dn}}_{l,\xi',t'} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}^{f}_{l,t} \wedge \left( \mathrm{pos}(t) > 0 \vee \mathrm{u}^{f,0}_{l,\xi} = 0 \vee \mathrm{f}^{0}_{l,\xi} \text{ is defined} \right)
+\overleftarrow{f}_{l,\xi,t} - \widetilde{\mathrm{rd}}^{f,\mathrm{dn}}_{l,\xi} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \cdot \overleftarrow{u}^{f}_{l,\xi,t} - \left( \overline{\mathrm{f}}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} - \widetilde{\mathrm{rd}}^{f,\mathrm{dn}}_{l,\xi} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \right) \cdot \left( u^{f}_{l,\xi,t} - \mathit{up}^{f}_{l,\xi,t} \right) \le 0 \qquad \forall\, l \in \mathcal{L},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}^{f}_{l} \wedge \neg \mathrm{ext}^{f}_{l} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t'' \in \mathcal{T} \,:\, \mathrm{c}^{f,\mathrm{up}}_{l,\xi',t''} \neq \mathrm{c}^{f,\mathrm{dn}}_{l,\xi',t''} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}^{f}_{l,t} \wedge \left( \mathrm{pos}(t) > 0 \vee \mathrm{u}^{f,0}_{l,\xi} = 0 \vee \mathrm{f}^{0}_{l,\xi} \text{ is defined} \right)
 ```
 
 ### `Link-com-p-current`
@@ -326,7 +326,7 @@ Link_com_p_current:
 ```
 
 ```math
-f_{l,\xi,t} - \overline{\mathrm{f}}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \cdot u^{f}_{l,\xi,t} + \left( \overline{\mathrm{f}}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} - \widetilde{\mathrm{ru}}^{f,\mathrm{up}}_{l,\xi} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \right) \cdot \mathit{up}^{f}_{l,\xi,t} \le 0 \qquad \forall\, l \in \mathcal{L},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}^{f}_{l} \wedge \neg \mathrm{ext}^{f}_{l} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t' \in \mathcal{T} \,:\, \mathrm{c}^{f,\mathrm{up}}_{l,\xi',t'} \neq \mathrm{c}^{f,\mathrm{dn}}_{l,\xi',t'} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}^{f}_{l,t}
+f_{l,\xi,t} - \overline{\mathrm{f}}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \cdot u^{f}_{l,\xi,t} + \left( \overline{\mathrm{f}}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} - \widetilde{\mathrm{ru}}^{f,\mathrm{up}}_{l,\xi} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \right) \cdot \mathit{up}^{f}_{l,\xi,t} \le 0 \qquad \forall\, l \in \mathcal{L},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}^{f}_{l} \wedge \neg \mathrm{ext}^{f}_{l} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t'' \in \mathcal{T} \,:\, \mathrm{c}^{f,\mathrm{up}}_{l,\xi',t''} \neq \mathrm{c}^{f,\mathrm{dn}}_{l,\xi',t''} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}^{f}_{l,t}
 ```
 
 ### `Link-com-partly-start-up`
@@ -350,7 +350,7 @@ Link_com_partly_start_up:
 ```
 
 ```math
-f_{l,\xi,t} - \overleftarrow{f}_{l,\xi,t} - \left( \underline{\mathrm{f}}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} + \widetilde{\mathrm{ru}}^{f}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \right) \cdot u^{f}_{l,\xi,t} + \underline{\mathrm{f}}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \cdot \overleftarrow{u}^{f}_{l,\xi,t} + \left( \underline{\mathrm{f}}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} + \widetilde{\mathrm{ru}}^{f}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} - \widetilde{\mathrm{ru}}^{f,\mathrm{up}}_{l,\xi} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \right) \cdot \mathit{up}^{f}_{l,\xi,t} \le 0 \qquad \forall\, l \in \mathcal{L},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}^{f}_{l} \wedge \neg \mathrm{ext}^{f}_{l} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t' \in \mathcal{T} \,:\, \mathrm{c}^{f,\mathrm{up}}_{l,\xi',t'} \neq \mathrm{c}^{f,\mathrm{dn}}_{l,\xi',t'} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}^{f}_{l,t} \wedge \left( \mathrm{pos}(t) > 0 \vee \mathrm{u}^{f,0}_{l,\xi} = 0 \vee \mathrm{f}^{0}_{l,\xi} \text{ is defined} \right)
+f_{l,\xi,t} - \overleftarrow{f}_{l,\xi,t} - \left( \underline{\mathrm{f}}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} + \widetilde{\mathrm{ru}}^{f}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \right) \cdot u^{f}_{l,\xi,t} + \underline{\mathrm{f}}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \cdot \overleftarrow{u}^{f}_{l,\xi,t} + \left( \underline{\mathrm{f}}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} + \widetilde{\mathrm{ru}}^{f}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} - \widetilde{\mathrm{ru}}^{f,\mathrm{up}}_{l,\xi} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \right) \cdot \mathit{up}^{f}_{l,\xi,t} \le 0 \qquad \forall\, l \in \mathcal{L},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}^{f}_{l} \wedge \neg \mathrm{ext}^{f}_{l} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t'' \in \mathcal{T} \,:\, \mathrm{c}^{f,\mathrm{up}}_{l,\xi',t''} \neq \mathrm{c}^{f,\mathrm{dn}}_{l,\xi',t''} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}^{f}_{l,t} \wedge \left( \mathrm{pos}(t) > 0 \vee \mathrm{u}^{f,0}_{l,\xi} = 0 \vee \mathrm{f}^{0}_{l,\xi} \text{ is defined} \right)
 ```
 
 ### `Link-com-partly-shut-down`
@@ -373,7 +373,7 @@ Link_com_partly_shut_down:
 ```
 
 ```math
-\overleftarrow{f}_{l,\xi,t} - f_{l,\xi,t} - \widetilde{\mathrm{rd}}^{f,\mathrm{dn}}_{l,\xi} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \cdot \overleftarrow{u}^{f}_{l,\xi,t} + \left( \widetilde{\mathrm{rd}}^{f,\mathrm{dn}}_{l,\xi} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} - \widetilde{\mathrm{rd}}^{f}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \right) \cdot u^{f}_{l,\xi,t} - \left( \underline{\mathrm{f}}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} + \widetilde{\mathrm{rd}}^{f}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} - \widetilde{\mathrm{rd}}^{f,\mathrm{dn}}_{l,\xi} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \right) \cdot \mathit{up}^{f}_{l,\xi,t} \le 0 \qquad \forall\, l \in \mathcal{L},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}^{f}_{l} \wedge \neg \mathrm{ext}^{f}_{l} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t' \in \mathcal{T} \,:\, \mathrm{c}^{f,\mathrm{up}}_{l,\xi',t'} \neq \mathrm{c}^{f,\mathrm{dn}}_{l,\xi',t'} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}^{f}_{l,t} \wedge \left( \mathrm{pos}(t) > 0 \vee \mathrm{u}^{f,0}_{l,\xi} = 0 \vee \mathrm{f}^{0}_{l,\xi} \text{ is defined} \right)
+\overleftarrow{f}_{l,\xi,t} - f_{l,\xi,t} - \widetilde{\mathrm{rd}}^{f,\mathrm{dn}}_{l,\xi} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \cdot \overleftarrow{u}^{f}_{l,\xi,t} + \left( \widetilde{\mathrm{rd}}^{f,\mathrm{dn}}_{l,\xi} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} - \widetilde{\mathrm{rd}}^{f}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \right) \cdot u^{f}_{l,\xi,t} - \left( \underline{\mathrm{f}}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} + \widetilde{\mathrm{rd}}^{f}_{l,\xi,t} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} - \widetilde{\mathrm{rd}}^{f,\mathrm{dn}}_{l,\xi} \cdot \mathrm{f}^{\mathrm{nom}}_{l,\xi} \right) \cdot \mathit{up}^{f}_{l,\xi,t} \le 0 \qquad \forall\, l \in \mathcal{L},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}^{f}_{l} \wedge \neg \mathrm{ext}^{f}_{l} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t'' \in \mathcal{T} \,:\, \mathrm{c}^{f,\mathrm{up}}_{l,\xi',t''} \neq \mathrm{c}^{f,\mathrm{dn}}_{l,\xi',t''} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}^{f}_{l,t} \wedge \left( \mathrm{pos}(t) > 0 \vee \mathrm{u}^{f,0}_{l,\xi} = 0 \vee \mathrm{f}^{0}_{l,\xi} \text{ is defined} \right)
 ```
 
 ### `Process-com-p-before`
@@ -399,7 +399,7 @@ Process_com_p_before:
 ```
 
 ```math
-\overleftarrow{z}_{j,\xi,t} - \widetilde{\mathrm{rd}}^{z,\mathrm{dn}}_{j,\xi} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \cdot \overleftarrow{u}^{z}_{j,\xi,t} - \left( \overline{\mathrm{z}}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} - \widetilde{\mathrm{rd}}^{z,\mathrm{dn}}_{j,\xi} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \right) \cdot \left( u^{z}_{j,\xi,t} - \mathit{up}^{z}_{j,\xi,t} \right) \le 0 \qquad \forall\, j \in \mathcal{J},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}^{z}_{j} \wedge \neg \mathrm{ext}^{z}_{j} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t' \in \mathcal{T} \,:\, \mathrm{c}^{z,\mathrm{up}}_{j,\xi',t'} \neq \mathrm{c}^{z,\mathrm{dn}}_{j,\xi',t'} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}^{z}_{j,t} \wedge \left( \mathrm{pos}(t) > 0 \vee \mathrm{u}^{z,0}_{j,\xi} = 0 \vee \mathrm{z}^{0}_{j,\xi} \text{ is defined} \right)
+\overleftarrow{z}_{j,\xi,t} - \widetilde{\mathrm{rd}}^{z,\mathrm{dn}}_{j,\xi} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \cdot \overleftarrow{u}^{z}_{j,\xi,t} - \left( \overline{\mathrm{z}}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} - \widetilde{\mathrm{rd}}^{z,\mathrm{dn}}_{j,\xi} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \right) \cdot \left( u^{z}_{j,\xi,t} - \mathit{up}^{z}_{j,\xi,t} \right) \le 0 \qquad \forall\, j \in \mathcal{J},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}^{z}_{j} \wedge \neg \mathrm{ext}^{z}_{j} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t'' \in \mathcal{T} \,:\, \mathrm{c}^{z,\mathrm{up}}_{j,\xi',t''} \neq \mathrm{c}^{z,\mathrm{dn}}_{j,\xi',t''} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}^{z}_{j,t} \wedge \left( \mathrm{pos}(t) > 0 \vee \mathrm{u}^{z,0}_{j,\xi} = 0 \vee \mathrm{z}^{0}_{j,\xi} \text{ is defined} \right)
 ```
 
 ### `Process-com-p-current`
@@ -419,7 +419,7 @@ Process_com_p_current:
 ```
 
 ```math
-z_{j,\xi,t} - \overline{\mathrm{z}}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \cdot u^{z}_{j,\xi,t} + \left( \overline{\mathrm{z}}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} - \widetilde{\mathrm{ru}}^{z,\mathrm{up}}_{j,\xi} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \right) \cdot \mathit{up}^{z}_{j,\xi,t} \le 0 \qquad \forall\, j \in \mathcal{J},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}^{z}_{j} \wedge \neg \mathrm{ext}^{z}_{j} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t' \in \mathcal{T} \,:\, \mathrm{c}^{z,\mathrm{up}}_{j,\xi',t'} \neq \mathrm{c}^{z,\mathrm{dn}}_{j,\xi',t'} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}^{z}_{j,t}
+z_{j,\xi,t} - \overline{\mathrm{z}}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \cdot u^{z}_{j,\xi,t} + \left( \overline{\mathrm{z}}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} - \widetilde{\mathrm{ru}}^{z,\mathrm{up}}_{j,\xi} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \right) \cdot \mathit{up}^{z}_{j,\xi,t} \le 0 \qquad \forall\, j \in \mathcal{J},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}^{z}_{j} \wedge \neg \mathrm{ext}^{z}_{j} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t'' \in \mathcal{T} \,:\, \mathrm{c}^{z,\mathrm{up}}_{j,\xi',t''} \neq \mathrm{c}^{z,\mathrm{dn}}_{j,\xi',t''} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}^{z}_{j,t}
 ```
 
 ### `Process-com-partly-start-up`
@@ -443,7 +443,7 @@ Process_com_partly_start_up:
 ```
 
 ```math
-z_{j,\xi,t} - \overleftarrow{z}_{j,\xi,t} - \left( \underline{\mathrm{z}}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} + \widetilde{\mathrm{ru}}^{z}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \right) \cdot u^{z}_{j,\xi,t} + \underline{\mathrm{z}}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \cdot \overleftarrow{u}^{z}_{j,\xi,t} + \left( \underline{\mathrm{z}}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} + \widetilde{\mathrm{ru}}^{z}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} - \widetilde{\mathrm{ru}}^{z,\mathrm{up}}_{j,\xi} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \right) \cdot \mathit{up}^{z}_{j,\xi,t} \le 0 \qquad \forall\, j \in \mathcal{J},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}^{z}_{j} \wedge \neg \mathrm{ext}^{z}_{j} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t' \in \mathcal{T} \,:\, \mathrm{c}^{z,\mathrm{up}}_{j,\xi',t'} \neq \mathrm{c}^{z,\mathrm{dn}}_{j,\xi',t'} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}^{z}_{j,t} \wedge \left( \mathrm{pos}(t) > 0 \vee \mathrm{u}^{z,0}_{j,\xi} = 0 \vee \mathrm{z}^{0}_{j,\xi} \text{ is defined} \right)
+z_{j,\xi,t} - \overleftarrow{z}_{j,\xi,t} - \left( \underline{\mathrm{z}}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} + \widetilde{\mathrm{ru}}^{z}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \right) \cdot u^{z}_{j,\xi,t} + \underline{\mathrm{z}}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \cdot \overleftarrow{u}^{z}_{j,\xi,t} + \left( \underline{\mathrm{z}}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} + \widetilde{\mathrm{ru}}^{z}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} - \widetilde{\mathrm{ru}}^{z,\mathrm{up}}_{j,\xi} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \right) \cdot \mathit{up}^{z}_{j,\xi,t} \le 0 \qquad \forall\, j \in \mathcal{J},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}^{z}_{j} \wedge \neg \mathrm{ext}^{z}_{j} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t'' \in \mathcal{T} \,:\, \mathrm{c}^{z,\mathrm{up}}_{j,\xi',t''} \neq \mathrm{c}^{z,\mathrm{dn}}_{j,\xi',t''} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}^{z}_{j,t} \wedge \left( \mathrm{pos}(t) > 0 \vee \mathrm{u}^{z,0}_{j,\xi} = 0 \vee \mathrm{z}^{0}_{j,\xi} \text{ is defined} \right)
 ```
 
 ### `Process-com-partly-shut-down`
@@ -466,7 +466,7 @@ Process_com_partly_shut_down:
 ```
 
 ```math
-\overleftarrow{z}_{j,\xi,t} - z_{j,\xi,t} - \widetilde{\mathrm{rd}}^{z,\mathrm{dn}}_{j,\xi} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \cdot \overleftarrow{u}^{z}_{j,\xi,t} + \left( \widetilde{\mathrm{rd}}^{z,\mathrm{dn}}_{j,\xi} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} - \widetilde{\mathrm{rd}}^{z}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \right) \cdot u^{z}_{j,\xi,t} - \left( \underline{\mathrm{z}}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} + \widetilde{\mathrm{rd}}^{z}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} - \widetilde{\mathrm{rd}}^{z,\mathrm{dn}}_{j,\xi} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \right) \cdot \mathit{up}^{z}_{j,\xi,t} \le 0 \qquad \forall\, j \in \mathcal{J},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}^{z}_{j} \wedge \neg \mathrm{ext}^{z}_{j} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t' \in \mathcal{T} \,:\, \mathrm{c}^{z,\mathrm{up}}_{j,\xi',t'} \neq \mathrm{c}^{z,\mathrm{dn}}_{j,\xi',t'} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}^{z}_{j,t} \wedge \left( \mathrm{pos}(t) > 0 \vee \mathrm{u}^{z,0}_{j,\xi} = 0 \vee \mathrm{z}^{0}_{j,\xi} \text{ is defined} \right)
+\overleftarrow{z}_{j,\xi,t} - z_{j,\xi,t} - \widetilde{\mathrm{rd}}^{z,\mathrm{dn}}_{j,\xi} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \cdot \overleftarrow{u}^{z}_{j,\xi,t} + \left( \widetilde{\mathrm{rd}}^{z,\mathrm{dn}}_{j,\xi} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} - \widetilde{\mathrm{rd}}^{z}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \right) \cdot u^{z}_{j,\xi,t} - \left( \underline{\mathrm{z}}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} + \widetilde{\mathrm{rd}}^{z}_{j,\xi,t} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} - \widetilde{\mathrm{rd}}^{z,\mathrm{dn}}_{j,\xi} \cdot \mathrm{z}^{\mathrm{nom}}_{j,\xi} \right) \cdot \mathit{up}^{z}_{j,\xi,t} \le 0 \qquad \forall\, j \in \mathcal{J},\ \xi \in \Xi,\ t \in \mathcal{T} \,:\, \mathrm{com}^{z}_{j} \wedge \neg \mathrm{ext}^{z}_{j} \wedge \lvert \{ \xi' \in \Xi \,:\, \lvert \{ t'' \in \mathcal{T} \,:\, \mathrm{c}^{z,\mathrm{up}}_{j,\xi',t''} \neq \mathrm{c}^{z,\mathrm{dn}}_{j,\xi',t''} \} \rvert > 0 \} \rvert = 0 \wedge \mathrm{on}^{z}_{j,t} \wedge \left( \mathrm{pos}(t) > 0 \vee \mathrm{u}^{z,0}_{j,\xi} = 0 \vee \mathrm{z}^{0}_{j,\xi} \text{ is defined} \right)
 ```
 
 ### `Generator_marginal_cost_incremental`
@@ -521,7 +521,7 @@ Generator_committable_is_not_modular:
 ```
 
 ```math
-\neg \left( \mathrm{p}^{\mathrm{mod}}_{g} > 0 \right) \qquad \forall\, g \in \mathcal{G} \,:\, \mathrm{com}_{g} \wedge \lvert \{ t \in \mathcal{T} \,:\, \mathrm{on}_{g,t} \} \rvert > 0
+\neg \left( \mathrm{p}^{\mathrm{mod}}_{g} > 0 \right) \qquad \forall\, g \in \mathcal{G} \,:\, \mathrm{com}_{g} \wedge \lvert \{ t'' \in \mathcal{T} \,:\, \mathrm{on}_{g,t''} \} \rvert > 0
 ```
 
 ### `Link_committable_is_not_modular`
@@ -539,7 +539,7 @@ Link_committable_is_not_modular:
 ```
 
 ```math
-\neg \left( \mathrm{f}^{\mathrm{mod}}_{l} > 0 \right) \qquad \forall\, l \in \mathcal{L} \,:\, \mathrm{com}^{f}_{l} \wedge \lvert \{ t \in \mathcal{T} \,:\, \mathrm{on}^{f}_{l,t} \} \rvert > 0
+\neg \left( \mathrm{f}^{\mathrm{mod}}_{l} > 0 \right) \qquad \forall\, l \in \mathcal{L} \,:\, \mathrm{com}^{f}_{l} \wedge \lvert \{ t'' \in \mathcal{T} \,:\, \mathrm{on}^{f}_{l,t''} \} \rvert > 0
 ```
 
 ### `Process_committable_is_not_modular`
@@ -557,7 +557,7 @@ Process_committable_is_not_modular:
 ```
 
 ```math
-\neg \left( \mathrm{z}^{\mathrm{mod}}_{j} > 0 \right) \qquad \forall\, j \in \mathcal{J} \,:\, \mathrm{com}^{z}_{j} \wedge \lvert \{ t \in \mathcal{T} \,:\, \mathrm{on}^{z}_{j,t} \} \rvert > 0
+\neg \left( \mathrm{z}^{\mathrm{mod}}_{j} > 0 \right) \qquad \forall\, j \in \mathcal{J} \,:\, \mathrm{com}^{z}_{j} \wedge \lvert \{ t'' \in \mathcal{T} \,:\, \mathrm{on}^{z}_{j,t''} \} \rvert > 0
 ```
 <!-- gallery:end -->
 

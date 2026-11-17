@@ -19,9 +19,10 @@ the sets in one way:
 
 `connection` is a dimension whose labels are the pairs of a unit and a port.
 `efficiency` and `flow` are over it, so `missing: 1` fills only the ports it
-lists, and a data row for a port it does not list is refused. `active` has the
-ordered member `period`, along which `ramp_up` steps, so it stays a relation
-that `output` reads in its `where:`.
+lists, and a data row for a port it does not list is refused. `active` is a
+dimension over `unit` and `period`. `output` is over both members, and
+`where: active` keeps the pairs that `active` lists, so `ramp_up` can step
+along the ordered member `period`.
 [#1019](https://github.com/energy-models/mathspec/issues/1019) compares how
 three designs for sparse sets write this spec.
 
@@ -37,12 +38,7 @@ dimensions:
   bus: { description: a node of the network }
   period: { dtype: int, ordered: true, description: a step of the horizon }
   connection: { over: [unit, port], description: the ports a unit has }
-
-relations:
-  active:
-    description: the periods a unit runs in
-    dims: [unit, period]
-    missing: absent
+  active: { over: [unit, period], description: the periods a unit runs in }
 
 maps:
   connection:
@@ -87,11 +83,12 @@ Units that feed buses through the ports they have, and run only in the periods t
 
 | Symbol | Meaning |
 |---|---|
+| $`\mathcal{A}`$ | index $`a`$ — `active`, $`\mathcal{A} \subseteq \mathcal{T} \times \mathcal{U}`$ — the periods a unit runs in |
 | $`\mathcal{B}`$ | index $`b`$ — `bus` with $`\mathrm{bus}: \mathcal{C} \to \mathcal{B}`$ — a node of the network |
 | $`\mathcal{C}`$ | index $`c`$ — `connection`, $`\mathcal{C} \subseteq \mathcal{O} \times \mathcal{U}`$ with $`\mathrm{bus}: \mathcal{C} \to \mathcal{B}`$ — the ports a unit has |
-| $`\mathcal{T}`$ | index $`t`$ — `period` with $`\mathrm{active} \subseteq \mathcal{T} \times \mathcal{U}`$, `active` is `absent` where the data has no row — a step of the horizon |
+| $`\mathcal{T}`$ | index $`t`$ — `period` — a step of the horizon |
 | $`\mathcal{O}`$ | index $`o`$ — `port` — an output of a unit |
-| $`\mathcal{U}`$ | index $`u`$ — `unit` with $`\mathrm{active} \subseteq \mathcal{T} \times \mathcal{U}`$, `active` is `absent` where the data has no row — a converter |
+| $`\mathcal{U}`$ | index $`u`$ — `unit` — a converter |
 
 #### Parameters
 

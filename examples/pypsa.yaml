@@ -24,6 +24,9 @@ dimensions:
     description: dispatch periods
     dtype: datetime
     ordered: true
+  covered_snapshot:
+    alias: snapshot
+    description: a snapshot that a maintenance event covers
   bus:
     description: network nodes
   generator:
@@ -88,6 +91,27 @@ dimensions:
       breakpoints its data has rows for, so curves may differ in length
     dtype: int
     ordered: true
+  Generator_maintenance_cover:
+    description: >-
+      each snapshot a maintenance event starts in, with a snapshot it covers,
+      data prep. In a scenario, they are the start and the snapshots after it,
+      until their generator weightings reach that scenario's
+      `maintenance_duration`. A generator that is not maintainable has no rows
+    over: [scenario, generator, snapshot, covered_snapshot]
+  Link_maintenance_cover:
+    description: >-
+      each snapshot a maintenance event starts in, with a snapshot it covers,
+      data prep. In a scenario, they are the start and the snapshots after it,
+      until their generator weightings reach that scenario's
+      `maintenance_duration`. A link that is not maintainable has no rows
+    over: [scenario, link, snapshot, covered_snapshot]
+  Process_maintenance_cover:
+    description: >-
+      each snapshot a maintenance event starts in, with a snapshot it covers,
+      data prep. In a scenario, they are the start and the snapshots after it,
+      until their generator weightings reach that scenario's
+      `maintenance_duration`. A process that is not maintainable has no rows
+    over: [scenario, process, snapshot, covered_snapshot]
 
 parameters:
   Bus_attached:
@@ -1579,32 +1603,6 @@ parameters:
       One outside it, or one that is not active in the row's
       `investment_period`, has no row
     dims: [global_constraint, process]
-    missing: absent
-
-relations:
-  Generator_maintenance_cover:
-    description: >-
-      the snapshots a maintenance event covers, by the snapshot it starts in,
-      data prep. In a scenario, they are the start and the snapshots after it,
-      until their generator weightings reach that scenario's
-      `maintenance_duration`. A generator that is not maintainable has no rows
-    dims: { scenario: scenario, generator: generator, start: snapshot, covered: snapshot }
-    missing: absent
-  Link_maintenance_cover:
-    description: >-
-      the snapshots a maintenance event covers, by the snapshot it starts in,
-      data prep. In a scenario, they are the start and the snapshots after it,
-      until their generator weightings reach that scenario's
-      `maintenance_duration`. A link that is not maintainable has no rows
-    dims: { scenario: scenario, link: link, start: snapshot, covered: snapshot }
-    missing: absent
-  Process_maintenance_cover:
-    description: >-
-      the snapshots a maintenance event covers, by the snapshot it starts in,
-      data prep. In a scenario, they are the start and the snapshots after it,
-      until their generator weightings reach that scenario's
-      `maintenance_duration`. A process that is not maintainable has no rows
-    dims: { scenario: scenario, process: process, start: snapshot, covered: snapshot }
     missing: absent
 
 maps:
@@ -3630,7 +3628,9 @@ constraints:
       since the maintenance status is at most one
     dims: [scenario, snapshot, generator]
     where: Generator_maintainable AND Generator_active
-    expression: Generator_maintenance == sum(Generator_maintenance_start, over=start, by=Generator_maintenance_cover[covered])
+    expression: Generator_maintenance == sum(sum(at(Generator_maintenance_start, by=Generator_maintenance_cover[generator, scenario, snapshot]),
+      over=Generator_maintenance_cover, by=Generator_maintenance_cover[generator, covered_snapshot, scenario]),
+      over=covered_snapshot, by=covered_snapshot[snapshot])
   Generator_maint_start_horizon:
     description: "`Generator-maint-start-horizon` — no event starts where it could not run its whole duration"
     dims: [scenario, snapshot, generator]
@@ -3876,7 +3876,9 @@ constraints:
       maintenance status is at most one
     dims: [scenario, snapshot, link]
     where: Link_maintainable AND Link_active
-    expression: Link_maintenance == sum(Link_maintenance_start, over=start, by=Link_maintenance_cover[covered])
+    expression: Link_maintenance == sum(sum(at(Link_maintenance_start, by=Link_maintenance_cover[link, scenario, snapshot]),
+      over=Link_maintenance_cover, by=Link_maintenance_cover[link, covered_snapshot, scenario]),
+      over=covered_snapshot, by=covered_snapshot[snapshot])
   Link_maint_start_horizon:
     description: "`Link-maint-start-horizon` — no event starts where it could not run its whole duration"
     dims: [scenario, snapshot, link]
@@ -4131,7 +4133,9 @@ constraints:
       the maintenance status is at most one
     dims: [scenario, snapshot, process]
     where: Process_maintainable AND Process_active
-    expression: Process_maintenance == sum(Process_maintenance_start, over=start, by=Process_maintenance_cover[covered])
+    expression: Process_maintenance == sum(sum(at(Process_maintenance_start, by=Process_maintenance_cover[process, scenario, snapshot]),
+      over=Process_maintenance_cover, by=Process_maintenance_cover[process, covered_snapshot, scenario]),
+      over=covered_snapshot, by=covered_snapshot[snapshot])
   Process_maint_start_horizon:
     description: "`Process-maint-start-horizon` — no event starts where it could not run its whole duration"
     dims: [scenario, snapshot, process]
