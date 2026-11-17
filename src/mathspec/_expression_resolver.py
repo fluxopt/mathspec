@@ -249,7 +249,8 @@ class ExpressionResolver:
                         along = self._dim_ref(value, node.name, key)
                         unread |= along is None
                     else:
-                        over = self._over(value, node.name, relation='by' in node.kwargs)
+                        by = node.kwargs.get('by')
+                        over = self._over(value, node.name, by=by.relation if isinstance(by, ColumnsNode) else None)
                         unread |= over is None
                 case 'value':
                     amounts[key] = self._amount(value, node.name, key)
@@ -487,7 +488,7 @@ class ExpressionResolver:
         declared = {**self.ns.spec.constraints, **self.ns.spec.given.constraints}[value.name]
         return Dual(value.name, dims=sorted_dims(declared.dims))
 
-    def _over(self, value: ArithmeticNode, operator: str, *, relation: bool) -> tuple[str, ...] | None:
+    def _over(self, value: ArithmeticNode, operator: str, *, by: str | None) -> tuple[str, ...] | None:
         """``over=``: a dimension or a list of them, and beside ``by=`` the columns of the relation too, each a bare name.
 
         Beside ``by=`` a name is read against the relation in [`_grouping`][],
@@ -510,8 +511,9 @@ class ExpressionResolver:
             return None
         if any(n in self.formals for n in names):
             return None
+        names = self._relations_expanded(names, by)
         found = len(self.errors)
-        if not relation:
+        if by is None:
             for n in names:
                 if n not in self.ns.dimensions:
                     self.errors.append(_undeclared_dim(self.context, operator, f'over={n}', n, self.ns, self.formals))
@@ -521,6 +523,23 @@ class ExpressionResolver:
                 f'Name each one once.'
             )
         return names if len(self.errors) == found else None
+
+    def _relations_expanded(self, names: tuple[str, ...], by: str | None) -> tuple[str, ...]:
+        """*names* with each relation that is no dimension replaced by its key: its columns, and none of its maps.
+
+        A sum over a relation is a sum over its key, so ``over=connection``
+        and ``over=[unit, port]`` lower to one node, and nothing after the
+        load sees the relation's name in ``over=``. Beside ``by=`` the same
+        relation, the key stays as its columns, which the call reads by name;
+        anywhere else each column becomes the dimension it is over.
+        """
+        ns = self.ns
+
+        def key(name: str) -> tuple[str, ...]:
+            shape = ns.relations[name]
+            return shape.key if name == by else tuple(shape.dim(r) for r in shape.key)
+
+        return tuple(d for n in names for d in (key(n) if n in ns.relations and n not in ns.dimensions else (n,)))
 
     def columns_ref(self, value: ArithmeticNode, operator: str, key: str) -> ColumnsNode | None:
         """A kwarg naming columns of one relation, ``relation[column, …]``, each a column the relation declares.

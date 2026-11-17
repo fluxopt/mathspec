@@ -2023,12 +2023,6 @@ _LINKED = {'relations.link': {'dims': ['g', 'h'], 'missing': 'absent'}}
             id='dims-of-a-constraint',
         ),
         pytest.param(
-            {'constraints.c': {'dims': [], 'expression': 'sum(q, over=link) >= 0'}},
-            "Constraint 'c': sum(over=link) names the relation 'link', and a relation is not a dimension. Name its "
-            "dimensions, ['g', 'h'].",
-            id='over',
-        ),
-        pytest.param(
             {'constraints.c': {'dims': ['g'], 'expression': 'p <= shift(p, along=link, offset=1)'}},
             "Constraint 'c': shift(along=link) names the relation 'link', and a relation is not a dimension. Name "
             "one of its dimensions, ['g', 'h'].",
@@ -2039,6 +2033,42 @@ _LINKED = {'relations.link': {'dims': ['g', 'h'], 'missing': 'absent'}}
 def test_a_relation_named_where_a_dimension_belongs_is_refused(patch: dict[str, Any], message: str):
     """mathspec told the writer to declare the relation under `dimensions:`, which makes a second, unrelated name."""
     assert message in _refusal(**_LINKED, **patch)
+
+
+@pytest.mark.parametrize(
+    ('relation', 'dims'),
+    [
+        pytest.param('sum(q, over=link) >= 0', 'sum(q, over=[g, h]) >= 0', id='plain'),
+        pytest.param('sum(q, over=[link]) >= 0', 'sum(q, over=[g, h]) >= 0', id='in-a-list'),
+        pytest.param('sum(q, over=link, by=link[to]) >= 0', 'sum(q, over=[g, h], by=link[to]) >= 0', id='beside-by'),
+    ],
+)
+def test_a_sum_over_a_relation_is_a_sum_over_its_dims(relation: str, dims: str):
+    """`over=` a relation was refused, with its dims as the rewrite; the load can write the rewrite itself."""
+    patch = {**_LINKED, 'maps.link': {'to': {'dim': 'h'}}}
+    frame = ['h'] if 'by=' in relation else []
+    over_relation = _spec(**patch, **{'constraints.c': {'dims': frame, 'expression': relation}})
+    over_dims = _spec(**patch, **{'constraints.c': {'dims': frame, 'expression': dims}})
+    assert over_relation.program.constraints['c'] == over_dims.program.constraints['c'], (
+        'a sum over a relation lowers to the sum over its dims'
+    )
+
+
+def test_a_sum_over_a_relation_with_a_map_sums_over_its_key_alone():
+    """The expansion took every dimension a column of the relation is over, the map's too.
+
+    So `sum(q, over=link, by=link[to])` with `to` over a third dimension `b`
+    named `b` in both `over=` and `by=`, and was refused.
+    """
+    patch = {**_LINKED, 'dimensions.b': {}, 'maps.link': {'to': {'dim': 'b'}}}
+    for frame, expression in [([], 'sum(q, over=link) >= 0'), (['b'], 'sum(q, over=link, by=link[to]) >= 0')]:
+        _spec(**patch, **{'constraints.c': {'dims': frame, 'expression': expression}})
+
+
+def test_a_sum_over_a_relation_and_one_of_its_dims_names_that_dim_twice():
+    """The expansion is not a union: `over=[link, g]` names `g` twice, and the refusal says so."""
+    message = _refusal(**_LINKED, **{'constraints.c': {'dims': [], 'expression': 'sum(q, over=[link, g]) >= 0'}})
+    assert "names 'g' twice" in message, message
 
 
 #: `p` over the pairs of `g` and `h`, with two relations that list some of them.

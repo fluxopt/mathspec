@@ -52,7 +52,7 @@ constraints:
   balance:
     description: what the ports deliver to a bus meets its load
     dims: [bus, period]
-    expression: sum(efficiency * flow, over=[unit, port], by=connection[bus]) >= load
+    expression: sum(efficiency * flow, over=connection, by=connection[bus]) >= load
 
 objective:
   sense: minimize

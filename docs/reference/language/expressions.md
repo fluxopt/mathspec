@@ -221,15 +221,15 @@ mathspec suggests the rewrite: a new name for one of the two entries.
 
 The place of a name in a string sets which kinds of name it may be:
 
-| Place                                  | Kinds of name it accepts                                                                                      |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| expression (`p * cost`)                | a variable, or a parameter whose values are numbers ([dtype](parameters-variables-constraints.md#parameters)) |
-| dimension argument (`over=`, `along=`) | a dimension, a list of them for `over=`, or with `by=` a column of the table in `by=` where one has that name |
-| column argument (`by=`, `within=`)     | maps or columns of one subject, written `subject[column]` or `subject[column, …]`                             |
-| condition                              | a parameter, variable, dimension, relation, map or named condition ([conditions](#conditions))                |
-| `bounds.lower` / `bounds.upper`        | a parameter name, or a number                                                                                 |
-| the `edge` key of `shift`              | `'wrap'` in quotes, or a bare number                                                                          |
-| `dual` argument (`dual(c)`)            | a constraint, resolved against the constraints alone ([named expressions](named.md#dual))                     |
+| Place                                  | Kinds of name it accepts                                                                                                                               |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| expression (`p * cost`)                | a variable, or a parameter whose values are numbers ([dtype](parameters-variables-constraints.md#parameters))                                          |
+| dimension argument (`over=`, `along=`) | a dimension, a list of them for `over=`, a relation for `over=` (its dimensions), or with `by=` a column of the table in `by=` where one has that name |
+| column argument (`by=`, `within=`)     | maps or columns of one subject, written `subject[column]` or `subject[column, …]`                                                                      |
+| condition                              | a parameter, variable, dimension, relation, map or named condition ([conditions](#conditions))                                                         |
+| `bounds.lower` / `bounds.upper`        | a parameter name, or a number                                                                                                                          |
+| the `edge` key of `shift`              | `'wrap'` in quotes, or a bare number                                                                                                                   |
+| `dual` argument (`dual(c)`)            | a constraint, resolved against the constraints alone ([named expressions](named.md#dual))                                                              |
 
 A bare word in the value of a keyword argument is a name, and mathspec looks
 it up. The key of a keyword argument is never a name, so `over` in

@@ -54,12 +54,16 @@ dimension, and a map or a condition states that. With
 Relation 'r' has one column under 'dims:', and a relation needs at least two. To give each generator a label, declare a map under maps: generator:. To mark some of them, declare a bool parameter or a condition.
 ```
 
-A relation is not a dimension, so its name does not go in `dims:`, `over=` or
+A relation is not a dimension, so its name does not go in `dims:` or
 `along=`. With `flow: { dims: [connection] }`, mathspec prints:
 
 ```text
 Variable 'flow' names the relation 'connection', and a relation is not a dimension. Name its dimensions, ['bus', 'generator'], under dims:, and confine the entry with in: [connection].
 ```
+
+In `over=`, a relation stands for its dimensions. `sum(flow, over=connection)`
+is `sum(flow, over=[bus, generator])`, and a dimension of the relation that is
+also named in the list is named twice and refused.
 
 The order of the columns under `dims:` changes nothing. The typesetter sorts
 the columns by name, so `connection` above prints as
@@ -281,7 +285,10 @@ Five more rules apply to a sum through a table:
 
 - The operand is over every column that the call joins on, and over none that
   it groups by. A column that the operand is over is joined on.
-- A name in `over=` is a column of the table, or else a dimension. With the
+- A name in `over=` is a column of the table, or else a dimension. A relation
+  in `over=` stands for its dimensions, so
+  `sum(x, over=connection, by=connection[bus])` joins on each column of
+  `connection` that is over one of them. With the
   map `rep` of `snapshot`, `sum(x, over=snapshot, by=snapshot[rep])` joins on
   the key column `snapshot` and groups by `rep`. Where two columns are over one
   dimension, the name selects which one, so
