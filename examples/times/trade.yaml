@@ -4,16 +4,18 @@
 
 description: >-
   Trade between regions from TIMES: IRE_FLO, the efficiency of a flow from one
-  region and commodity to another, over each region and commodity twice.
+  region and commodity to another through a process, over each region and
+  commodity twice.
 
 dimensions:
   region: { description: a region of the model }
   commodity: { description: an energy carrier or a material }
+  process: { description: a technology that carries trade }
   from_region: { alias: region, description: the region an export leaves }
   from_commodity: { alias: commodity, description: the commodity an export leaves as }
   top_ire:
-    description: the links that exist, from a region and commodity to another (TOP_IRE)
-    over: [from_region, from_commodity, region, commodity]
+    description: the processes that carry each link from a region and commodity to another (TOP_IRE)
+    over: [from_region, from_commodity, region, commodity, process]
 
 parameters:
   ire_flo:
@@ -28,7 +30,7 @@ parameters:
 variables:
   supply: { dims: [commodity, region], bounds: { lower: 0 }, description: what a region produces of a commodity }
   export:
-    description: what leaves along a link (VAR_IRE)
+    description: what leaves along a link through a process (VAR_IRE)
     dims: [top_ire]
     bounds: { lower: 0 }
 

@@ -13,34 +13,35 @@ which TIMES writes with a second name for each set, `ALIAS(REG,R)` in
 
 The spec does the same with an [alias](../../reference/language/dimensions.md#alias):
 `from_region` has the labels of `region`, and `from_commodity` those of
-`commodity`. The dimension `top_ire` lists the links that exist, each a tuple of its four
-members, and `ire_flo`, `trade_cost` and `export` are over it, so a data row at
-a link that does not exist is refused. The data of
-`ire_flo` has the four columns that the TIMES data already has, and no label
-is invented.
+`commodity`. The dimension `top_ire` lists the processes that carry each link,
+as TIMES' `TOP_IRE` does, each a tuple of its five members, and `ire_flo`,
+`trade_cost` and `export` are over it, so a data row at a link that does not
+exist is refused. The data of `ire_flo` has the five columns that the TIMES
+data already has, and no label is invented.
 
 `balance` adds the imports of each region and commodity through the members
 `region` and `commodity` of each link. It sums the exports to each
 `from_region` and `from_commodity`, and reads those back onto `region` and
 `commodity` through the map of each alias.
 
-The vintage, the process and the timeslice of `IRE_FLO` are left out, so the
-spec shows only the two ends of each link.
+The vintage and the timeslice of `IRE_FLO` are left out.
 
 <!-- gallery:begin -->
 ```yaml
 description: >-
   Trade between regions from TIMES: IRE_FLO, the efficiency of a flow from one
-  region and commodity to another, over each region and commodity twice.
+  region and commodity to another through a process, over each region and
+  commodity twice.
 
 dimensions:
   region: { description: a region of the model }
   commodity: { description: an energy carrier or a material }
+  process: { description: a technology that carries trade }
   from_region: { alias: region, description: the region an export leaves }
   from_commodity: { alias: commodity, description: the commodity an export leaves as }
   top_ire:
-    description: the links that exist, from a region and commodity to another (TOP_IRE)
-    over: [from_region, from_commodity, region, commodity]
+    description: the processes that carry each link from a region and commodity to another (TOP_IRE)
+    over: [from_region, from_commodity, region, commodity, process]
 
 parameters:
   ire_flo:
@@ -55,7 +56,7 @@ parameters:
 variables:
   supply: { dims: [commodity, region], bounds: { lower: 0 }, description: what a region produces of a commodity }
   export:
-    description: what leaves along a link (VAR_IRE)
+    description: what leaves along a link through a process (VAR_IRE)
     dims: [top_ire]
     bounds: { lower: 0 }
 
@@ -75,7 +76,7 @@ objective:
   expression: sum(supply_cost * supply) + sum(trade_cost * export)
 ```
 
-Trade between regions from TIMES: IRE\_FLO, the efficiency of a flow from one region and commodity to another, over each region and commodity twice.
+Trade between regions from TIMES: IRE\_FLO, the efficiency of a flow from one region and commodity to another through a process, over each region and commodity twice.
 
 #### Sets
 
@@ -84,8 +85,9 @@ Trade between regions from TIMES: IRE\_FLO, the efficiency of a flow from one re
 | $`\mathcal{C}`$ | index $`c`$ — `commodity` — an energy carrier or a material |
 | $`\mathcal{C}`$ | index $`c'`$ — `from_commodity`, an alias of `commodity` — the commodity an export leaves as |
 | $`\mathcal{R}`$ | index $`r'`$ — `from_region`, an alias of `region` — the region an export leaves |
+| $`\mathcal{P}`$ | index $`p`$ — `process` — a technology that carries trade |
 | $`\mathcal{R}`$ | index $`r`$ — `region` — a region of the model |
-| $`\mathcal{L}`$ | index $`l`$ — `top_ire`, $`\mathcal{L} \subseteq \mathcal{C} \times \mathcal{C} \times \mathcal{R} \times \mathcal{R}`$ — the links that exist, from a region and commodity to another (TOP\_IRE) |
+| $`\mathcal{L}`$ | index $`l`$ — `top_ire`, $`\mathcal{L} \subseteq \mathcal{C} \times \mathcal{C} \times \mathcal{R} \times \mathcal{P} \times \mathcal{R}`$ — the processes that carry each link from a region and commodity to another (TOP\_IRE) |
 
 #### Parameters
 
@@ -100,7 +102,7 @@ Trade between regions from TIMES: IRE\_FLO, the efficiency of a flow from one re
 
 | Symbol | Meaning |
 |---|---|
-| $`\mathit{export}`$ | `export` over $`\mathcal{L}`$ — what leaves along a link (VAR\_IRE) |
+| $`\mathit{export}`$ | `export` over $`\mathcal{L}`$ — what leaves along a link through a process (VAR\_IRE) |
 | $`\mathit{supply}`$ | `supply` over $`\mathcal{C} \times \mathcal{R}`$ — what a region produces of a commodity |
 
 #### Variable domains
