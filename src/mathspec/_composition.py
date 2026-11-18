@@ -19,17 +19,17 @@ such as ``'#2'``.
 [`merge`][] writes nothing a fragment did not write, except a ``+``. It
 joins fragments' text in one place, a named expression that terms add to;
 every other entry is copied as written, refused where two fragments own it,
-or held identical where it is a dimension or a relation.
+or held identical where it is a dimension.
 What that means for each section:
 
-* **A dimension or a relation every fragment may declare**, and the ones that
+* **A dimension every fragment may declare**, and the ones that
   do have to say the same thing about it. Prose is not a claim, so two
   descriptions of one dimension agree, and the first one given is carried.
   ``ordered`` is a claim about the space, not the space, so a dimension one
   fragment declares ordered is ordered.
-  A relation's ``missing:`` is a claim about the data, and the fragments
+  A dimension's ``missing:`` is a claim about the data, and the fragments
   agree on it: ``absent`` and ``refused`` change the result differently, so
-  neither folds into the other. ``missing: refused`` is the same as none.
+  neither folds into the other.
 * **Every other entry is owned.** A name two fragments declare is refused,
   both named.
 * **One fragment sets the objective.** A second one is refused, both named.
@@ -79,9 +79,9 @@ What a patch may say, and what is refused:
 * **Patches are laid in order.** Each is laid on the base with every
   earlier patch laid on it, so a later patch wins a field an earlier one
   writes, and edits or removes an entry an earlier one creates.
-* **A patch adds a dimension or a relation, and does not change one its
-  base declares.** It may change only the ``description``, a dimension's
-  ``ordered`` and a relation's ``missing``, and may write them alone. A
+* **A patch adds a dimension, and does not change one its
+  base declares.** It may change only the ``description`` and a dimension's
+  ``ordered``, and may write them alone. A
   dimension may gain ``ordered: true`` and may not lose it. An entry that
   writes any other field must declare it as the base does, a field it leaves
   out reading as its default.
@@ -116,14 +116,13 @@ if TYPE_CHECKING:
     from mathspec.program import Program
     from mathspec.spec import DimensionSpec
 
-SHARED_SECTIONS = ('dimensions', 'relations', 'mappings')
+SHARED_SECTIONS = ('dimensions', 'mappings')
 
 SETTINGS: dict[str, frozenset[str]] = {
     'dimensions': frozenset({'ordered'}),
-    'relations': frozenset({'missing'}),
     'mappings': frozenset({'missing'}),
 }
-"""The fields of a dimension, a relation or a mapping, other than ``description``, that a patch may change. A patch may
+"""The fields of a dimension or a mapping, other than ``description``, that a patch may change. A patch may
 change no other field of one that its base declares.
 """
 
@@ -174,7 +173,7 @@ def merge(fragments: Sequence[Source], description: str | None = None) -> Spec:
     Raises:
         LanguageError: A fragment does not load on its own; two fragments
             declare one name; two fragments say different things about one
-            dimension, relation, mapping or given entry; a fragment reads a name as
+            dimension, mapping or given entry; a fragment reads a name as
             something other than what its sibling introduces, as another kind
             of thing, or over fewer dimensions than its body carries; a fragment
             adds a term to a variable, a parameter, a constraint or a
@@ -191,9 +190,8 @@ def merge(fragments: Sequence[Source], description: str | None = None) -> Spec:
     merged: dict[str, object] = {'version': _one_version(read)}
     if description is not None:
         merged['description'] = description
-    for section in ('dimensions', 'relations'):
-        if agreed := _agreed(read, section, _singular(section), 'give one of them a name of its own'):
-            merged[section] = agreed
+    if agreed := _agreed(read, 'dimensions', 'dimension', 'give one of them a name of its own'):
+        merged['dimensions'] = agreed
     flat: dict[str, dict[str, object]] = {
         name: {'mappings': _flat_mappings(sections.get('mappings'))} for name, sections in read.items()
     }
@@ -305,8 +303,8 @@ def _restates(
 ) -> bool:
     """Whether a patch's *restated* fields declare an entry as *declared* does, each field in *aside* apart.
 
-    A restatement the schema refuses on its own, such as a relation with no
-    ``dims:``, does not say what the base says, so the patch's refusal names
+    A restatement the schema refuses on its own, such as a mapping with no
+    ``dim:``, does not say what the base says, so the patch's refusal names
     the rewrite. A key the schema does not know stays a schema error, which
     names the near-miss.
     """
@@ -717,7 +715,7 @@ def override(base: Source, patches: Sequence[Source]) -> Spec:
         LanguageError: The base does not load; the patched spec does not
             load; a patch edits or removes an entry its base does not
             declare; a patch creates one that is not whole; a patch redeclares
-            or removes a dimension or a relation; or a patch sets a whole
+            or removes a dimension; or a patch sets a whole
             section to ``null``.
         FileNotFoundError: A ``str`` with no newline that names no file.
         TypeError: *patches* is one path rather than a list.
@@ -904,7 +902,7 @@ def _shared(
     *,
     owner: type[BaseModel] = Spec,
 ) -> dict[str, object]:
-    """One ``dimensions``, ``relations`` or ``mappings`` section: a patch adds one or restates one, never changes or drops it.
+    """One ``dimensions`` or ``mappings`` section: a patch adds one or restates one, never changes or drops it.
 
     A patch may change the description and the [`SETTINGS`][] of one its
     base declares, and ``null`` puts back the default. A dimension may gain

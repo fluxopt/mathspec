@@ -149,18 +149,15 @@ $`\sum_{g \in \mathcal{G} \,:\, \mathrm{bus}(g) = b} p_{g,t} \le \mathrm{limit}_
 
 ```yaml
 description: >-
-  A sum that keeps a key column: `sum(array, over=dim, by=subject[m])` joins
-  on the column over `dim` and groups by mapping `m`. The sum also joins on the
-  key column that the call does not list. It keeps that column, so each zone
-  gets one total per period.
+  A sum that keeps a member: `zone_of` lists (generator, period) tuples. The
+  sum reads `p` at each tuple with `at`, then groups by the member `period`
+  and the mapping `zone`, so each zone gets one total per period.
 
 dimensions:
   generator: { dtype: str }
   period: { dtype: int }
   zone: { dtype: str }
-
-relations:
-  zone_of: { dims: [generator, period] }
+  zone_of: { over: [generator, period], missing: refused }
 
 mappings:
   zone_of: { zone: { dim: zone } }
@@ -176,12 +173,12 @@ variables:
 constraints:
   zone_balance:
     dims: [zone, period]
-    expression: sum(p, over=generator, by=zone_of[zone]) >= demand
+    expression: sum(at(p, by=zone_of[generator, period]), over=zone_of, by=zone_of[period, zone]) >= demand
 
 objective: { sense: minimize, expression: sum(p) }
 ```
 
-$`\sum_{g \in \mathcal{G} \,:\, \mathrm{zone}(g,\ e) = z} p_{g,e} \ge \mathrm{demand}_{e,z} \qquad \forall\, e \in \mathcal{E},\ z \in \mathcal{Z}`$
+$`\sum_{o \in \mathcal{O} \,:\, \mathrm{period}(o) = e \wedge \mathrm{zone}(o) = z} p_{\mathrm{generator}(o),\mathrm{period}(o)} \ge \mathrm{demand}_{e,z} \qquad \forall\, e \in \mathcal{E},\ z \in \mathcal{Z}`$
 
 ### `sum(array, over=[dim, …], by=subject[m, …])`
 
@@ -189,17 +186,15 @@ $`\sum_{g \in \mathcal{G} \,:\, \mathrm{zone}(g,\ e) = z} p_{g,e} \ge \mathrm{de
 
 ```yaml
 description: >-
-  Several columns and mappings: `sum(array, over=[dim, …], by=subject[m, …])`
-  joins on both columns of the relation and groups by both of its mappings.
+  Several mappings: `slot_of` lists (generator, period) tuples. The sum reads `p`
+  at each tuple with `at`, then groups by both mappings of `slot_of`.
 
 dimensions:
   generator: { dtype: str }
   period: { dtype: int }
   bus: { dtype: str }
   technology: { dtype: str }
-
-relations:
-  slot_of: { dims: [generator, period] }
+  slot_of: { over: [generator, period], missing: refused }
 
 mappings:
   slot_of: { bus: { dim: bus }, technology: { dim: technology } }
@@ -215,12 +210,12 @@ variables:
 constraints:
   slot_cap:
     dims: [bus, technology]
-    expression: sum(p, over=[generator, period], by=slot_of[bus, technology]) <= cap
+    expression: sum(at(p, by=slot_of[generator, period]), over=slot_of, by=slot_of[bus, technology]) <= cap
 
 objective: { sense: minimize, expression: sum(p) }
 ```
 
-$`\sum_{g \in \mathcal{G},\ e \in \mathcal{E} \,:\, \mathrm{bus}(g,\ e) = b \wedge \mathrm{technology}(g,\ e) = t} p_{g,e} \le \mathrm{cap}_{b,t} \qquad \forall\, b \in \mathcal{B},\ t \in \mathcal{T}`$
+$`\sum_{s \in \mathcal{S} \,:\, \mathrm{bus}(s) = b \wedge \mathrm{technology}(s) = t} p_{\mathrm{generator}(s),\mathrm{period}(s)} \le \mathrm{cap}_{b,t} \qquad \forall\, b \in \mathcal{B},\ t \in \mathcal{T}`$
 
 ### `at(array, by=subject[m])`
 

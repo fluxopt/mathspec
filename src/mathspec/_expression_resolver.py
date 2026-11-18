@@ -12,10 +12,10 @@ doors that call this.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, assert_never, cast
 
-from mathspec._dimensions import check_node, joined, sorted_dims
+from mathspec._dimensions import check_meeting, check_node, joined, operand_over, sorted_dims
 from mathspec._expression_parser import (
     MAX_DEPTH,
     ArithmeticNode,
@@ -40,7 +40,7 @@ from mathspec._operators import (
     edge_error,
     unknown_operator_message,
 )
-from mathspec.errors import DimensionError, SchemaError, did_you_mean, unordered
+from mathspec.errors import DimensionError, SchemaError, did_you_mean
 from mathspec.program import (
     Add,
     Axis,
@@ -84,13 +84,16 @@ class ExpressionResolver:
     appended to ``errors``; every sibling is still read, so an entry
     with two faults reports both. ``formals`` are a macro template's formals:
     a formal has no kind until a call site binds it, so a node one stands
-    under is ``None`` with nothing appended.
+    under is ``None`` with nothing appended. ``frame`` is the ``dims:`` of
+    the entry, less the dims an enclosing sum adds up, which is where a
+    member may meet the dimension that lists it.
     """
 
     ns: Namespace
     context: str
     errors: list[str]
     formals: frozenset[str] = frozenset()
+    frame: frozenset[str] = frozenset()
 
     def _formal(self, value: ArithmeticNode) -> bool:
         """Whether *value* is a formal, left for the call site to bind."""
@@ -155,7 +158,7 @@ class ExpressionResolver:
     def _binary(self, node: BinaryOperatorNode) -> Expression | None:
         """A subtraction is an addition of the negation, so a program has one additive node."""
         left, right = self.arith(node.left), self.arith(node.right)
-        if left is None or right is None:
+        if left is None or right is None or self.met(left, right):
             return None
         dims = sorted_dims(left.dims, right.dims)
         match node.op:
@@ -172,8 +175,17 @@ class ExpressionResolver:
             case _:
                 assert_never(node.op)
 
+    def met(self, left: Expression, right: Expression) -> bool:
+        """Whether *left* and *right* meet a member against the dimension that lists it, the refusal appended."""
+        try:
+            check_meeting(left, right, self.ns.spec, self.context, self.frame)
+        except DimensionError as e:
+            self.errors.append(self.ns.refused_dims(e))
+            return True
+        return False
+
     def _name(self, node: NameNode) -> Expression | None:
-        """A bare name as the variable, parameter or named expression it declares; a dimension or relation is not a value.
+        """A bare name as the variable, parameter or named expression it declares; a dimension is not a value.
 
         A named expression arrives as the one node [`Namespace.named`][]
         built for it; the cast is the one place a
@@ -206,13 +218,6 @@ class ExpressionResolver:
                     f'not a value. To use its coordinates as data, declare a parameter over it.'
                 )
                 return None
-            case 'relation':
-                self.errors.append(
-                    f"{self.context}: '{node.name}' is a relation, and a relation is not a value. Sum through it "
-                    f'as sum(x, over=<column>, by={node.name}[<column>]), test it in a condition, or declare a '
-                    f'parameter to carry numbers.'
-                )
-                return None
             case _:
                 self.errors.append(self.ns.unknown(node.name, self.context, allow_dims=False, formals=self.formals))
                 return None
@@ -233,7 +238,7 @@ class ExpressionResolver:
             self.errors.append(f'{self.context}: {shape_error}')
         if node.name == 'dual':
             return None if shape_error is not None else self._dual(node)
-        args = [self.arith(a) for a in node.args]
+        args = [self._inside(node).arith(a) for a in node.args]
         along: str | None = None
         over: tuple[str, ...] | None = None
         amounts: dict[str, int | str | None] = {}
@@ -274,6 +279,13 @@ class ExpressionResolver:
             return None
         return self._translation(node.name, operand, along, amounts, edge, partition)
 
+    def _inside(self, node: FunctionCallNode) -> ExpressionResolver:
+        """The resolver for the operands of *node*: inside a sum, a dim it sums away is no longer the entry's own."""
+        if node.name != 'sum':
+            return self
+        over = node.kwargs.get('over')
+        return replace(self, frame=frozenset() if over is None else self.frame - set(names_in(over)))
+
     def _sum(self, operand: Expression, over: tuple[str, ...] | None, columns: ColumnsNode | None) -> Expression | None:
         """A plain sum over the dims *over* names, or a sum through a relation, grouped by *columns*.
 
@@ -286,7 +298,7 @@ class ExpressionResolver:
                 return self._bare_sum(operand)
             return self._summed(operand, tuple(Axis(d) for d in over))
         assert over is not None, 'the call shape requires over= beside by='
-        grouping = self._grouping(columns, over)
+        grouping = self._grouping(columns, over, operand)
         if grouping is None:
             return None
         join, plain = grouping
@@ -329,7 +341,7 @@ class ExpressionResolver:
     ) -> Expression | None:
         """``shift`` or ``sum_back`` from its read arguments, or ``None`` with the refusal appended."""
         if self.ns.unordered(along):
-            self.errors.append(unordered(self.context, f'{operator}(along={along})', along))
+            self.errors.append(self.ns.unordered_refusal(self.context, f'{operator}(along={along})', along))
             return None
         wrap, fill = edge if edge is not None else (False, None)
         if operator == 'shift':
@@ -574,7 +586,9 @@ class ExpressionResolver:
             )
         return f'{context}: {operator}({key}=...) takes columns of one subject. Write subject[mapping] or subject[mapping, ...].'
 
-    def _grouping(self, columns: ColumnsNode, over: tuple[str, ...]) -> tuple[JoinColumns, tuple[str, ...]] | None:
+    def _grouping(
+        self, columns: ColumnsNode, over: tuple[str, ...], operand: Expression
+    ) -> tuple[JoinColumns, tuple[str, ...]] | None:
         """How ``sum(x, over=..., by=subject[...])`` joins the relation, and the dims it sums away with no column.
 
         A name in *over* is a column of the relation where it has one, and a
@@ -596,10 +610,27 @@ class ExpressionResolver:
             )
             return None
         if not from_roles:
+            listing = [
+                f"{n!r} is a member of '{r}', which is one dimension here, so write over={r}"
+                for n in plain
+                for r in shape.roles
+                if n in {dim for _, dim in ns.spec.dimensions[shape.dim(r)].members}
+            ]
             self.errors.append(
                 f"{self.context}: {call}: over={shown(over)} names no column of '{name}', so the sum reads nothing "
                 f"through '{name}'. Name in over= the column that the operand is joined on: "
-                f'{_columns_over(shape, plain)}.'
+                f'{listing[0] if listing else _columns_over(shape, plain)}.'
+            )
+            return None
+        if set(from_roles) & set(shape.members) and name not in (*from_roles, *into_roles):
+            if name in operand.dims:
+                rewrite = f'sum(..., over={name}, by={columns})'
+            else:
+                read = operand_over((operand,), (shape.dim(r) for r in from_roles), name)
+                rewrite = f'sum(at({read}, by={name}[{", ".join(from_roles)}]), over={name}, by={columns})'
+            self.errors.append(
+                f"{self.context}: {call}: over={shown(from_roles)} names a member of '{name}', which is one "
+                f'dimension here. Write {rewrite}.'
             )
             return None
         join = self._checked_join(name, call, from_roles, into_roles)
@@ -673,6 +704,9 @@ class ExpressionResolver:
         name, within_roles = columns.relation, columns.columns
         shape = self.ns.relations[name]
         call = f'{operator}(within={columns})'
+        if shape.members:
+            self.errors.append(self.ns.unordered_refusal(context, call, name))
+            return None
         if not shape.values:
             self.errors.append(
                 f"{context}: {call}: '{name}' has no mapping, so it makes no groups. Declare the group as a mapping of "
@@ -707,9 +741,9 @@ class ExpressionResolver:
                 f'under mappings: {name}:, or read a subject that has it: {key}=<subject>[<mapping>].'
             )
         kinds = (
-            'a relation, a dimension with mappings or a formal argument of this macro'
+            'a dimension with mappings or members, or a formal argument of this macro'
             if self.formals
-            else 'a relation or a dimension with mappings'
+            else 'a dimension with mappings or members'
         )
         return (
             f'{context}: {operator}({key}={name}[...]): {name!r} is not {kinds}. '
@@ -732,13 +766,6 @@ def not_a_number(name: str, dtype: str, context: str) -> str:
 
 
 def _undeclared_dim(context: str, operator: str, call: str, name: str, ns: Namespace, formals: frozenset[str]) -> str:
-    if name in ns.relations and name not in ns.dimensions:
-        dims = list(ns.relations[name].dims)
-        which = 'its dimensions' if call.startswith('over=') else 'one of its dimensions'
-        return (
-            f"{context}: {operator}({call}) names the relation '{name}', and a relation is not a dimension. "
-            f'Name {which}, {dims}.'
-        )
     return (
         f'{context}: {operator}({call}) does not name a declared dimension{_or_a_formal(formals)}. '
         f'{did_you_mean(name, ns.dimensions, label="Dimensions")}\n'

@@ -43,8 +43,19 @@ def did_you_mean(name: str, known: Iterable[str], *, label: str = 'Declared', li
     return f'{label}: {", ".join(candidates) or "nothing"}.' if listing else ''
 
 
-def unordered(context: str, construct: str, dimension: str) -> str:
-    """The refusal for *construct* reading the order of *dimension*, which is not declared ordered."""
+def unordered(context: str, construct: str, dimension: str, members: Iterable[tuple[str, str]] = ()) -> str:
+    """The refusal for *construct* reading the order of *dimension*, which is not declared ordered.
+
+    A dimension with *members*, each a ``(role, dimension)``, cannot be
+    declared ordered, so its rewrite is the entry over the members, confined
+    to the tuples by the bare name of the dimension.
+    """
+    if over := sorted({dim for _, dim in members}):
+        return (
+            f"{context}: {construct} reads the order of '{dimension}', which lists its members and so has no "
+            f'order. Declare the entry over {over}, with `where: {dimension}`, and step along a member that is '
+            f'declared ordered.'
+        )
     return (
         f"{context}: {construct} reads the order of '{dimension}', which is not declared ordered, so the "
         f'order would come from the row order of the data. Declare '

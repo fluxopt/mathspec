@@ -671,9 +671,9 @@ maintainable build with an infinite `p_nom_max`.
 
 The window of an event depends on the weightings, so its width varies along
 `snapshot`. `sum_back` takes a width that does not vary along the dimension it
-sums, so the file states the windows as data. A table that pairs labels
-([a relation](../../../docs/reference/language/relations.md)), `*_maintenance_cover`,
-pairs each start with the snapshots it covers. The condition
+sums, so the file states the windows as data. A dimension with members
+([`over:`](../../../docs/reference/language/dimensions.md#over)), `*_maintenance_cover`,
+pairs each start with the snapshots it covers, through the alias `covered_snapshot`. The condition
 `*_maintenance_start_blocked` marks a start whose window runs past the
 horizon's end, or into a snapshot the component is not active in. You
 compute both in data prep from `maintenance_duration`, the weightings and

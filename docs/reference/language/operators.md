@@ -26,7 +26,7 @@ A file cannot add an operator, and only
 | `sum(array)`                                               | `sum` removes every [dimension](dimensions.md) of `array`. The result is a scalar                                                                              |
 | `sum(array, over=dim)`                                     | `sum` removes `dim`                                                                                                                                           |
 | `sum(array, over=[a, …])`                                  | `sum` removes each dimension in the list                                                                                                                      |
-| `sum(array, over=dim, by=subject[c])`                      | `sum` removes `dim`, and groups the result by the column `c` of the table of `subject`, a [mapping](relations.md#mappings) or a column of a [relation](relations.md#relations). The call joins on the other key columns, so `array` and the result are indexed over them |
+| `sum(array, over=dim, by=subject[c])`                      | `sum` removes `dim`, and groups the result by the column `c` of the table of `subject`, a [mapping](mappings.md#mappings) or a [member](dimensions.md#over). The call joins on the key of `subject`, which `array` is indexed over                    |
 | `sum(array, over=[dim, …], by=subject[c, …])`              | The call does the same with several dimensions and several columns of one table, joins on them together, and groups by their product                            |
 | `at(array, by=subject[m])`                                 | The result is `array` read at the label that the mapping `m` gives each row of `subject`, once per row. The result gains the key of `subject`                                                |
 | `shift(array, along=dim, offset=n)`                        | The result is the value `n` positions earlier along `dim`, and the vacated edge is [absent](absence.md)                                                                         |
@@ -53,8 +53,8 @@ each dimension once. `sum(x, over=[a, b])` is the same as
 `sum(sum(x, over=a), over=b)`, and the [typesetter](../typeset.md) prints it as
 one sum over both sets.
 
-With `by=`, the sum adds up each group that a [mapping](relations.md#mappings) or a
-column of a [relation](relations.md#relations) makes, and the result is
+With `by=`, the sum adds up each group that a [mapping](mappings.md#mappings) or a
+[member](dimensions.md#over) makes, and the result is
 indexed over that column. The balance at each bus (a nodal balance) is one
 `sum(by=)` per kind of component:
 
@@ -110,15 +110,15 @@ sum.
 
 !!! info "See also"
 
-    - [How relations and mappings are used](relations.md#how-relations-and-mappings-are-used),
-      for the dimensions that a call through a relation or a mapping joins on, and
+    - [How mappings are used](mappings.md#how-mappings-are-used),
+      for the dimensions that a call through a mapping joins on, and
       those its result has.
 
 ## `at`
 
-`at` takes, for each row of the subject of a [mapping](relations.md#mappings), the
+`at` takes, for each row of the subject of a [mapping](mappings.md#mappings), the
 value of an expression at the label that the mapping gives the row. `at` adds
-nothing up (a [lookup](relations.md#lookups)), and takes one row for each row
+nothing up (a [lookup](mappings.md#lookups)), and takes one row for each row
 of the subject. Here
 `at` takes,
 for every line, the build decision of its bus:
@@ -228,7 +228,7 @@ zero, or no row.
 
 ### `within=`
 
-`within=` takes a [partition](relations.md#partitions), such as one into
+`within=` takes a [partition](mappings.md#partitions), such as one into
 seasons, and the neighbour of a coordinate is then the one before it in its own
 group:
 
@@ -392,7 +392,7 @@ Constraint 'stays_up_its_own_time': sum_back(edge=...) takes 'wrap' or nothing. 
 mathspec suggests the rewrite: the constant, written in the expression.
 
 As for [`shift`](#within), `within=` takes a
-[partition](relations.md#partitions), and the window then stays inside each
+[partition](mappings.md#partitions), and the window then stays inside each
 group.
 
 ## Every operator as math
@@ -408,8 +408,8 @@ The typesetter prints each form from the smallest spec that uses it.
 | `sum(array, over=dim)` | $`\sum_{g \in \mathcal{G}} p_{g,t} \le \mathrm{limit}_{t} \qquad \forall\, t \in \mathcal{T}`$ |
 | `sum(array, over=[a, …])` | $`\sum_{g \in \mathcal{G},\ t \in \mathcal{T}} p_{c,g,t} \le \mathrm{limit}_{c} \qquad \forall\, c \in \mathcal{C}`$ |
 | `sum(array, over=dim, by=subject[m])` | $`\sum_{g \in \mathcal{G} \,:\, \mathrm{bus}(g) = b} p_{g,t} \le \mathrm{limit}_{b,t} \qquad \forall\, b \in \mathcal{B},\ t \in \mathcal{T}`$ |
-| `sum(array, over=dim, by=subject[m]), joining on the rest of the key` | $`\sum_{g \in \mathcal{G} \,:\, \mathrm{zone}(g,\ e) = z} p_{g,e} \ge \mathrm{demand}_{e,z} \qquad \forall\, e \in \mathcal{E},\ z \in \mathcal{Z}`$ |
-| `sum(array, over=[dim, …], by=subject[m, …])` | $`\sum_{g \in \mathcal{G},\ e \in \mathcal{E} \,:\, \mathrm{bus}(g,\ e) = b \wedge \mathrm{technology}(g,\ e) = t} p_{g,e} \le \mathrm{cap}_{b,t} \qquad \forall\, b \in \mathcal{B},\ t \in \mathcal{T}`$ |
+| `sum(array, over=dim, by=subject[m]), joining on the rest of the key` | $`\sum_{o \in \mathcal{O} \,:\, \mathrm{period}(o) = e \wedge \mathrm{zone}(o) = z} p_{\mathrm{generator}(o),\mathrm{period}(o)} \ge \mathrm{demand}_{e,z} \qquad \forall\, e \in \mathcal{E},\ z \in \mathcal{Z}`$ |
+| `sum(array, over=[dim, …], by=subject[m, …])` | $`\sum_{s \in \mathcal{S} \,:\, \mathrm{bus}(s) = b \wedge \mathrm{technology}(s) = t} p_{\mathrm{generator}(s),\mathrm{period}(s)} \le \mathrm{cap}_{b,t} \qquad \forall\, b \in \mathcal{B},\ t \in \mathcal{T}`$ |
 | `at(array, by=subject[m])` | $`p_{t} \le \mathrm{cap}_{\mathrm{period}(t)} \qquad \forall\, t \in \mathcal{T}`$ |
 | `at(array, by=subject[m]), two mappings into one dimension` | $`f_{l} \le \mathrm{cap}_{\mathrm{bus0}(l)} \qquad \forall\, l \in \mathcal{L}`$ |
 | `shift(array, along=dim, offset=n)` | $`p_{t} \le p_{t - 1} \qquad \forall\, t \in \mathcal{T}`$ |
@@ -428,8 +428,8 @@ The typesetter prints each form from the smallest spec that uses it.
 
     - [Absence and where](absence.md) for what each operator does with an absent
       input.
-    - [Relations and mappings](relations.md#how-relations-and-mappings-are-used) for the
-      relation or the mapping that `by=` and `within=` take.
+    - [Mappings](mappings.md#how-mappings-are-used) for the
+      mapping or the member that `by=` and `within=` take.
     - [Macros](named.md#macros) for a composition of operators under one name.
     - [One construct per spec](../../examples/operators.md) for the smallest spec
       that uses each form.

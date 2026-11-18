@@ -41,7 +41,7 @@ def rename(source: Source, names: Mapping[str, str | None] | Callable[[str], str
     entry, in ``dims:``, under ``mappings:``, in ``adds_to:``, under ``given:``,
     and in the text of every expression, ``where:``, bound, case and
     assumption. Only whole names are replaced, and the text around each name
-    is unchanged. A mapping or a relation column named after its dimension is
+    is unchanged. A mapping named after its dimension is
     renamed with the dimension, because an expression reads a mapping as
     ``subject[mapping]``.
 
@@ -74,7 +74,7 @@ def rename(source: Source, names: Mapping[str, str | None] | Callable[[str], str
             name of an entry that is not renamed, or an argument of a macro
             whose template uses the old name.
             Also when two names get the same new name, or when an old or a new
-            name is a mapping or a relation column that is not named after its
+            name is a mapping that is not named after its
             dimension.
         FileNotFoundError: A ``str`` with no newline that names no file.
         TypeError: *names* is neither a mapping nor a function.
@@ -95,7 +95,7 @@ def rename(source: Source, names: Mapping[str, str | None] | Callable[[str], str
 def _declared(spec: Spec) -> dict[str, str]:
     """Every name that *spec* declares or lists under ``given:``, with the kind of its entry for a refusal.
 
-    ``mappings:`` declares no name of its own: its keys are dimensions and relations.
+    ``mappings:`` declares no name of its own: its keys are dimensions.
     """
     declared = {name: GIVEN_KINDS[kind] for kind in GIVEN_KINDS for name in getattr(spec.given, kind)}
     for section in (s for s in (*SHARED_SECTIONS, *OWNED_SECTIONS) if s != 'mappings'):
@@ -108,8 +108,8 @@ def _checked(names: Mapping[str, str | None], declared: Mapping[str, str], spec:
 
     A token in text is renamed wherever it has the spelling, so a new name that
     is the argument of a macro whose template uses the old name, or a name that
-    is a mapping or a relation column named after something else, would change an
-    expression without a refusal.
+    is a mapping or a member named after something else, would
+    change an expression without a refusal.
     """
     for old in names:
         if old not in declared:
@@ -120,15 +120,15 @@ def _checked(names: Mapping[str, str | None], declared: Mapping[str, str], spec:
             raise LanguageError(msg)
     changed = {old: new for old, new in names.items() if new is not None and new != old}
     columns = {
-        column: f"a column of the relation '{relation}'"
-        for relation, entry in spec.relations.items()
-        for column, dimension in entry.pairs
-        if column != dimension
-    } | {
         name: f"a mapping of '{subject}'"
         for subject, mappings in spec.mappings.items()
         for name, entry in mappings.items()
         if name != entry.dim
+    } | {
+        role: f"a member of the dimension '{name}'"
+        for name, entry in spec.dimensions.items()
+        for role, dimension in entry.members
+        if role != dimension
     }
     for old, new in changed.items():
         for macro, entry in spec.macros.items():

@@ -10,12 +10,9 @@ dimensions:
   unit: { description: "converters, such as an electrolyser or a heat pump" }
   port: { dtype: int, description: "an attachment of a unit, numbered as PyPSA's bus0, bus1, ..." }
   role: { description: input or output }
-
-relations:
   connection:
     description: the bus each port of a unit attaches to, and whether the port draws or delivers
-    dims: [unit, port]
-    missing: absent
+    over: [unit, port]
 
 mappings:
   connection: { bus: { dim: bus }, role: { dim: role } }
@@ -24,7 +21,7 @@ parameters:
   capacity: { dims: [unit], description: the most a unit can draw at its input }
   efficiency:
     description: share of the drawn power that an output port delivers
-    dims: [unit, port, snapshot]
+    dims: [connection, snapshot]
     where: "connection[role] == 'output'"
     missing: 1
   load: { dims: [bus, snapshot], description: demand to be met }
@@ -43,15 +40,15 @@ variables:
 expressions:
   injection:
     description: what a port puts into its bus
-    dims: [unit, port, snapshot]
+    dims: [connection, snapshot]
     cases:
-      draws: { when: "connection[role] == 'input'", expression: -flow }
-    otherwise: efficiency * flow
+      draws: { when: "connection[role] == 'input'", expression: "-at(flow, by=connection[unit])" }
+    otherwise: efficiency * at(flow, by=connection[unit])
 
 constraints:
   balance:
     dims: [bus, snapshot]
-    expression: supply + sum(injection, over=[unit, port], by=connection[bus]) == load
+    expression: supply + sum(injection, over=connection, by=connection[bus]) == load
 
 objective:
   sense: minimize

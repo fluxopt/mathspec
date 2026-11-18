@@ -395,23 +395,18 @@ as `` `0` where the data has no row ``. It lists nothing for `refused`.
 `where:` limits a parameter to the coordinates where a
 [condition](expressions.md#conditions) is true. The dimensions keep every
 label, and only the parameter loses coordinates. In this example, `efficiency`
-has a value only at the pairs of an entity and a bus that are wired as an
-output:
+has a value only at the pairs of an entity and a bus that are wired:
 
 ```yaml
 dimensions:
   entity: { dtype: str }
   bus: { dtype: str }
-  role: { dtype: str }
   snapshot: { dtype: int }
-relations:
-  connection: { dims: [entity, bus], missing: absent }
-mappings:
-  connection: { role: { dim: role } }
+  connection: { over: [entity, bus] }
 parameters:
   efficiency:
     dims: [entity, bus, snapshot]
-    where: "connection[role] == 'output'"
+    where: connection
     missing: 1
 variables:
   p: { dims: [entity, snapshot] }
@@ -428,8 +423,8 @@ $$\sum_{e \in \mathcal{E}} \mathrm{efficiency}_{b,e,t} \cdot p_{e,t} = 0 \qquad 
 </figure>
 
 With the data in the figure, `efficiency` has rows only at the pairs that
-`connection` lists as an output. `connection` does not list `boiler` at `el`,
-so that pair has no role, and a tool drops its data row. `missing: 1` gives
+`connection` lists. `connection` does not list `boiler` at `el`, so a tool
+drops that data row. `missing: 1` gives
 `chp` at `heat` the value `1`. In `balance`,
 `efficiency * p` is absent at an entity that is not wired to the bus, so the
 sum adds only the wired entities.
@@ -444,7 +439,7 @@ steps:
    A missing row there is refused, absent or a value, as
    [`missing:`](#missing) sets.
 
-Under `missing: refused`, a tool requires a row at each output pair and
+Under `missing: refused`, a tool requires a row at each wired pair and
 snapshot of the example, and drops every other row.
 
 A tool drops a row of the data outside the condition without refusing the
@@ -453,7 +448,8 @@ either, because the parameter has no row there.
 
 A tool evaluates the condition from the data alone, before it reads the
 parameter. So the condition may contain [dimensions](dimensions.md),
-[relations](relations.md) and parameters without a `where:`.
+dimensions with [members](dimensions.md#over), [mappings](mappings.md) and parameters
+without a `where:`.
 
 mathspec refuses four conditions at load:
 

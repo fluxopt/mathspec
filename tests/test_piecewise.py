@@ -516,7 +516,7 @@ def test_a_link_reading_a_dual_entry_is_refused():
 @pytest.mark.parametrize(
     ('activity', 'match'),
     [
-        pytest.param('at(u_unit, by=generator[unit])', 'is not a declared variable', id='a-lookup-through-a-relation'),
+        pytest.param('at(u_unit, by=generator[unit])', 'is not a declared variable', id='a-lookup-through-a-subject'),
         pytest.param(
             'shift(u, along=snapshot, offset=1)', 'is neither a variable nor a variable read', id='a-shifted-gate'
         ),
@@ -973,13 +973,6 @@ def _walk(**written: object) -> dict[str, object]:
     return {'piecewise.coupling.links.power': {k: v for k, v in link.items() if v is not None}}
 
 
-def _joined(dims: list[str] | dict[str, str]) -> dict[str, object]:
-    """The `power` link walked through `generator_of`, a relation over *dims* that maps each row to a generator."""
-    return {'relations.generator_of': {'dims': dims}, 'mappings.generator_of.generator': {'dim': 'generator'}} | _walk(
-        by='generator_of[generator]'
-    )
-
-
 @pytest.mark.parametrize(
     ('patch', 'match'),
     [
@@ -999,7 +992,7 @@ def _joined(dims: list[str] | dict[str, str]) -> dict[str, object]:
         pytest.param(
             _walk(by='flow[snapshot]'),
             r"at\(by=flow\[snapshot\]\) names \['snapshot'\], which is no mapping of 'flow'",
-            id='a-walk-naming-a-column-the-relation-lacks',
+            id='a-walk-naming-a-column-the-subject-lacks',
         ),
         pytest.param(
             {'piecewise.coupling.dims': ['generator', 'snapshot', 'bp']},
@@ -1011,7 +1004,7 @@ def _joined(dims: list[str] | dict[str, str]) -> dict[str, object]:
             r"link 'power' expression is over \['snapshot'\], and its row \['flow'\] is not",
             id='dims-a-link-expression-leaves',
         ),
-        pytest.param(_walk(by='nowhere_of[generator]'), 'nowhere_of', id='a-walk-through-an-undeclared-relation'),
+        pytest.param(_walk(by='nowhere_of[generator]'), 'nowhere_of', id='a-walk-through-an-undeclared-subject'),
         pytest.param(
             {'piecewise.coupling.dims': ['snapshot']},
             r"link 'power': by: flow looks the curve up at \['generator'\], which is not in dims: \['snapshot'\]",
@@ -1043,16 +1036,6 @@ def _joined(dims: list[str] | dict[str, str]) -> dict[str, object]:
             r"link 'fuel': at\(by=flow\[flow\]\) names \['flow'\], a column of 'flow' itself",
             id='a-walk-landing-off-the-key',
         ),
-        pytest.param(
-            {'dimensions.period': {'dtype': 'int'}} | _joined(['flow', 'period']),
-            r"link 'power' expression is not over \['period'\]",
-            id='a-walk-joining-on-a-dim-the-block-lacks',
-        ),
-        pytest.param(
-            _joined({'flow': 'flow', 'site': 'generator'}),
-            r"link 'power': by: generator_of adds \['generator'\], which the curve is already over",
-            id='a-walk-joining-on-the-dim-it-consumes',
-        ),
     ],
 )
 def test_a_walked_block_the_language_cannot_read_is_refused(patch, match):
@@ -1077,13 +1060,6 @@ SLOT_OF = {'mappings.flow.slot': {'dim': 'bp'}}
         ),
         pytest.param(
             WALKED,
-            _joined(['flow', 'bp']),
-            r"by: generator_of is keyed on 'bp', the breakpoint dimension",
-            _walk(),
-            id='a-walk-keyed-on-the-breakpoint-dim',
-        ),
-        pytest.param(
-            WALKED,
             {'parameters.bp_power.dims': ['generator', 'bp']},
             r"by: flow\[generator\] sets that row, so declare 'bp_power' over dimensions of \['flow', ",
             {'parameters.bp_power.dims': ['flow', 'bp']},
@@ -1102,13 +1078,6 @@ SLOT_OF = {'mappings.flow.slot': {'dim': 'bp'}}
             r"activity 'u' is over \['bp'\], which is not in dims: \['snapshot'\]",
             {'variables.u.dims': ['snapshot']},
             id='a-gate-over-the-breakpoint-dim',
-        ),
-        pytest.param(
-            WALKED,
-            {'dimensions.period': {'dtype': 'int'}} | _joined(['flow', 'period']),
-            r"link 'power' expression is not over \['period'\], which by: generator_of\[generator\] adds",
-            _walk(),
-            id='a-walk-adding-a-dim-the-expression-lacks',
         ),
     ],
 )
@@ -1400,13 +1369,13 @@ SHAPES = r'Write activity: <variable>, or activity: at\(<variable>, by=<subject>
         ),
         pytest.param(
             {'piecewise.curve.activity': 'at(running, by=bp_p[converter])'},
-            r"piecewise 'curve' activity: at\(by=bp_p\[\.\.\.\]\): 'bp_p' is not a relation",
-            id='a-walk-through-something-no-relation',
+            r"piecewise 'curve' activity: at\(by=bp_p\[\.\.\.\]\): 'bp_p' is not a dimension with mappings or members",
+            id='a-walk-through-something-with-no-mapping',
         ),
         pytest.param(
             {'piecewise.curve.activity': 'at(running, by=converter[snapshot])'},
             r"at\(by=converter\[snapshot\]\) names \['snapshot'\], which is no mapping of 'converter'",
-            id='a-walk-naming-a-column-the-relation-lacks',
+            id='a-walk-naming-a-column-the-subject-lacks',
         ),
         pytest.param(
             {'piecewise.curve.activity': {'variable': 'running', 'by': 'converter[status_entity]'}},
@@ -1500,7 +1469,7 @@ PARTIAL = {'mappings.flow.generator': {'dim': 'generator', 'missing': 'absent'}}
         pytest.param(
             PARTIAL | {'parameters.curved': CURVED['parameters']['curved'], 'piecewise.coupling.where': 'curved'},
             'at(curved, by=flow[generator])',
-            id='a-mask-read-through-the-relation',
+            id='a-mask-read-through-the-subject',
         ),
     ],
 )
@@ -1517,15 +1486,14 @@ def test_a_walked_row_exists_only_where_its_relation_has_a_row(patch, where):
 #: fluxopt's investment cost curve (fluxopt/fluxopt#26): each effect of a sized flow is read off its curve.
 INVESTED = {
     'dimensions': {name: {'dtype': 'str'} for name in ('cost_curve', 'effect', 'flow')}
-    | {'bp': {'dtype': 'int', 'ordered': True}},
-    'relations': {'cost_of': {'dims': ['flow', 'effect']}},
+    | {'bp': {'dtype': 'int', 'ordered': True}, 'cost_of': {'over': ['flow', 'effect'], 'missing': 'refused'}},
     'mappings': {'cost_of': {'cost_curve': {'dim': 'cost_curve'}}},
     'parameters': {
         'has_cost_curve': {'dims': ['cost_curve'], 'dtype': 'bool'},
         'size_bp': {'dims': ['cost_curve', 'bp']},
-        'cost_bp': {'dims': ['flow', 'effect', 'bp']},
+        'cost_bp': {'dims': ['cost_of', 'bp']},
     },
-    'variables': {'size': {'dims': ['cost_curve']}, 'invest': {'dims': ['flow', 'effect']}},
+    'variables': {'size': {'dims': ['cost_curve']}, 'invest': {'dims': ['cost_of']}},
     'piecewise': {
         'invest_curve': {
             'along': 'bp',
@@ -1542,7 +1510,7 @@ INVESTED = {
 
 
 def test_a_block_mask_reaches_a_walk_into_several_columns():
-    """The mask is read through the walk into two key columns, which a where string could not parse (#781).
+    """The mask is read through the walk into a tuple of two members, which a where string could not parse (#781).
 
     The block loaded without its `where:`, and with it the load failed on
     the assertion that what a method assumes is stated in the language.
@@ -1550,7 +1518,7 @@ def test_a_block_mask_reaches_a_walk_into_several_columns():
     expanded = spec_of(INVESTED).expand()
     read = 'at(has_cost_curve, by=cost_of[cost_curve])'
     assert expanded.constraints['invest_curve_cost'].where == read, (
-        'the cost row reads the mask at each flow and effect'
+        'the cost row reads the mask at each tuple of a flow and an effect'
     )
     assert expanded.assumptions['invest_curve_cost_complete'].where == read, 'and so does its breakpoint check'
     assert to_spec(expanded.to_yaml()).program == expanded.program, 'the rows it writes load again'
@@ -1584,54 +1552,6 @@ def test_a_mask_over_dims_the_walk_keeps_reaches_the_walked_row_as_written():
         )
     )
     assert expanded.constraints['coupling_power'].where == 'season'
-
-
-def test_a_mask_over_a_dim_the_walk_joins_on_reaches_the_walked_row_as_written():
-    """The relation is keyed by flow and snapshot, and `season` tests only `snapshot`, which the walked row keeps.
-
-    The join column was counted with the ones the walk consumes, so this mask
-    was refused as carrying part of what the walk reads through, and no
-    rewrite kept it.
-    """
-    expanded = expand_piecewise(
-        spec_of(
-            WALKED,
-            **{
-                **_joined(['flow', 'snapshot']),
-                'parameters.season': {'dims': ['snapshot'], 'dtype': 'bool'},
-                'piecewise.coupling.where': 'season',
-            },
-        )
-    )
-    assert expanded.constraints['coupling_power'].where == 'season'
-
-
-@pytest.mark.parametrize(
-    ('method', 'where'),
-    [
-        pytest.param('sos2', 'at(curved, by=generator_of[generator])', id='sos2'),
-        pytest.param(
-            'incremental', 'at((curved) AND (position(bp) == 0), by=generator_of[generator])', id='incremental'
-        ),
-    ],
-)
-def test_a_mask_over_part_of_what_a_walk_joins_on_reaches_the_walked_row_through_its_relation(method, where):
-    """The relation is keyed by flow and snapshot, and `curved` tests only `generator`.
-
-    The mask was refused for not testing `snapshot` too, though reading it
-    through the relation at each flow and snapshot is the row a hand-written
-    constraint with that where loads to.
-    """
-    expanded = spec_of(
-        CURVED,
-        **{
-            **_joined(['flow', 'snapshot']),
-            'piecewise.coupling.method': method,
-        },
-    ).expand()
-    assert expanded.constraints['coupling_power'].where == where
-    assert expanded.assumptions['coupling_power_complete'].where == 'at(curved, by=generator_of[generator])'
-    assert to_spec(expanded.to_yaml()).program == expanded.program, 'the rows it writes load again'
 
 
 @pytest.mark.parametrize(
@@ -2004,7 +1924,7 @@ UNIT_STATUS = 'at(at(status, by=generator[unit]), by=flow[generator])'
             'coupling_power',
             FIRST,
             f'bp_power * ({UNIT_STATUS})',
-            id='a-walked-link-reads-the-read-through-its-own-relation',
+            id='a-walked-link-reads-the-read-through-its-own-subject',
         ),
         pytest.param(
             INCREMENTAL,
@@ -2012,7 +1932,7 @@ UNIT_STATUS = 'at(at(status, by=generator[unit]), by=flow[generator])'
             'coupling_power',
             f'({FIRST}) AND ({UNIT_STATUS})',
             f'bp_power * ({UNIT_STATUS})',
-            id='a-walked-link-reads-the-read-through-its-own-relation-where-it-may-be-absent',
+            id='a-walked-link-reads-the-read-through-its-own-subject-where-it-may-be-absent',
         ),
         pytest.param(
             INCREMENTAL,
@@ -2044,7 +1964,7 @@ UNIT_STATUS = 'at(at(status, by=generator[unit]), by=flow[generator])'
             'curve_heat',
             f'({FIRST}) AND (converter[status_entity])',
             f'bp_heat * (at({RUNNING}, by=hour[snapshot]))',
-            id='a-walked-link-reads-the-relation-where-as-written',
+            id='a-walked-link-reads-the-subject-where-as-written',
         ),
     ],
 )

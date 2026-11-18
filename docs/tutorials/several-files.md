@@ -81,7 +81,7 @@ Make a file `generators.yaml`. The file declares the [shared dimensions](../refe
 [`adds_to:`](../reference/language/named.md#adds_to)
 keys of the file make `generation` a term of the injection and `generation_cost` a term of
 the total cost. `generator[bus]` gives each generator its bus
-(a [mapping](../reference/language/relations.md#mappings)). `generation` uses `generator[bus]` to sum the dispatch by bus.
+(a [mapping](../reference/language/mappings.md#mappings)). `generation` uses `generator[bus]` to sum the dispatch by bus.
 
 ```yaml title="generators.yaml"
 description: A generator fleet, each unit on one bus.

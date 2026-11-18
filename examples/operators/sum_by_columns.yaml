@@ -3,18 +3,15 @@
 # SPDX-License-Identifier: MIT
 
 description: >-
-  A sum that keeps a key column: `sum(array, over=dim, by=subject[m])` joins
-  on the column over `dim` and groups by mapping `m`. The sum also joins on the
-  key column that the call does not list. It keeps that column, so each zone
-  gets one total per period.
+  A sum that keeps a member: `zone_of` lists (generator, period) tuples. The
+  sum reads `p` at each tuple with `at`, then groups by the member `period`
+  and the mapping `zone`, so each zone gets one total per period.
 
 dimensions:
   generator: { dtype: str }
   period: { dtype: int }
   zone: { dtype: str }
-
-relations:
-  zone_of: { dims: [generator, period] }
+  zone_of: { over: [generator, period], missing: refused }
 
 mappings:
   zone_of: { zone: { dim: zone } }
@@ -30,6 +27,6 @@ variables:
 constraints:
   zone_balance:
     dims: [zone, period]
-    expression: sum(p, over=generator, by=zone_of[zone]) >= demand
+    expression: sum(at(p, by=zone_of[generator, period]), over=zone_of, by=zone_of[period, zone]) >= demand
 
 objective: { sense: minimize, expression: sum(p) }

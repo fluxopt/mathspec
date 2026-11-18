@@ -207,7 +207,7 @@ An addition is `0` only where every term can be, so
 
 Every name a spec declares is in one flat set of names (a namespace). That
 namespace contains
-the dimensions, [relations](relations.md), parameters, variables, named
+the dimensions, [mappings](mappings.md), parameters, variables, named
 expressions, [named conditions](named.md#conditions),
 [macros](named.md#macros) and the built-in operators. Two entries with one name are
 refused at load, and mathspec names both, so no name hides another. For
@@ -226,7 +226,7 @@ The place of a name in a string sets which kinds of name it may be:
 | expression (`p * cost`)                | a variable, or a parameter whose values are numbers ([dtype](parameters-variables-constraints.md#parameters)) |
 | dimension argument (`over=`, `along=`) | a dimension, a list of them for `over=`, or with `by=` a column of the table in `by=` where one has that name |
 | column argument (`by=`, `within=`)     | mappings or columns of one subject, written `subject[column]` or `subject[column, …]`                         |
-| condition                              | a parameter, variable, dimension, relation, mapping or named condition ([conditions](#conditions))            |
+| condition                              | a parameter, variable, dimension, mapping or named condition ([conditions](#conditions))                      |
 | `bounds.lower` / `bounds.upper`        | a parameter name, or a number                                                                                 |
 | the `edge` key of `shift`              | `'wrap'` in quotes, or a bare number                                                                          |
 | `dual` argument (`dual(c)`)            | a constraint, resolved against the constraints alone ([named expressions](named.md#dual))                     |
@@ -251,18 +251,18 @@ and never to a constraint of the same name.
 Before any data is attached, [`to_spec`](../api.md#mathspec.to_spec) works out the
 dimensions of every expression. Each part of an expression (a node) has a set of dimensions:
 
-| Node                             | Dimensions of the result       | Refused when                                                                                                    |
-| -------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| number                           | `{}`                           |                                                                                                                 |
-| parameter / variable             | its `dims`                     |                                                                                                                 |
-| `-x`, `+x`                       | `dims(x)`                      |                                                                                                                 |
-| `a + b`, `a * b`, `a / b`        | `dims(a) ∪ dims(b)`            |                                                                                                                 |
-| `sum(x)`                         | `{}`                           | `dims(x)` is already empty                                                                                      |
-| `sum(x, over=d)`                 | `dims(x) − {d}`                | `d ∉ dims(x)`                                                                                                   |
-| `sum(x, over=d, by=s[c])`        | `(dims(x) − joined) ∪ grouped` | a refusal under [how relations and mappings are used](relations.md#how-relations-and-mappings-are-used) applies |
-| `at(x, by=s[m])`                 | `(dims(x) − joined) ∪ grouped` | the same refusals apply                                                                                         |
-| `shift(x, along=d, offset=n)`    | `dims(x)`                      | `d ∉ dims(x)`                                                                                                   |
-| `sum_back(x, along=d, window=n)` | `dims(x)`                      | `d ∉ dims(x)`                                                                                                   |
+| Node                             | Dimensions of the result       | Refused when                                                                                                                                 |
+| -------------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| number                           | `{}`                           |                                                                                                                                              |
+| parameter / variable             | its `dims`                     |                                                                                                                                              |
+| `-x`, `+x`                       | `dims(x)`                      |                                                                                                                                              |
+| `a + b`, `a * b`, `a / b`        | `dims(a) ∪ dims(b)`            | one side carries a [member](dimensions.md#over) of a dimension the other carries without it, and the `dims:` of the entry does not list both |
+| `sum(x)`                         | `{}`                           | `dims(x)` is already empty                                                                                                                   |
+| `sum(x, over=d)`                 | `dims(x) − {d}`                | `d ∉ dims(x)`                                                                                                                                |
+| `sum(x, over=d, by=s[c])`        | `(dims(x) − joined) ∪ grouped` | a refusal under [how mappings are used](mappings.md#how-mappings-are-used) applies                                                           |
+| `at(x, by=s[m])`                 | `(dims(x) − joined) ∪ grouped` | the same refusals apply                                                                                                                      |
+| `shift(x, along=d, offset=n)`    | `dims(x)`                      | `d ∉ dims(x)`                                                                                                                                |
+| `sum_back(x, along=d, window=n)` | `dims(x)`                      | `d ∉ dims(x)`                                                                                                                                |
 
 mathspec refuses `sum(p, over=t)` with `p` over `g` alone, and prints:
 
@@ -326,9 +326,8 @@ its entry.
 | ---------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `name` (bare)                            | parameter                  | For a number, it is true where the data has a row, whatever the `missing:`. For a `bool`, it is its value, and the `missing:` sets the value at a missing row ([`missing`](parameters-variables-constraints.md#missing)). `0.0` is a row, and `inflow != 0` tests for non-zero |
 | `name` (bare)                            | variable                   | It is true where the variable exists                                                                                                                                                                                                                                           |
-| `name` (bare)                            | relation                   | It is true where the relation has a row. A `missing: absent` relation has no row for some combinations ([`missing`](relations.md#missing)), and the bare name selects the combinations it lists                                                                                |
-| `subject[mapping]` (bare)                | mapping                    | It is true where the mapping gives the row of its subject a label. A `missing: absent` mapping gives some rows no label ([`missing`](relations.md#missing))                                                                                                                    |
-| `name` (bare)                            | dimension                  | mathspec refuses it at load                                                                                                                                                                                                                                                    |
+| `subject[mapping]` (bare)                | mapping                    | It is true where the mapping gives the row of its subject a label. A `missing: absent` mapping gives some rows no label ([`missing`](mappings.md#missing))                                                                                                                     |
+| `name` (bare)                            | dimension                  | For a dimension with [members](dimensions.md#the-bare-name-in-a-condition), it is true where the tuple of the frame's member labels is listed. The entry must be over every member. mathspec refuses it on any other dimension                                                 |
 | `name` (bare)                            | named condition            | It tests the [named condition](named.md#conditions). A given condition is true or false at each coordinate, as a `bool` parameter is                                                                                                                                           |
 | `name OP value`                          | parameter                  | It compares element by element. A missing row with no `missing:` value compares false                                                                                                                                                                                          |
 | `name OP value`                          | dimension                  | It filters the frame's own coordinate column                                                                                                                                                                                                                                   |
@@ -360,7 +359,6 @@ under
 Variable 'p': 'undeclared_thing' not found.
   Parameters: ['bp_x', 'points']
   Dimensions: ['bp', 'generator']
-  Relations: []
 Check the spelling, or declare 'undeclared_thing'.
 ```
 
@@ -522,7 +520,7 @@ adds the subject, `flow`. So the condition is over `flow` alone, which is the fr
 `rate`.
 
 `by=` lists one mapping, or several as `subject[a, …]`, and every other
-rule of [`at` in an expression](relations.md#lookups) applies.
+rule of [`at` in an expression](mappings.md#lookups) applies.
 
 !!! info "See also"
 
@@ -687,7 +685,7 @@ attached, a tool refuses a position that no coordinate occupies, such as
 `position(snapshot) == 10` over five snapshots.
 
 `within=` counts the position inside each group that a
-[partition](relations.md#partitions) makes. In the spec below, each period has
+[partition](mappings.md#partitions) makes. In the spec below, each period has
 one starting row:
 
 ```yaml

@@ -9,7 +9,7 @@ This page describes the two kinds of entry that expand into ordinary entries
 ([**formulations**](../glossary.md#formulation)). They expand before the tool
 that builds the model (an [engine](../glossary.md#tool)) reads the spec. An
 `sos:` entry lets only one
-member of a variable, or only two neighbouring members, be non-zero. A
+element of a variable, or only two neighbouring elements, be non-zero. A
 `piecewise:` entry ties two or more quantities to one piecewise-linear curve.
 
 [`Spec.expand()`](../spec.md#mathspec.spec.Spec.expand) replaces each
@@ -28,8 +28,8 @@ an `adjacency` curve adds. The expansion has three properties:
 
 ## `sos`
 
-An `sos` entry states a set with few non-zero members (a
-**special ordered set**, or SOS). It limits how many members of a variable
+An `sos` entry states a set with few non-zero elements (a
+**special ordered set**, or SOS). It limits how many elements of a variable
 along one dimension are non-zero at once. In the spec below, each site builds
 at most one size:
 
@@ -68,7 +68,7 @@ The entry states one set per site, and each set runs along `size`.
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `variable` | Sets the variable that the set is over.                                                                                              |
 | `along`    | Sets the dimension the set runs along. The entry states one set per [coordinate](../glossary.md#coordinate) of the other dimensions. |
-| `type`     | `1`: at most one member is non-zero. `2`: at most two members are non-zero, and they are consecutive.                                |
+| `type`     | `1`: at most one element is non-zero. `2`: at most two elements are non-zero, and they are consecutive.                              |
 
 A set is over **one** variable, and a variable has **one** set. At load, mathspec
 refuses a second entry that lists the same variable:
@@ -80,16 +80,16 @@ Sos 'again': variable 'build' already carries the set declared by 'pick_one_size
 mathspec suggests two rewrites: a second variable, or the other restriction
 written as a constraint.
 
-A member that the `where:` of the variable leaves out
-([absent](absence.md#where)) is not in the set. The members follow the order of the `along` dimension. For `type: 2`, that
+An element that the `where:` of the variable leaves out
+([absent](absence.md#where)) is not in the set. The elements follow the order of the `along` dimension. For `type: 2`, that
 dimension must be declared [ordered](dimensions.md#ordered), because
 "consecutive" depends on its order.
 
 ### What a set is written out as
 
-`spec.expand('sos')` states the set as one binary variable per member. Under
-`type: 1`, the binary of a member admits that member. Under `type: 2`, it
-admits that member and the next, so it picks the segment between them. A member
+`spec.expand('sos')` states the set as one binary variable per element. Under
+`type: 1`, the binary of an element admits that element. Under `type: 2`, it
+admits that element and the next, so it picks the segment between them. An element
 that the binaries do not admit is held at zero, from above and from below. For
 a set `s` over the variable `x` along `d`, let `admitted` be `s_seg` for
 `type: 1`, and `s_seg + shift(s_seg, along=d, offset=1, edge=0)` for `type: 2`:
@@ -130,11 +130,11 @@ The output of each command contains these two rows:
 The lower bound of `build` is `0`, so the expansion writes no
 `pick_one_size_nonzero_below` row.
 
-`upper` and `lower` are the `bounds:` of the member, each a number or a parameter, and for a binary member they are `1` and `0`. mathspec refuses a member
+`upper` and `lower` are the `bounds:` of the variable, each a number or a parameter, and for a binary variable they are `1` and `0`. mathspec refuses a variable
 with no `bounds.lower`, or with no `bounds.upper` and no `domain: binary`, and with `bounds: { upper: max_build }` on `build` it prints:
 
 ```text
-Sos 'pick_one_size': variable 'build' has no lower bound, and the set expands to rows that hold an unpicked member at zero from below as well as above. Declare bounds.lower, as a number or a parameter.
+Sos 'pick_one_size': variable 'build' has no lower bound, and the set expands to rows that hold an unpicked element at zero from below as well as above. Declare bounds.lower, as a number or a parameter.
 ```
 
 The `_below` row of the expansion needs a lower bound, so that an unpicked
@@ -394,7 +394,7 @@ mathspec refuses a sign other than `<=`, `>=` and `==`.
 ### A link that walks a mapping
 
 On a link with `by: subject[mapping]`, mathspec looks the weights of the curve
-up through a [mapping](relations.md#lookups), as
+up through a [mapping](mappings.md#lookups), as
 [`at(x, by=subject[mapping])`](operators.md#at) looks up the value of `x`. The
 row of the link is over `dims:`, with the dimension that `mapping` refers to
 replaced by the key columns of the subject. Each row lies on the curve of the
@@ -450,10 +450,10 @@ These rules apply to a walked link:
   subject that are over dimensions outside `dims:`, and joins on those over
   dimensions of `dims:`. mathspec refuses a key column over `along`, because a
   row could then take each breakpoint from a different curve.
-- mathspec holds a walk to every rule of [`at`](relations.md#lookups), and quotes
+- mathspec holds a walk to every rule of [`at`](mappings.md#lookups), and quotes
   the link in the refusal.
 - If the mapping or its subject declares
-  [`missing: absent`](relations.md#missing), the expansion adds the mapping test
+  [`missing: absent`](mappings.md#missing), the expansion adds the mapping test
   `flow[converter]` to the `where:` of the row, so a flow with no converter
   has no row.
 - `method: convex` and `method: lp` take no walked link, and the other methods
@@ -786,7 +786,7 @@ at every snapshot.
 
 On a gate written as
 [`at(<variable>, by=<subject>[<mapping>])`](operators.md#at), mathspec looks
-the variable up through a [mapping](relations.md#lookups), as `at` looks up
+the variable up through a [mapping](mappings.md#lookups), as `at` looks up
 any value. Here `running` is per unit, and the status of its unit switches
 the curve of each generator:
 
@@ -824,7 +824,7 @@ objective:
 ```
 
 The weights of each curve sum to `at(running, by=generator[unit])`. Because
-`generator[unit]` declares [`missing: absent`](relations.md#missing), the
+`generator[unit]` declares [`missing: absent`](mappings.md#missing), the
 data may give a generator no unit. That generator has no gate, so its curve is ungated. With
 `missing: 0` on the gate, the gate is `0` outside its `where:`, so the curve
 is switched off there. Only a generator with no unit then stays ungated.

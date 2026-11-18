@@ -511,6 +511,10 @@ class Relation:
     description: str | None = None
     partial: tuple[str, ...] = ()
     """The value roles a row may leave empty: the mappings under ``missing: absent``, sorted by role."""
+    members: tuple[str, ...] = ()
+    """The value roles a dimension's members are, sorted by role. A tool reads each off the fields of a label of the
+    dimension, and the file declares no mapping of that name.
+    """
 
     @property
     def roles(self) -> tuple[str, ...]:
@@ -670,7 +674,7 @@ class Dimension:
     """
     one_of: tuple[str, ...] | None = None
     """The labels that the file lists under ``one_of:``, sorted by name, or ``None`` when it lists none. With data attached,
-    a tool refuses any other label, in the table of the dimension and in every relation column over it.
+    a tool refuses any other label, in the table of the dimension and in every field of a tuple over it.
     """
     ordered: bool = False
     """Whether the order of the labels is part of the spec. When it is, a tool keeps the labels in the order the data gives
@@ -682,6 +686,15 @@ class Dimension:
     dimension sends each label to itself.
     """
     description: str | None = None
+    over: tuple[tuple[str, str], ...] = ()
+    """The members of the dimension as ``(role, dimension)``, sorted by role, or empty when the file lists none. A label
+    is then one tuple of member labels, which ``dtype`` does not describe. The table of the dimension in
+    [`Program.relations`][mathspec.program.Program.relations] has a mapping per member.
+    """
+    missing: RelationMissing = 'absent'
+    """Whether every combination of member labels needs a tuple: ``absent`` or ``refused``. It has no meaning for a
+    dimension without members.
+    """
 
 
 @dataclass(frozen=True)
@@ -1148,7 +1161,9 @@ class Program:
     dimensions: Mapping[str, Dimension] = Frozen({})
     relations: Mapping[str, Relation] = Frozen({})
     """Each table the data supplies, by its subject's name: every relation the file declares, and every dimension it
-    declares mappings of, each with its mappings as value columns.
+    declares mappings of or lists members of, each with its mappings as value columns. A member is a mapping of its dimension, listed
+    in [`Relation.members`][mathspec.program.Relation.members]: a tool reads it off the labels of the dimension, one field
+    per member, and not off a table.
     """
     sos: Mapping[str, Sos] = Frozen({})
     piecewise: Mapping[str, Piecewise] = Frozen({})

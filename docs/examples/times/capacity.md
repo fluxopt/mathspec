@@ -17,10 +17,14 @@ without storage, with the upper bound only.
 
 The GAMS conditions map to the spec as follows:
 
-- `RTP_VINTYR` and `PRC_TS` are [relations](../../reference/language/relations.md),
-  and `act` exists only at the coordinates that both list.
-- `TS_MAP(R,S,TS)` is the relation `ts_map`, which names `timeslice` twice
-  under two column names.
+- `RTP_VINTYR` and `PRC_TS` are dimensions with
+  [members](../../reference/language/dimensions.md#over). `act` is over every
+  member of both, and `where: "prc_ts AND rtp_vintyr"` keeps the coordinates
+  that both list.
+- `TS_MAP(R,S,TS)` is the dimension `ts_map`. Its upper timeslice is the
+  alias `upper_timeslice`, so the two timeslices are two members.
+  `eq_capact_up` reads the activity at each tuple of `ts_map`, sums it to each
+  upper timeslice, and reads that back onto `timeslice`.
 - `COEF_AF(…,'UP')` is the `where:` of `eq_capact_up`.
 - `NCAP_PASTI$PASTYEAR(V)` reads `0` where the data has no row.
 
@@ -40,20 +44,16 @@ dimensions:
   vintage: { dtype: int, description: the period a capacity was built in }
   process: { description: a technology }
   timeslice: { description: "a slice of the year, at any level of the timeslice tree" }
-
-relations:
+  upper_timeslice: { alias: timeslice, description: a timeslice that another is at or below }
   rtp_vintyr:
     description: the vintages of a process that exist in a period (RTP_VINTYR)
-    dims: [region, vintage, period, process]
-    missing: absent
+    over: [region, vintage, period, process]
   prc_ts:
     description: the timeslices a process operates at (PRC_TS)
-    dims: [region, process, timeslice]
-    missing: absent
+    over: [region, process, timeslice]
   ts_map:
     description: each timeslice and the timeslices at or below it (TS_MAP)
-    dims: { region: region, s: timeslice, ts: timeslice }
-    missing: absent
+    over: [region, upper_timeslice, timeslice]
 
 parameters:
   coef_cpt: { dims: [region, vintage, period, process], description: the share of a vintage that still exists in a period }
@@ -70,7 +70,7 @@ variables:
   act:
     description: activity of a vintage of a process in a timeslice (VAR_ACT)
     dims: [region, vintage, period, process, timeslice]
-    where: rtp_vintyr AND prc_ts
+    where: "prc_ts AND rtp_vintyr"
     bounds: { lower: 0 }
 
 constraints:
@@ -83,7 +83,8 @@ constraints:
     dims: [region, period, process, timeslice]
     where: coef_af_up
     expression: >-
-      sum(sum(act, over=vintage), over=ts, by=ts_map[s])
+      sum(sum(at(sum(act, over=vintage), by=ts_map[region, timeslice]), over=ts_map, by=ts_map[region, upper_timeslice]),
+        over=upper_timeslice, by=upper_timeslice[timeslice])
       <= coef_af_up * prc_capact * g_yrfr * cap
 
 objective:
@@ -99,11 +100,15 @@ Capacity transfer and capacity–activity from TIMES: EQ\_CPT and the upper form
 
 | Symbol | Meaning |
 |---|---|
-| $`\mathcal{T}`$ | index $`t`$ — `period` with $`\mathrm{rtp\_vintyr} \subseteq \mathcal{T} \times \mathcal{P} \times \mathcal{R} \times \mathcal{V}`$, `rtp_vintyr` is `absent` where the data has no row — a milestone year |
-| $`\mathcal{P}`$ | index $`p`$ — `process` with $`\mathrm{prc\_ts} \subseteq \mathcal{P} \times \mathcal{R} \times \mathcal{S},\ \mathrm{rtp\_vintyr} \subseteq \mathcal{T} \times \mathcal{P} \times \mathcal{R} \times \mathcal{V}`$, `prc_ts` is `absent` where the data has no row, `rtp_vintyr` is `absent` where the data has no row — a technology |
-| $`\mathcal{R}`$ | index $`r`$ — `region` with $`\mathrm{prc\_ts} \subseteq \mathcal{P} \times \mathcal{R} \times \mathcal{S},\ \mathrm{rtp\_vintyr} \subseteq \mathcal{T} \times \mathcal{P} \times \mathcal{R} \times \mathcal{V},\ \mathrm{ts\_map} \subseteq \mathcal{R} \times \mathcal{S} \times \mathcal{S}`$, `prc_ts` is `absent` where the data has no row, `rtp_vintyr` is `absent` where the data has no row, `ts_map` is `absent` where the data has no row — a region of the model |
-| $`\mathcal{S}`$ | index $`s`$ — `timeslice` with $`\mathrm{prc\_ts} \subseteq \mathcal{P} \times \mathcal{R} \times \mathcal{S},\ \mathrm{ts\_map} \subseteq \mathcal{R} \times \mathcal{S} \times \mathcal{S}`$, `prc_ts` is `absent` where the data has no row, `ts_map` is `absent` where the data has no row — a slice of the year, at any level of the timeslice tree |
-| $`\mathcal{V}`$ | index $`v`$ — `vintage` with $`\mathrm{rtp\_vintyr} \subseteq \mathcal{T} \times \mathcal{P} \times \mathcal{R} \times \mathcal{V}`$, `rtp_vintyr` is `absent` where the data has no row — the period a capacity was built in |
+| $`\mathcal{T}`$ | index $`t`$ — `period` — a milestone year |
+| $`\mathcal{Q}`$ | index $`q`$ — `prc_ts`, $`\mathcal{Q} \subseteq \mathcal{P} \times \mathcal{R} \times \mathcal{S}`$ — the timeslices a process operates at (PRC\_TS) |
+| $`\mathcal{P}`$ | index $`p`$ — `process` — a technology |
+| $`\mathcal{R}`$ | index $`r`$ — `region` — a region of the model |
+| $`\mathcal{K}`$ | index $`k`$ — `rtp_vintyr`, $`\mathcal{K} \subseteq \mathcal{T} \times \mathcal{P} \times \mathcal{R} \times \mathcal{V}`$ — the vintages of a process that exist in a period (RTP\_VINTYR) |
+| $`\mathcal{S}`$ | index $`s`$ — `timeslice` — a slice of the year, at any level of the timeslice tree |
+| $`\mathcal{M}`$ | index $`m`$ — `ts_map`, $`\mathcal{M} \subseteq \mathcal{R} \times \mathcal{S} \times \mathcal{S}`$ — each timeslice and the timeslices at or below it (TS\_MAP) |
+| $`\mathcal{S}`$ | index $`s'`$ — `upper_timeslice`, an alias of `timeslice` — a timeslice that another is at or below |
+| $`\mathcal{V}`$ | index $`v`$ — `vintage` — the period a capacity was built in |
 
 #### Parameters
 
@@ -130,7 +135,7 @@ Capacity transfer and capacity–activity from TIMES: EQ\_CPT and the upper form
 **`act`**
 
 ```math
-\mathit{act}_{t,p,r,s,v} \ge 0 \qquad \forall\, t \in \mathcal{T},\ p \in \mathcal{P},\ r \in \mathcal{R},\ s \in \mathcal{S},\ v \in \mathcal{V} \,:\, \left( t,\ p,\ r,\ v \right) \in \mathrm{rtp\_vintyr} \wedge \left( p,\ r,\ s \right) \in \mathrm{prc\_ts}
+\mathit{act}_{t,p,r,s,v} \ge 0 \qquad \forall\, t \in \mathcal{T},\ p \in \mathcal{P},\ r \in \mathcal{R},\ s \in \mathcal{S},\ v \in \mathcal{V} \,:\, \left( p,\ r,\ s \right) \in \mathrm{prc\_ts} \wedge \left( t,\ p,\ r,\ v \right) \in \mathrm{rtp\_vintyr}
 ```
 
 **`cap`**
@@ -156,7 +161,7 @@ Capacity transfer and capacity–activity from TIMES: EQ\_CPT and the upper form
 **`eq_capact_up`**
 
 ```math
-\sum_{s' \in \mathcal{S} \,:\, \left( r,\ s,\ s' \right) \in \mathrm{ts\_map}} \sum_{v \in \mathcal{V}} \mathit{act}_{t,p,r,s',v} \le \mathrm{coef\_af\_up}_{t,p,r,s} \cdot \mathrm{prc\_capact}_{p,r} \cdot \mathrm{g}^{\mathrm{yrfr}}_{r,s} \cdot \mathit{cap}_{t,p,r} \qquad \forall\, t \in \mathcal{T},\ p \in \mathcal{P},\ r \in \mathcal{R},\ s \in \mathcal{S} \,:\, \mathrm{coef\_af\_up}_{t,p,r,s} \text{ is defined}
+\sum_{s' \in \mathcal{S} \,:\, s' = s} \sum_{m \in \mathcal{M} \,:\, \mathrm{region}(m) = r \wedge \mathrm{upper\_timeslice}(m) = s'} \sum_{v \in \mathcal{V}} \mathit{act}_{t,p,\mathrm{region}(m),\mathrm{timeslice}(m),v} \le \mathrm{coef\_af\_up}_{t,p,r,s} \cdot \mathrm{prc\_capact}_{p,r} \cdot \mathrm{g}^{\mathrm{yrfr}}_{r,s} \cdot \mathit{cap}_{t,p,r} \qquad \forall\, t \in \mathcal{T},\ p \in \mathcal{P},\ r \in \mathcal{R},\ s \in \mathcal{S} \,:\, \mathrm{coef\_af\_up}_{t,p,r,s} \text{ is defined}
 ```
 
 **`eq_cpt`**

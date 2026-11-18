@@ -287,6 +287,14 @@ class Walk:
             return f'{self.format.apply(self.format.upright(column), key)} {self.format.prose(" is defined")}'
         return f'{self.format.parenthesise(key)} {self._op("in")} {self.format.upright(name)}'
 
+    def _tuple_listed(self, name: str, members: Iterable[str], ctx: _Context) -> str:
+        """That dimension *name* lists the tuple of the frame's indices of its *members*: ``(t, u) ∈ active``.
+
+        The frame holds the members, not the dimension, so its key has no index here.
+        """
+        key = self.format.joined([ctx.subscript(d) for d in members], '')
+        return f'{self.format.parenthesise(key)} {self._op("in")} {self.format.upright(name)}'
+
     def _frame_key(self, name: str, ctx: _Context) -> dict[str, str]:
         """Table *name*'s key roles at the frame's own indices of their dimensions."""
         lk = self.program.relations[name]
@@ -564,6 +572,8 @@ class Walk:
             return self._boolean(node.operand.root, self._looked_up(node.columns, ctx))
 
         if isinstance(node, RelationDefined):
+            if node.column is None and node.name in self.program.dimensions and self.program.dimensions[node.name].over:
+                return self._tuple_listed(node.name, node.dims, ctx), comparison
             return self._relation_row(node.name, self._frame_key(node.name, ctx), node.column), comparison
 
         if isinstance(node, Not):

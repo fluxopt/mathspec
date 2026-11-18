@@ -42,7 +42,7 @@ the file changes nothing:
 
 - the entries of each section, and of each kind under `given:`
 - each `dims:` list
-- the columns of each relation, and the mappings of each subject
+- the members of each dimension, and the mappings of each subject
 - the cases under `cases:`
 - the `kwargs:` of a macro
 - the labels under `one_of:`
@@ -164,11 +164,19 @@ the colon is the description that the file sets.
 `program.parameters[name].missing` is what the file sets under
 [`missing:`](language/absence.md#missing) for a missing row of that parameter.
 It is `'refused'`, `'absent'`, or the value that a tool uses for the row.
-`program.relations` has one table per relation and per subject with
-[mappings](language/relations.md#the-data-contract), named after it, and each mapping
-is one of its `values`. `program.relations[name].missing` is `'refused'` or
-`'absent'`, and `partial` lists the mappings under `missing: absent`. The program of
-`spec.expand(...)` has the same `missing` values.
+`program.relations` has one table per subject with
+[mappings](language/mappings.md#the-data-contract), named after it, and each mapping
+is one of its `values`. `partial` lists the mappings under `missing: absent`.
+`program.dimensions[name].missing` is `'refused'` or `'absent'` for a
+dimension with members. The program of `spec.expand(...)` has the same
+`missing` values.
+
+The table of a dimension with [members](language/dimensions.md#over) is in
+`program.relations` under the name of the dimension, whether or not the file
+declares mappings of it. It has a mapping per member, and
+`program.relations[name].members` names them. A tool takes the labels of a
+member from the fields of each label of the dimension, and reads no column of
+the table for them.
 
 A [given](language/parameters-variables-constraints.md#given) parameter is a
 `GivenParameter` under `program.given.parameters`, and not under
@@ -223,7 +231,7 @@ An `ExpressionReference` is the node for a use of an `expressions:` entry. Its
 
 Every expression node has `dims`, the dimensions that it is indexed over,
 sorted by name. A sum has the dimensions of its operand, less the ones it sums
-over. A `Join` under a sum through a relation has the dimensions of that sum.
+over. A `Join` under a sum through a mapping has the dimensions of that sum.
 A `Join` also opens an index per dropped column (an `Axis`). An axis is not a dimension and is not in `dims`. An
 `ExpressionReference` has the dimensions of its body.
 
@@ -256,7 +264,7 @@ A `Region`'s `when` is a `Mask` too, and every `Mask` has five attributes:
 A comparison of expressions arrives as an `ExpressionComparison`. Its two
 sides are program expressions, as a constraint's are, and its `dims` are every
 dimension that either side has. Its `names_read` are every parameter and
-relation that the sides use, including the relation of a grouping.
+subject that the sides use, including the subject of a grouping.
 
 A name compared against a literal is a different node. `p_max > 5` is a
 `ParameterComparison` and `1 * p_max > 5` is an `ExpressionComparison`, though
@@ -264,9 +272,10 @@ both are true at the same coordinates.
 
 A comparison of a mapping against a label is a `RelationComparison`, and a
 comparison of two mappings is a `RelationPairComparison`. The page on [conditions](language/expressions.md#conditions) defines both,
-and both are false for every operator where the mapping gives no label. A
-relation name alone is a `RelationDefined`, and a mapping alone, `subject[mapping]`, is a
-`RelationDefined` with `column` set to the mapping.
+and both are false for every operator where the mapping gives no label. The bare
+name of a dimension with members is a `RelationDefined` whose `dims` are the
+members, and a mapping alone, `subject[mapping]`, is a `RelationDefined` with `column`
+set to the mapping.
 
 Three conditions contain another condition rather than an entry. A
 `CountComparison` contains the condition that it counts and the dimension that
@@ -445,7 +454,7 @@ Writing the canonical form out again gives the same text. The canonical form
 has these rules:
 
 - The sections come in one fixed order: `version`, `description`, `given`,
-  `dimensions`, `relations`, `mappings`, `parameters`, `conditions`, `variables`,
+  `dimensions`, `mappings`, `parameters`, `conditions`, `variables`,
   `expressions`, `objective`, `constraints`, `sos`, `piecewise`,
   `assumptions`, `macros`. The keys of an entry also come in one order.
 - Entries are sorted by name within each section, and so is every other list

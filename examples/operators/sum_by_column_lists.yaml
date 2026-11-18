@@ -3,17 +3,15 @@
 # SPDX-License-Identifier: MIT
 
 description: >-
-  Several columns and mappings: `sum(array, over=[dim, …], by=subject[m, …])`
-  joins on both columns of the relation and groups by both of its mappings.
+  Several mappings: `slot_of` lists (generator, period) tuples. The sum reads `p`
+  at each tuple with `at`, then groups by both mappings of `slot_of`.
 
 dimensions:
   generator: { dtype: str }
   period: { dtype: int }
   bus: { dtype: str }
   technology: { dtype: str }
-
-relations:
-  slot_of: { dims: [generator, period] }
+  slot_of: { over: [generator, period], missing: refused }
 
 mappings:
   slot_of: { bus: { dim: bus }, technology: { dim: technology } }
@@ -29,6 +27,6 @@ variables:
 constraints:
   slot_cap:
     dims: [bus, technology]
-    expression: sum(p, over=[generator, period], by=slot_of[bus, technology]) <= cap
+    expression: sum(at(p, by=slot_of[generator, period]), over=slot_of, by=slot_of[bus, technology]) <= cap
 
 objective: { sense: minimize, expression: sum(p) }

@@ -37,7 +37,7 @@ from mathspec._expression_parser import (
     nodes,
 )
 from mathspec._expression_resolver import ExpressionResolver, condition_compared
-from mathspec.errors import DimensionError, LanguageError, SchemaError, did_you_mean, prefixed, unordered
+from mathspec.errors import DimensionError, LanguageError, SchemaError, did_you_mean, prefixed
 from mathspec.program import (
     Add,
     And,
@@ -93,17 +93,18 @@ class ConditionResolver:
     faults reports both. ``self_variable`` is the variable whose own
     ``where`` is being read, which may not ask whether it exists. A side
     that is an expression is built by an [`ExpressionResolver`][] over
-    the same namespace.
+    the same namespace and ``frame``, the ``dims:`` of the entry.
     """
 
     ns: Namespace
     context: str
     errors: list[str]
     self_variable: str | None = None
+    frame: frozenset[str] = frozenset()
 
     @property
     def _expressions(self) -> ExpressionResolver:
-        return ExpressionResolver(self.ns, self.context, self.errors)
+        return ExpressionResolver(self.ns, self.context, self.errors, frame=self.frame)
 
     def build(self, node: Condition | UnresolvedConditionNode) -> Condition | UnresolvedConditionNode:
         """One condition node typed, or returned unresolved with its refusal appended."""
@@ -137,7 +138,7 @@ class ConditionResolver:
         return cast('Condition', self.build(node))
 
     def _bare_name(self, node: NameNode) -> Condition | UnresolvedConditionNode:
-        """A bare name: a named condition's body, a parameter's or relation's definedness, or a variable's existence."""
+        """A bare name: a named condition's body, a parameter's definedness, a tuple's membership, or a variable's existence."""
         ns, context = self.ns, self.context
         if node.name in ns.conditions:
             try:
@@ -171,21 +172,13 @@ class ConditionResolver:
                     return node
                 return ParameterDefined(node.name, ns.leaf_dims[node.name])
             case 'dimension':
+                if members := ns.spec.dimensions[node.name].members:
+                    return RelationDefined(node.name, tuple(sorted(dim for _, dim in members)))
                 self.errors.append(
                     f"{context}: '{node.name}' is a dimension, and a bare dimension "
                     f'name is true at every coordinate. '
                     f'Remove it, or compare it: where: "{node.name} > 0".'
                 )
-            case 'relation':
-                shape = ns.relations[node.name]
-                dims = tuple(sorted(shape.dim(k) for k in shape.key))
-                if len(set(dims)) < len(dims):
-                    self.errors.append(
-                        f"{context}: '{node.name}' has two columns over one dimension ({list(shape.roles)}), so a "
-                        f'bare name is ambiguous. Declare the rows it tests as a bool parameter over {dims[0]!r}.'
-                    )
-                    return node
-                return RelationDefined(node.name, dims)
             case 'variable':
                 if node.name == self.self_variable:
                     self.errors.append(
@@ -248,7 +241,9 @@ class ConditionResolver:
             )
             return node
         if self.ns.unordered(along.name):
-            self.errors.append(unordered(context, f'shift(<condition>, along={along.name})', along.name))
+            self.errors.append(
+                self.ns.unordered_refusal(context, f'shift(<condition>, along={along.name})', along.name)
+            )
             return node
         return TranslatedCondition(mask, along.name, int(offset.value), mask.dims)
 
@@ -419,6 +414,8 @@ class ConditionResolver:
         if len(self.errors) > found:
             return node
         left, right = sides
+        if self._expressions.met(left, right):
+            return node
         if all(_is_number(side) for side in sides):
             self.errors.append(
                 f"{context}: '{node.left} {node.op} {node.right}' compares two numbers. Name the parameter one "
@@ -456,7 +453,7 @@ class ConditionResolver:
             )
             return node
         if ns.unordered(dimension):
-            self.errors.append(unordered(context, f'position({dimension})', dimension))
+            self.errors.append(ns.unordered_refusal(context, f'position({dimension})', dimension))
             return node
         if within is None:
             return DimensionPosition(dimension, node.op, position)
@@ -507,6 +504,13 @@ class ConditionResolver:
         elif kind in ('parameter', 'dimension'):
             dtype = ns.dtypes[left_name]
             labelled = left_name if kind == 'dimension' else None
+        if labelled is not None and (members := ns.spec.dimensions[labelled].members):
+            self.errors.append(
+                f"{context}: '{plain.name}' compares a label of '{labelled}', and '{labelled}' lists its members, "
+                f"so it has no label to compare. In an entry over '{labelled}', compare a member: "
+                f'{labelled}[{members[0][0]}] {plain.op} {plain.value!r}.'
+            )
+            return node
         if dtype is not None:
             typed = self._typed_literal(plain, dtype)
             if typed is None:
@@ -552,13 +556,13 @@ class ConditionResolver:
         shape = ns.relations[name]
         if not shape.values:
             self.errors.append(
-                f"{context}: '{spelling}' compares the relation '{name}', which has no mapping, so its rows hold no "
-                f"label. Test the bare name '{name}' for whether a row exists, or declare a mapping under mappings: {name}:."
+                f"{context}: '{spelling}' compares '{name}', which has no mapping, so it holds no label. Declare a mapping "
+                f'under mappings: {name}:.'
             )
             return None
         if column is None:
             self.errors.append(
-                f"{context}: '{spelling}' compares the relation '{name}' itself, and a comparison reads a label. "
+                f"{context}: '{spelling}' compares '{name}' itself, and a comparison reads a label. "
                 f'Name one of its mappings: {name}[{shape.values[0]}].'
             )
             return None

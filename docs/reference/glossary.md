@@ -61,8 +61,8 @@ line](cli.md)).
 ## Column
 
 A column is one variable at one coordinate, so a variable indexed over
-`generator` has one column per generator. In a data table or a relation, a
-column is one named field of the table.
+`generator` has one column per generator. In a data table, a column is one
+named field of the table.
 
 ## Compile
 
@@ -91,7 +91,7 @@ and a constraint has one row at each coordinate.
 ## Data preparation
 
 Before the data is attached, data preparation is the work of turning raw data
-into the tables that a spec declares as parameters and relations. You compute
+into the tables that a spec declares as parameters, dimensions and mappings. You compute
 in data preparation anything that the mathspec language cannot state
 ([what counts as data preparation](../about/limits.md#data-preparation)).
 
@@ -148,16 +148,17 @@ does not build](reading.md#what-a-program-does-not-build)).
 
 ## Group
 
-A group is the set of rows of a dimension or a relation to which one
+A group is the set of labels of a dimension to which one
 [mapping](#mapping) gives one label. `within=<subject>[<mapping>]` makes `shift`,
 `sum_back` or `position()` work separately in each group, such as each season
-of a year ([partitions](language/relations.md#partitions)).
+of a year ([partitions](language/mappings.md#partitions)).
 
 ## Label
 
-A label is one member of a dimension, such as `wind` in `generator`. The
+A label is one element of a dimension, such as `wind` in `generator`. The
 labels arrive with the data, in the order that `shift`, `sum_back` and
-`position()` count along.
+`position()` count along. A label of a dimension with
+[members](#member) is one tuple of their labels.
 
 ## Load
 
@@ -175,14 +176,21 @@ expression before any tool reads it. A file declares its own macros under
 
 ## Mapping
 
-A mapping gives each row of a dimension or a relation (its
+A mapping gives each label of a dimension (its
 [subject](#subject)) one label of a dimension, such as the bus of each
 generator. A condition or an operator reads it as `subject[mapping]`, as in
-`generator[bus]` ([mappings](language/relations.md#mappings)).
+`generator[bus]` ([mappings](language/mappings.md#mappings)).
+
+## Member
+
+A member is a dimension that another dimension lists under `over:`. A label
+of the listing dimension combines one label of each member, and a call reads
+a member as a mapping of the dimension, as in `connection[unit]`
+([`over`](language/dimensions.md#over)).
 
 ## Missing row
 
-A missing row is a coordinate for which the table of a parameter or a relation
+A missing row is a coordinate for which the table of a parameter or a mapping
 has no row. The `missing:` key of the entry sets how a tool treats that
 coordinate ([`missing` on a
 parameter](language/absence.md#missing-on-a-parameter)).
@@ -239,8 +247,8 @@ program in this sense.
 ## Row
 
 A row is one constraint at one coordinate, so a constraint indexed over
-`snapshot` has one row per snapshot. In a data table or a relation, a row is
-one line of the table ([missing row](#missing-row)).
+`snapshot` has one row per snapshot. In a data table, a row is one line of
+the table ([missing row](#missing-row)).
 
 ## Rung
 
@@ -274,13 +282,13 @@ costs exists.
 ## Special ordered set (SOS)
 
 A special ordered set (SOS) is an `sos:` entry over one dimension of one
-variable. With `type: 1`, at most one member is non-zero. With `type: 2`, at
-most two consecutive members are non-zero ([sos](language/piecewise.md#sos)).
+variable. With `type: 1`, at most one element is non-zero. With `type: 2`, at
+most two consecutive elements are non-zero ([sos](language/piecewise.md#sos)).
 
 ## Subject
 
-The subject of a mapping is a dimension or a relation, such as `generator` in
-`generator[bus]` ([mappings](language/relations.md#mappings)).
+The subject of a mapping is a dimension, such as `generator` in
+`generator[bus]` ([mappings](language/mappings.md#mappings)).
 
 ## Surface
 

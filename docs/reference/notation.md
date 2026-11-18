@@ -7,7 +7,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 This page lists each construct of the language beside the math that
 [the typesetter](typeset.md) prints for it. Each section has the math of one
-kind of construct, and the legend lists the symbol of each dimension, relation and parameter.
+kind of construct, and the legend lists the symbol of each dimension, mapping and parameter.
 
 Each construct is printed as its YAML and then its equation. Most of the YAML
 comes from one test spec,
@@ -23,7 +23,7 @@ typesetter changes nothing else.
 <!-- notation:begin -->
 ### Legend
 
-A dimension, a relation, a mapping and a parameter declare no equation; what they print is the legend every spec opens with.
+A dimension, a mapping and a parameter declare no equation; what they print is the legend every spec opens with.
 
 ```yaml
 dimensions:
@@ -35,10 +35,10 @@ dimensions:
   season: { dtype: str }
   technology: { dtype: str }
   bp: { dtype: int, ordered: true } # the breakpoints every curve below runs through
-
-relations:
-  gen_zone: { dims: [generator, snapshot] } # a relation over two dimensions, with a mapping: a call sums one away and joins on the other
-  connection: { dims: [generator, bus], missing: absent } # a relation with no mapping: many-to-many, read only by sum with both ends named
+  site: { over: [generator, bus] } # a dimension that lists its members: the legend prints it as a subset of their product
+  corridor: { over: [from_bus, bus], missing: refused } # a member and its alias, and every combination required: the product itself
+  gen_zone: { over: [generator, snapshot], missing: refused } # a tuple over two dimensions, with a mapping: a call reads an entry at each tuple and groups by a member
+  connection: { over: [generator, bus] } # a tuple with no mapping: many-to-many, read only through its members
 
 mappings:
   generator: { bus: { dim: bus }, technology: { dim: technology } } # two mappings of one subject, read to both at once
@@ -57,6 +57,7 @@ parameters:
   load: { dims: [snapshot, bus] }
   is_flexible: { dims: [generator], dtype: bool, missing: false }
   zone_cap: { dims: [zone] }
+  corridor_cap: { dims: [corridor] } # over a dimension whose two members are over one dimension
   tech_cap: { dims: [bus, technology], missing: absent }
   link_eff: { dims: [generator, bus], where: connection, missing: 1 }
   susceptance: { dims: [from_bus, bus], missing: 0 } # over one set twice, through its alias
@@ -77,63 +78,69 @@ parameters:
 | Symbol | Meaning |
 |---|---|
 | $`\mathcal{B}`$ | index $`b`$ — `bp` |
-| $`\mathcal{U}`$ | index $`u`$ — `bus` with $`\mathrm{area}: \mathcal{U} \to \mathcal{Z},\ \mathrm{zone}: \mathcal{U} \to \mathcal{Z},\ \mathrm{connection} \subseteq \mathcal{U} \times \mathcal{G},\ \mathrm{bus}: \mathcal{G} \to \mathcal{U}`$, `connection` is `absent` where the data has no row, `bus[area]` is `absent` where the data gives no label |
+| $`\mathcal{U}`$ | index $`u`$ — `bus` with $`\mathrm{area}: \mathcal{U} \to \mathcal{Z},\ \mathrm{zone}: \mathcal{U} \to \mathcal{Z},\ \mathrm{bus}: \mathcal{E} \to \mathcal{U}`$, `bus[area]` is `absent` where the data gives no label |
+| $`\mathcal{C}`$ | index $`c`$ — `connection`, $`\mathcal{C} \subseteq \mathcal{U} \times \mathcal{E}`$ |
+| $`\mathcal{O}`$ | index $`o`$ — `corridor`, $`\mathcal{O} = \mathcal{U} \times \mathcal{U}`$ |
 | $`\mathcal{U}`$ | index $`u'`$ — `from_bus`, an alias of `bus` |
-| $`\mathcal{G}`$ | index $`g`$ — `generator` with $`\mathrm{connection} \subseteq \mathcal{U} \times \mathcal{G},\ \mathrm{gen\_zone} \subseteq \mathcal{G} \times \mathcal{T},\ \mathrm{zone}: \mathrm{gen\_zone} \to \mathcal{Z},\ \mathrm{bus}: \mathcal{G} \to \mathcal{U},\ \mathrm{technology}: \mathcal{G} \to \mathcal{E}`$, `connection` is `absent` where the data has no row |
+| $`\mathcal{G}`$ | index $`g`$ — `gen_zone`, $`\mathcal{G} = \mathcal{E} \times \mathcal{T}`$ with $`\mathrm{zone}: \mathcal{G} \to \mathcal{Z}`$ |
+| $`\mathcal{E}`$ | index $`e`$ — `generator` with $`\mathrm{bus}: \mathcal{E} \to \mathcal{U},\ \mathrm{technology}: \mathcal{E} \to \mathcal{H}`$ |
 | $`\mathcal{S}`$ | index $`s`$ — `season` with $`\mathrm{season}: \mathcal{T} \to \mathcal{S}`$ |
-| $`\mathcal{T}`$ | index $`t`$ — `snapshot` (`int` coordinates) with $`\mathrm{gen\_zone} \subseteq \mathcal{G} \times \mathcal{T},\ \mathrm{zone}: \mathrm{gen\_zone} \to \mathcal{Z},\ \mathrm{rep}: \mathcal{T} \to \mathcal{T},\ \mathrm{season}: \mathcal{T} \to \mathcal{S}`$ |
-| $`\mathcal{E}`$ | index $`e`$ — `technology` with $`\mathrm{technology}: \mathcal{G} \to \mathcal{E}`$ |
-| $`\mathcal{Z}`$ | index $`z`$ — `zone` (labels `north`, `south`) with $`\mathrm{area}: \mathcal{U} \to \mathcal{Z},\ \mathrm{zone}: \mathcal{U} \to \mathcal{Z},\ \mathrm{zone}: \mathrm{gen\_zone} \to \mathcal{Z}`$, `bus[area]` is `absent` where the data gives no label |
+| $`\mathcal{I}`$ | index $`i`$ — `site`, $`\mathcal{I} \subseteq \mathcal{U} \times \mathcal{E}`$ |
+| $`\mathcal{T}`$ | index $`t`$ — `snapshot` (`int` coordinates) with $`\mathrm{rep}: \mathcal{T} \to \mathcal{T},\ \mathrm{season}: \mathcal{T} \to \mathcal{S}`$ |
+| $`\mathcal{H}`$ | index $`h`$ — `technology` with $`\mathrm{technology}: \mathcal{E} \to \mathcal{H}`$ |
+| $`\mathcal{Z}`$ | index $`z`$ — `zone` (labels `north`, `south`) with $`\mathrm{area}: \mathcal{U} \to \mathcal{Z},\ \mathrm{zone}: \mathcal{U} \to \mathcal{Z},\ \mathrm{zone}: \mathcal{G} \to \mathcal{Z}`$, `bus[area]` is `absent` where the data gives no label |
 
 #### Parameters
 
 | Symbol | Meaning |
 |---|---|
 | $`\mathrm{area\_weight}`$ | `area_weight` over $`\mathcal{U}`$, only where $`\mathrm{area}(u) \text{ is defined}`$ |
-| $`\mathrm{bp\_heat}`$ | `bp_heat` over $`\mathcal{B} \times \mathcal{G}`$ |
-| $`\mathrm{bp\_run}`$ | `bp_run` over $`\mathcal{B} \times \mathcal{G}`$ |
-| $`\mathrm{bp\_x}`$ | `bp_x` over $`\mathcal{B} \times \mathcal{G}`$, $`0`$ where the data has no row |
-| $`\mathrm{bp\_y}`$ | `bp_y` over $`\mathcal{B} \times \mathcal{G}`$, $`0`$ where the data has no row |
+| $`\mathrm{bp\_heat}`$ | `bp_heat` over $`\mathcal{B} \times \mathcal{E}`$ |
+| $`\mathrm{bp\_run}`$ | `bp_run` over $`\mathcal{B} \times \mathcal{E}`$ |
+| $`\mathrm{bp\_x}`$ | `bp_x` over $`\mathcal{B} \times \mathcal{E}`$, $`0`$ where the data has no row |
+| $`\mathrm{bp\_y}`$ | `bp_y` over $`\mathcal{B} \times \mathcal{E}`$, $`0`$ where the data has no row |
 | $`\mathrm{budget}`$ | `budget` (scalar) |
-| $`\mathrm{cost}`$ | `cost` over $`\mathcal{G}`$, $`0`$ where the data has no row |
-| $`\mathrm{eta}`$ | `eta` over $`\mathcal{G}`$ |
+| $`\mathrm{corridor\_cap}`$ | `corridor_cap` over $`\mathcal{O}`$ |
+| $`\mathrm{cost}`$ | `cost` over $`\mathcal{E}`$, $`0`$ where the data has no row |
+| $`\mathrm{eta}`$ | `eta` over $`\mathcal{E}`$ |
 | $`\mathrm{growth}`$ | `growth` (scalar) |
-| $`\mathrm{is\_flexible}`$ | `is_flexible` over $`\mathcal{G}`$, `false` where the data has no row |
-| $`\mathrm{lead}`$ | `lead` over $`\mathcal{G}`$ |
-| $`\mathrm{link\_eff}`$ | `link_eff` over $`\mathcal{U} \times \mathcal{G}`$, only where $`\left( u,\ g \right) \in \mathrm{connection}`$, $`1`$ where the data has no row |
+| $`\mathrm{is\_flexible}`$ | `is_flexible` over $`\mathcal{E}`$, `false` where the data has no row |
+| $`\mathrm{lead}`$ | `lead` over $`\mathcal{E}`$ |
+| $`\mathrm{link\_eff}`$ | `link_eff` over $`\mathcal{U} \times \mathcal{E}`$, only where $`\left( u,\ e \right) \in \mathrm{connection}`$, $`1`$ where the data has no row |
 | $`\mathrm{load}`$ | `load` over $`\mathcal{U} \times \mathcal{T}`$ |
-| $`\mathrm{min\_up}`$ | `min_up` over $`\mathcal{G}`$ |
-| $`\mathrm{p}^{\mathrm{max}}`$ | `p_max` over $`\mathcal{G}`$, $`\infty`$ where the data has no row |
-| $`\mathrm{p}^{\mathrm{min}}`$ | `p_min` over $`\mathcal{G}`$ |
+| $`\mathrm{min\_up}`$ | `min_up` over $`\mathcal{E}`$ |
+| $`\mathrm{p}^{\mathrm{max}}`$ | `p_max` over $`\mathcal{E}`$, $`\infty`$ where the data has no row |
+| $`\mathrm{p}^{\mathrm{min}}`$ | `p_min` over $`\mathcal{E}`$ |
 | $`\mathrm{susceptance}`$ | `susceptance` over $`\mathcal{U} \times \mathcal{U}`$, $`0`$ where the data has no row |
-| $`\mathrm{tech\_cap}`$ | `tech_cap` over $`\mathcal{U} \times \mathcal{E}`$, `absent` where the data has no row |
+| $`\mathrm{tech\_cap}`$ | `tech_cap` over $`\mathcal{U} \times \mathcal{H}`$, `absent` where the data has no row |
 | $`\mathrm{zone\_cap}`$ | `zone_cap` over $`\mathcal{Z}`$ |
 
 #### Conditions
 
 | Symbol | Meaning |
 |---|---|
-| $`\mathrm{dispatchable}`$ | `dispatchable` over $`\mathcal{G}`$ — a unit that dispatches and cannot be turned down |
-| $`\mathrm{priced\_dispatch}`$ | `priced_dispatch` over $`\mathcal{G}`$ |
+| $`\mathrm{dispatchable}`$ | `dispatchable` over $`\mathcal{E}`$ — a unit that dispatches and cannot be turned down |
+| $`\mathrm{priced\_dispatch}`$ | `priced_dispatch` over $`\mathcal{E}`$ |
 
 #### Variables
 
 | Symbol | Meaning |
 |---|---|
-| $`\mathit{fuel}`$ | `fuel` over $`\mathcal{G} \times \mathcal{T}`$ |
+| $`\mathit{fuel}`$ | `fuel` over $`\mathcal{E} \times \mathcal{T}`$ |
 | $`\mathit{headroom}`$ | `headroom` (scalar), $`0`$ where the mask leaves it out |
-| $`\mathit{heat}`$ | `heat` over $`\mathcal{G} \times \mathcal{T}`$ |
-| $`\mathit{on}`$ | `on` over $`\mathcal{G} \times \mathcal{T}`$ |
-| $`\mathit{op\_cost}`$ | `op_cost` over $`\mathcal{G} \times \mathcal{T}`$ |
-| $`p`$ | `p` over $`\mathcal{G} \times \mathcal{T}`$ |
+| $`\mathit{heat}`$ | `heat` over $`\mathcal{E} \times \mathcal{T}`$ |
+| $`\mathit{on}`$ | `on` over $`\mathcal{E} \times \mathcal{T}`$ |
+| $`\mathit{op\_cost}`$ | `op_cost` over $`\mathcal{E} \times \mathcal{T}`$ |
+| $`p`$ | `p` over $`\mathcal{E} \times \mathcal{T}`$ |
 | $`\mathit{reserve}`$ | `reserve` (scalar) |
+| $`\mathit{site\_out}`$ | `site_out` over $`\mathcal{I} \times \mathcal{T}`$ |
 | $`\mathit{slack}`$ | `slack` over $`\mathcal{T}`$ |
-| $`\mathit{spare}`$ | `spare` over $`\mathcal{G}`$ |
+| $`\mathit{spare}`$ | `spare` over $`\mathcal{E}`$ |
 | $`\mathit{spill}`$ | `spill` over $`\mathcal{T}`$ |
 | $`\theta`$ | `theta` over $`\mathcal{U}`$ |
-| $`\mathit{units}`$ | `units` over $`\mathcal{G}`$ |
-| $`\mathit{warm}`$ | `warm` over $`\mathcal{G} \times \mathcal{T}`$ |
-| $`\mathit{weight}`$ | `weight` over $`\mathcal{G} \times \mathcal{T}`$ |
+| $`\mathit{units}`$ | `units` over $`\mathcal{E}`$ |
+| $`\mathit{warm}`$ | `warm` over $`\mathcal{E} \times \mathcal{T}`$ |
+| $`\mathit{weight}`$ | `weight` over $`\mathcal{E} \times \mathcal{T}`$ |
 
 #### Definitions
 
@@ -142,10 +149,10 @@ parameters:
 | $`\mathit{lcoe}`$ | `lcoe` (scalar) |
 | $`\mathit{marginal\_price}`$ | `marginal_price` over $`\mathcal{U} \times \mathcal{T}`$ |
 | $`\mathit{net}`$ | `net` over $`\mathcal{T}`$ — what a snapshot spills, less what it lacks |
-| $`\mathrm{rating}`$ | `rating` over $`\mathcal{G} \times \mathcal{T}`$ |
+| $`\mathrm{rating}`$ | `rating` over $`\mathcal{E} \times \mathcal{T}`$ |
 | $`\mathit{spend}`$ | `spend` over $`\mathcal{T}`$ — what a snapshot's dispatch costs |
-| $`\mathrm{spend}^{\mathrm{cap}}`$ | `spend_cap` over $`\mathcal{G}`$ |
-| $`\mathrm{startup\_cost}`$ | `startup_cost` over $`\mathcal{G} \times \mathcal{T}`$ — what starting a unit in this snapshot costs, which the horizon's edge changes |
+| $`\mathrm{spend}^{\mathrm{cap}}`$ | `spend_cap` over $`\mathcal{E}`$ |
+| $`\mathrm{startup\_cost}`$ | `startup_cost` over $`\mathcal{E} \times \mathcal{T}`$ — what starting a unit in this snapshot costs, which the horizon's edge changes |
 
 #### Notation
 
@@ -173,7 +180,7 @@ variables:
 ```
 
 ```math
-\mathrm{p}^{\mathrm{min}}_{g} \le p_{g,t} \le \mathrm{p}^{\mathrm{max}}_{g} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T} \,:\, \mathrm{p}^{\mathrm{max}}_{g} > 0 \wedge \neg \mathrm{is\_flexible}_{g} \vee \mathrm{p}^{\mathrm{min}}_{g} > 0
+\mathrm{p}^{\mathrm{min}}_{e} \le p_{e,t} \le \mathrm{p}^{\mathrm{max}}_{e} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T} \,:\, \mathrm{p}^{\mathrm{max}}_{e} > 0 \wedge \neg \mathrm{is\_flexible}_{e} \vee \mathrm{p}^{\mathrm{min}}_{e} > 0
 ```
 
 #### Lower bound only
@@ -202,6 +209,22 @@ variables:
 \mathit{slack}_{t} \le 100 \qquad \forall\, t \in \mathcal{T}
 ```
 
+#### Variable over a dimension with members
+
+over a dimension with members, where a parameter of one member holds
+
+```yaml
+variables:
+  site_out:
+    dims: [snapshot, site]
+    where: "at(is_flexible, by=site[generator])"
+    bounds: { lower: 0 }
+```
+
+```math
+\mathit{site\_out}_{i,t} \ge 0 \qquad \forall\, i \in \mathcal{I},\ t \in \mathcal{T} \,:\, \mathrm{is\_flexible}_{\mathrm{generator}(i)}
+```
+
 #### Unbounded variable
 
 ```yaml
@@ -226,7 +249,7 @@ variables:
 ```
 
 ```math
-\mathit{on}_{g,t} \in \{0, 1\} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+\mathit{on}_{e,t} \in \{0, 1\} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Bounded integer domain
@@ -242,7 +265,7 @@ variables:
 ```
 
 ```math
-0 \le \mathit{units}_{g} \le 10, \mathit{units}_{g} \in \mathbb{Z} \qquad \forall\, g \in \mathcal{G}
+0 \le \mathit{units}_{e} \le 10, \mathit{units}_{e} \in \mathbb{Z} \qquad \forall\, e \in \mathcal{E}
 ```
 
 #### Unbounded integer domain
@@ -257,7 +280,7 @@ variables:
 ```
 
 ```math
-\mathit{spare}_{g} \in \mathbb{Z} \qquad \forall\, g \in \mathcal{G}
+\mathit{spare}_{e} \in \mathbb{Z} \qquad \forall\, e \in \mathcal{E}
 ```
 
 #### Scalar variable
@@ -304,7 +327,7 @@ variables:
 ```
 
 ```math
-0 \le \mathit{weight}_{g,t} \le 1 \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+0 \le \mathit{weight}_{e,t} \le 1 \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Second axis of a curve
@@ -319,7 +342,7 @@ variables:
 ```
 
 ```math
-\mathit{fuel}_{g,t} \ge 0 \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+\mathit{fuel}_{e,t} \ge 0 \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Third axis of a curve
@@ -334,7 +357,7 @@ variables:
 ```
 
 ```math
-\mathit{heat}_{g,t} \ge 0 \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+\mathit{heat}_{e,t} \ge 0 \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Variable bounded by a curve
@@ -349,7 +372,7 @@ variables:
 ```
 
 ```math
-\mathit{op\_cost}_{g,t} \ge 0 \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+\mathit{op\_cost}_{e,t} \ge 0 \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Binary variable with a condition
@@ -365,7 +388,7 @@ variables:
 ```
 
 ```math
-\mathit{warm}_{g,t} \in \{0, 1\} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T} \,:\, \mathrm{is\_flexible}_{g}
+\mathit{warm}_{e,t} \in \{0, 1\} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T} \,:\, \mathrm{is\_flexible}_{e}
 ```
 
 ### Objective
@@ -381,10 +404,10 @@ objective:
 ```
 
 ```math
-\max \sum_{g \in \mathcal{G},\ t \in \mathcal{T}} p_{g,t} \cdot \mathrm{cost}_{g} + \sum_{g \in \mathcal{G},\ t \in \mathcal{T}} p_{g,t} \cdot p_{g,t} \cdot \mathrm{cost}_{g} + \sum_{g \in \mathcal{G},\ t \in \mathcal{T}} p_{g,t} \cdot \mathrm{cost}_{g} \cdot \mathrm{growth}^{\mathrm{lead}_{g}} + \sum_{g \in \mathcal{G},\ t \in \mathcal{T}} p_{g,t} \cdot \left( \mathrm{growth}^{\mathrm{lead}_{g}} \right)^{2} + \sum_{g \in \mathcal{G},\ t \in \mathcal{T}} p_{g,t} \cdot \mathrm{p}^{\mathrm{max}}_{g} - \mathit{reserve} - \mathit{headroom}
+\max \sum_{e \in \mathcal{E},\ t \in \mathcal{T}} p_{e,t} \cdot \mathrm{cost}_{e} + \sum_{e \in \mathcal{E},\ t \in \mathcal{T}} p_{e,t} \cdot p_{e,t} \cdot \mathrm{cost}_{e} + \sum_{e \in \mathcal{E},\ t \in \mathcal{T}} p_{e,t} \cdot \mathrm{cost}_{e} \cdot \mathrm{growth}^{\mathrm{lead}_{e}} + \sum_{e \in \mathcal{E},\ t \in \mathcal{T}} p_{e,t} \cdot \left( \mathrm{growth}^{\mathrm{lead}_{e}} \right)^{2} + \sum_{e \in \mathcal{E},\ t \in \mathcal{T}} p_{e,t} \cdot \mathrm{p}^{\mathrm{max}}_{e} - \mathit{reserve} - \mathit{headroom}
 ```
 
-### Relations and mappings
+### Mappings and tuples
 
 #### Sum through a mapping
 
@@ -396,7 +419,7 @@ constraints:
 ```
 
 ```math
-\sum_{g \in \mathcal{G} \,:\, \mathrm{bus}(g) = u} p_{g,t} + \mathit{spill}_{t} - \mathit{slack}_{t} = \mathrm{load}_{u,t} \qquad \forall\, u \in \mathcal{U},\ t \in \mathcal{T}
+\sum_{e \in \mathcal{E} \,:\, \mathrm{bus}(e) = u} p_{e,t} + \mathit{spill}_{t} - \mathit{slack}_{t} = \mathrm{load}_{u,t} \qquad \forall\, u \in \mathcal{U},\ t \in \mathcal{T}
 ```
 
 #### Sum over every dimension
@@ -411,7 +434,7 @@ constraints:
 ```
 
 ```math
-\sum_{g \in \mathcal{G},\ t \in \mathcal{T}} p_{g,t} \le \mathrm{budget}
+\sum_{e \in \mathcal{E},\ t \in \mathcal{T}} p_{e,t} \le \mathrm{budget}
 ```
 
 #### `at` through a mapping
@@ -441,7 +464,7 @@ constraints:
 ```
 
 ```math
-\sum_{g \in \mathcal{G} \,:\, \mathrm{bus}(g) = u \wedge \mathrm{technology}(g) = e} p_{g,t} \le \mathrm{tech\_cap}_{u,e} \qquad \forall\, u \in \mathcal{U},\ t \in \mathcal{T},\ e \in \mathcal{E}
+\sum_{e \in \mathcal{E} \,:\, \mathrm{bus}(e) = u \wedge \mathrm{technology}(e) = h} p_{e,t} \le \mathrm{tech\_cap}_{u,h} \qquad \forall\, u \in \mathcal{U},\ t \in \mathcal{T},\ h \in \mathcal{H}
 ```
 
 #### `at` through two mappings
@@ -456,7 +479,7 @@ constraints:
 ```
 
 ```math
-\mathit{units}_{g} \le \mathrm{tech\_cap}_{\mathrm{bus}(g),\mathrm{technology}(g)} \qquad \forall\, g \in \mathcal{G}
+\mathit{units}_{e} \le \mathrm{tech\_cap}_{\mathrm{bus}(e),\mathrm{technology}(e)} \qquad \forall\, e \in \mathcal{E}
 ```
 
 #### Shift within one mapping
@@ -472,27 +495,27 @@ constraints:
 ```
 
 ```math
-\mathit{units}_{g} \le \mathit{units}_{g \boxminus_{0}^{\mathrm{bus}(g)} 1} \qquad \forall\, g \in \mathcal{G} \,:\, \mathrm{pos}_{\left( \mathrm{bus}(g),\ \mathrm{technology}(g) \right)}(g) = 0
+\mathit{units}_{e} \le \mathit{units}_{e \boxminus_{0}^{\mathrm{bus}(e)} 1} \qquad \forall\, e \in \mathcal{E} \,:\, \mathrm{pos}_{\left( \mathrm{bus}(e),\ \mathrm{technology}(e) \right)}(e) = 0
 ```
 
-#### Sum through a relation
+#### Sum over a tuple
 
-a sum through a relation with no mapping: the domain is a row of the relation rather than a label
+a sum over a tuple with no mapping: the domain is a tuple rather than a label
 
 ```yaml
 constraints:
   relational:
     dims: [snapshot, bus]
-    expression: sum(p, over=generator, by=connection[bus]) <= load
+    expression: sum(at(p, by=connection[generator]), over=connection, by=connection[bus]) <= load
 ```
 
 ```math
-\sum_{g \in \mathcal{G} \,:\, \left( u,\ g \right) \in \mathrm{connection}} p_{g,t} \le \mathrm{load}_{u,t} \qquad \forall\, u \in \mathcal{U},\ t \in \mathcal{T}
+\sum_{c \in \mathcal{C} \,:\, \mathrm{bus}(c) = u} p_{\mathrm{generator}(c),t} \le \mathrm{load}_{u,t} \qquad \forall\, u \in \mathcal{U},\ t \in \mathcal{T}
 ```
 
-#### Relation as a condition
+#### Tuple as a condition
 
-a relation as a where: the row of the frame has to be a member of the relation
+a tuple as a where: the frame's member labels have to form a listed tuple
 
 ```yaml
 constraints:
@@ -503,7 +526,7 @@ constraints:
 ```
 
 ```math
-p_{g,t} \le \mathrm{load}_{u,t} \qquad \forall\, u \in \mathcal{U},\ g \in \mathcal{G},\ t \in \mathcal{T} \,:\, \left( u,\ g \right) \in \mathrm{connection}
+p_{e,t} \le \mathrm{load}_{u,t} \qquad \forall\, u \in \mathcal{U},\ e \in \mathcal{E},\ t \in \mathcal{T} \,:\, \left( u,\ e \right) \in \mathrm{connection}
 ```
 
 #### Mapping into its own dimension
@@ -551,65 +574,65 @@ constraints:
 \theta_{u} = \sum_{u' \in \mathcal{U} \,:\, u' = u} \sum_{u'' \in \mathcal{U}} \mathrm{susceptance}_{u'',u'} \qquad \forall\, u \in \mathcal{U}
 ```
 
-#### Sum through a mapping of a relation
+#### Sum through a mapping of a tuple
 
-a grouping through a two-key mapping, summing one key away: the condition reads the other, and the row keeps it
+a grouping through a mapping of a tuple, keeping one member: the row keeps the snapshot
 
 ```yaml
 constraints:
   zonal:
     dims: [snapshot, zone]
-    expression: sum(p, over=generator, by=gen_zone[zone]) <= zone_cap
+    expression: sum(at(p, by=gen_zone[generator, snapshot]), over=gen_zone, by=gen_zone[snapshot, zone]) <= zone_cap
 ```
 
 ```math
-\sum_{g \in \mathcal{G} \,:\, \mathrm{zone}(g,\ t) = z} p_{g,t} \le \mathrm{zone\_cap}_{z} \qquad \forall\, t \in \mathcal{T},\ z \in \mathcal{Z}
+\sum_{g \in \mathcal{G} \,:\, \mathrm{snapshot}(g) = t \wedge \mathrm{zone}(g) = z} p_{\mathrm{generator}(g),\mathrm{snapshot}(g)} \le \mathrm{zone\_cap}_{z} \qquad \forall\, t \in \mathcal{T},\ z \in \mathcal{Z}
 ```
 
-#### Sum over the other column of a relation
+#### Sum keeping the other member of a tuple
 
-the same table summing its other key away
+the same tuple keeping its other member
 
 ```yaml
 constraints:
   zonal_history:
     dims: [generator, zone]
-    expression: sum(p, over=snapshot, by=gen_zone[zone]) <= zone_cap
+    expression: sum(at(p, by=gen_zone[generator, snapshot]), over=gen_zone, by=gen_zone[generator, zone]) <= zone_cap
 ```
 
 ```math
-\sum_{t \in \mathcal{T} \,:\, \mathrm{zone}(g,\ t) = z} p_{g,t} \le \mathrm{zone\_cap}_{z} \qquad \forall\, g \in \mathcal{G},\ z \in \mathcal{Z}
+\sum_{g \in \mathcal{G} \,:\, \mathrm{generator}(g) = e \wedge \mathrm{zone}(g) = z} p_{\mathrm{generator}(g),\mathrm{snapshot}(g)} \le \mathrm{zone\_cap}_{z} \qquad \forall\, e \in \mathcal{E},\ z \in \mathcal{Z}
 ```
 
-#### Sum between the two columns of a relation
+#### Sum grouped by one member of a tuple
 
-the same relation read between its own two columns: no mapping is read, so the domain asks only that the row is there
+the same tuple grouped by a member alone: no mapping is read, so the domain asks only that the tuple is there
 
 ```yaml
 constraints:
   zonal_membership:
     dims: [snapshot]
-    expression: sum(units, over=generator, by=gen_zone[snapshot]) <= budget
+    expression: sum(at(units, by=gen_zone[generator]), over=gen_zone, by=gen_zone[snapshot]) <= budget
 ```
 
 ```math
-\sum_{g \in \mathcal{G} \,:\, \left( g,\ t \right) \in \mathrm{gen\_zone}} \mathit{units}_{g} \le \mathrm{budget} \qquad \forall\, t \in \mathcal{T}
+\sum_{g \in \mathcal{G} \,:\, \mathrm{snapshot}(g) = t} \mathit{units}_{\mathrm{generator}(g)} \le \mathrm{budget} \qquad \forall\, t \in \mathcal{T}
 ```
 
-#### `at` through a mapping of a relation
+#### `at` through a mapping of a tuple
 
-the same table joined the other way, reading the slot the row's own snapshot puts the generator in
+the same tuple as the frame, reading the zone each tuple maps to
 
 ```yaml
 constraints:
   zonal_lookup:
-    dims: [snapshot, generator]
-    where: "gen_zone[zone] == 'north' AND position(generator, within=gen_zone[zone]) == 0"
-    expression: p <= at(spill * zone_cap, by=gen_zone[zone])
+    dims: [gen_zone]
+    where: "gen_zone[zone] == 'north'"
+    expression: at(p, by=gen_zone[generator, snapshot]) <= at(spill * zone_cap, by=gen_zone[snapshot, zone])
 ```
 
 ```math
-p_{g,t} \le \mathit{spill}_{t} \cdot \mathrm{zone\_cap}_{\mathrm{zone}(g,\ t)} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T} \,:\, \mathrm{zone}(g,\ t) = \text{'}\mathrm{north}\text{'} \wedge \mathrm{pos}_{\mathrm{zone}(g,\ t)}(g) = 0
+p_{\mathrm{generator}(g),\mathrm{snapshot}(g)} \le \mathit{spill}_{\mathrm{snapshot}(g)} \cdot \mathrm{zone\_cap}_{\mathrm{zone}(g)} \qquad \forall\, g \in \mathcal{G} \,:\, \mathrm{zone}(g) = \text{'}\mathrm{north}\text{'}
 ```
 
 ### Arithmetic and literals
@@ -628,7 +651,7 @@ constraints:
 ```
 
 ```math
-\sum_{g \in \mathcal{G}} \left( \frac{p_{g,t}}{2} - \mathrm{cost}_{g} + 10^{-5} \cdot p_{g,t} + 2.5 \times 10^{-7} \cdot \mathrm{cost}_{g} + 0.5 \cdot p_{g,t} \right) \ge -\left( \sum_{g \in \mathcal{G}} p_{g,t} \right) \cdot \left( -3 \right) \qquad \forall\, t \in \mathcal{T}
+\sum_{e \in \mathcal{E}} \left( \frac{p_{e,t}}{2} - \mathrm{cost}_{e} + 10^{-5} \cdot p_{e,t} + 2.5 \times 10^{-7} \cdot \mathrm{cost}_{e} + 0.5 \cdot p_{e,t} \right) \ge -\left( \sum_{e \in \mathcal{E}} p_{e,t} \right) \cdot \left( -3 \right) \qquad \forall\, t \in \mathcal{T}
 ```
 
 #### Greek parameter name
@@ -643,7 +666,7 @@ constraints:
 ```
 
 ```math
-p_{g,t} \le \mathrm{eta}_{g} \cdot \mathrm{p}^{\mathrm{max}}_{g} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+p_{e,t} \le \mathrm{eta}_{e} \cdot \mathrm{p}^{\mathrm{max}}_{e} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Infinity literal
@@ -690,7 +713,7 @@ constraints:
 ```
 
 ```math
-\sum_{g \in \mathcal{G} \,:\, \mathrm{bus}(g) = u} p_{g,t} + \mathit{net}_{t} = \mathrm{load}_{u,t} \qquad \forall\, u \in \mathcal{U},\ t \in \mathcal{T}
+\sum_{e \in \mathcal{E} \,:\, \mathrm{bus}(e) = u} p_{e,t} + \mathit{net}_{t} = \mathrm{load}_{u,t} \qquad \forall\, u \in \mathcal{U},\ t \in \mathcal{T}
 ```
 
 #### Cased expression in a constraint
@@ -705,7 +728,7 @@ constraints:
 ```
 
 ```math
-p_{g,t} \le \mathrm{startup\_cost}_{g,t} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+p_{e,t} \le \mathrm{startup\_cost}_{e,t} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Expression with a declared frame in a constraint
@@ -720,7 +743,7 @@ constraints:
 ```
 
 ```math
-p_{g,t} \le \mathrm{rating}_{g,t} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+p_{e,t} \le \mathrm{rating}_{e,t} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Plain named expression
@@ -734,7 +757,7 @@ expressions:
 ```
 
 ```math
-\mathit{spend}_{t} = \sum_{g \in \mathcal{G}} p_{g,t} \cdot \mathrm{cost}_{g} \qquad \forall\, t \in \mathcal{T}
+\mathit{spend}_{t} = \sum_{e \in \mathcal{E}} p_{e,t} \cdot \mathrm{cost}_{e} \qquad \forall\, t \in \mathcal{T}
 ```
 
 #### Named expression with a declared frame
@@ -749,7 +772,7 @@ expressions:
 ```
 
 ```math
-\mathrm{rating}_{g,t} = \mathrm{eta}_{g} \cdot \mathrm{p}^{\mathrm{max}}_{g} \cdot \left( \sum_{u \in \mathcal{U}} \mathrm{load}_{u,t} \right) \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+\mathrm{rating}_{e,t} = \mathrm{eta}_{e} \cdot \mathrm{p}^{\mathrm{max}}_{e} \cdot \left( \sum_{u \in \mathcal{U}} \mathrm{load}_{u,t} \right) \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Plain expression that is a signed sum
@@ -781,7 +804,7 @@ expressions:
 ```
 
 ```math
-\mathrm{startup\_cost}_{g,t} = \begin{cases} \mathrm{cost}_{g} & \text{if } \mathrm{pos}(t) = 0 \\ \mathrm{cost}_{g} \cdot 2 & \text{if } \mathrm{pos}(t) > 0 \wedge \mathrm{season}(t) = \text{'}\mathrm{winter}\text{'} \\ 0 & \text{otherwise} \end{cases} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+\mathrm{startup\_cost}_{e,t} = \begin{cases} \mathrm{cost}_{e} & \text{if } \mathrm{pos}(t) = 0 \\ \mathrm{cost}_{e} \cdot 2 & \text{if } \mathrm{pos}(t) > 0 \wedge \mathrm{season}(t) = \text{'}\mathrm{winter}\text{'} \\ 0 & \text{otherwise} \end{cases} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Data-only expression
@@ -794,7 +817,7 @@ expressions:
 ```
 
 ```math
-\mathrm{spend}^{\mathrm{cap}}_{g} = \mathrm{cost}_{g} \cdot 2 \qquad \forall\, g \in \mathcal{G}
+\mathrm{spend}^{\mathrm{cap}}_{e} = \mathrm{cost}_{e} \cdot 2 \qquad \forall\, e \in \mathcal{E}
 ```
 
 #### Named expression in a condition
@@ -810,7 +833,7 @@ constraints:
 ```
 
 ```math
-p_{g,t} \le \mathrm{p}^{\mathrm{max}}_{g} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T} \,:\, \mathrm{spend}^{\mathrm{cap}}_{g} > 0 \vee \neg \mathrm{is\_flexible}_{g}
+p_{e,t} \le \mathrm{p}^{\mathrm{max}}_{e} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T} \,:\, \mathrm{spend}^{\mathrm{cap}}_{e} > 0 \vee \neg \mathrm{is\_flexible}_{e}
 ```
 
 #### Reported expression
@@ -823,7 +846,7 @@ expressions:
 ```
 
 ```math
-\mathit{lcoe} = \frac{\sum_{g \in \mathcal{G},\ t \in \mathcal{T}} p_{g,t} \cdot \mathrm{cost}_{g}}{\sum_{g \in \mathcal{G},\ t \in \mathcal{T}} p_{g,t}}
+\mathit{lcoe} = \frac{\sum_{e \in \mathcal{E},\ t \in \mathcal{T}} p_{e,t} \cdot \mathrm{cost}_{e}}{\sum_{e \in \mathcal{E},\ t \in \mathcal{T}} p_{e,t}}
 ```
 
 #### Dual of a constraint
@@ -852,7 +875,7 @@ conditions:
 ```
 
 ```math
-\mathrm{dispatchable}_{g} \iff \mathrm{p}^{\mathrm{max}}_{g} > 0 \wedge \neg \mathrm{is\_flexible}_{g} \qquad \forall\, g \in \mathcal{G}
+\mathrm{dispatchable}_{e} \iff \mathrm{p}^{\mathrm{max}}_{e} > 0 \wedge \neg \mathrm{is\_flexible}_{e} \qquad \forall\, e \in \mathcal{E}
 ```
 
 #### Condition that reads a condition
@@ -865,7 +888,7 @@ conditions:
 ```
 
 ```math
-\mathrm{priced\_dispatch}_{g} \iff \mathrm{dispatchable}_{g} \wedge \mathrm{spend}^{\mathrm{cap}}_{g} > 0 \qquad \forall\, g \in \mathcal{G}
+\mathrm{priced\_dispatch}_{e} \iff \mathrm{dispatchable}_{e} \wedge \mathrm{spend}^{\mathrm{cap}}_{e} > 0 \qquad \forall\, e \in \mathcal{E}
 ```
 
 #### Named condition in a condition
@@ -881,7 +904,7 @@ constraints:
 ```
 
 ```math
-p_{g,t} \le \mathrm{p}^{\mathrm{max}}_{g} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T} \,:\, \mathrm{priced\_dispatch}_{g} \wedge \mathrm{pos}(t) > 0
+p_{e,t} \le \mathrm{p}^{\mathrm{max}}_{e} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T} \,:\, \mathrm{priced\_dispatch}_{e} \wedge \mathrm{pos}(t) > 0
 ```
 
 ### Shifts
@@ -898,7 +921,7 @@ constraints:
 ```
 
 ```math
-p_{g,t} - p_{g,t \ominus 1} \le p_{g,t - 1} + \mathrm{p}^{\mathrm{max}}_{g} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+p_{e,t} - p_{e,t \ominus 1} \le p_{e,t - 1} + \mathrm{p}^{\mathrm{max}}_{e} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Filled and forward shifts
@@ -915,7 +938,7 @@ constraints:
 ```
 
 ```math
-p_{g,t \boxminus_{0} 1} \le p_{g,t \boxplus_{0} 1} + \mathrm{p}^{\mathrm{max}}_{g} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+p_{e,t \boxminus_{0} 1} \le p_{e,t \boxplus_{0} 1} + \mathrm{p}^{\mathrm{max}}_{e} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Cyclic forward shift
@@ -930,7 +953,7 @@ constraints:
 ```
 
 ```math
-p_{g,t} \le p_{g,t \oplus 1} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+p_{e,t} \le p_{e,t \oplus 1} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Composed shifts
@@ -945,7 +968,7 @@ constraints:
 ```
 
 ```math
-p_{g,t - 2} \le \mathrm{p}^{\mathrm{max}}_{g} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+p_{e,t - 2} \le \mathrm{p}^{\mathrm{max}}_{e} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Nested shifts that do not compose
@@ -960,7 +983,7 @@ constraints:
 ```
 
 ```math
-p_{g,\left( t - 1 \right) \boxminus_{0} \mathrm{lead}} \le \mathrm{p}^{\mathrm{max}}_{g} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+p_{e,\left( t - 1 \right) \boxminus_{0} \mathrm{lead}} \le \mathrm{p}^{\mathrm{max}}_{e} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Shift along two dimensions
@@ -975,7 +998,7 @@ constraints:
 ```
 
 ```math
-p_{g + 1,t \ominus 1} \le \mathrm{p}^{\mathrm{max}}_{g} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+p_{e + 1,t \ominus 1} \le \mathrm{p}^{\mathrm{max}}_{e} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Shift by a parameter offset
@@ -990,7 +1013,7 @@ constraints:
 ```
 
 ```math
-p_{g,t \boxminus_{0} \mathrm{lead}} \le \mathrm{p}^{\mathrm{max}}_{g} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+p_{e,t \boxminus_{0} \mathrm{lead}} \le \mathrm{p}^{\mathrm{max}}_{e} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Cyclic shift within a group
@@ -1005,7 +1028,7 @@ constraints:
 ```
 
 ```math
-p_{g,t} \le p_{g,t \ominus^{\mathrm{season}(t)} 1} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+p_{e,t} \le p_{e,t \ominus^{\mathrm{season}(t)} 1} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Filled shift within a group
@@ -1020,7 +1043,7 @@ constraints:
 ```
 
 ```math
-p_{g,t} \le p_{g,t \boxminus_{0}^{\mathrm{season}(t)} 1} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+p_{e,t} \le p_{e,t \boxminus_{0}^{\mathrm{season}(t)} 1} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 ### Trailing windows
@@ -1037,7 +1060,7 @@ constraints:
 ```
 
 ```math
-\sum_{t' \in \mathcal{T} \,:\, 0 \le t - t' < 3} \mathit{on}_{g,t'} \le \mathit{units}_{g} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+\sum_{t' \in \mathcal{T} \,:\, 0 \le t - t' < 3} \mathit{on}_{e,t'} \le \mathit{units}_{e} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Window with a parameter width
@@ -1052,7 +1075,7 @@ constraints:
 ```
 
 ```math
-\sum_{t' \in \mathcal{T} \,:\, 0 \le t \ominus t' < \mathrm{min\_up}} \mathit{on}_{g,t'} \le \mathit{units}_{g} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+\sum_{t' \in \mathcal{T} \,:\, 0 \le t \ominus t' < \mathrm{min\_up}} \mathit{on}_{e,t'} \le \mathit{units}_{e} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 #### Window within a group
@@ -1067,7 +1090,7 @@ constraints:
 ```
 
 ```math
-\sum_{t' \in \mathcal{T} \,:\, 0 \le t -^{\mathrm{season}(t)} t' < 3} \mathit{on}_{g,t'} \le \mathit{units}_{g} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+\sum_{t' \in \mathcal{T} \,:\, 0 \le t -^{\mathrm{season}(t)} t' < 3} \mathit{on}_{e,t'} \le \mathit{units}_{e} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 ### Piecewise curves
@@ -1401,21 +1424,21 @@ sos:
 ```
 
 ```math
-\left( \mathit{weight}_{g,t} \right)_{g \in \mathcal{G}} \in \mathrm{SOS}2 \qquad \forall\, t \in \mathcal{T}
+\left( \mathit{weight}_{e,t} \right)_{e \in \mathcal{E}} \in \mathrm{SOS}2 \qquad \forall\, t \in \mathcal{T}
 ```
 
 Written out by `spec.expand()`:
 
 ```math
-\mathit{adjacent\_seg}_{g,t} \in \{0, 1\} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+\mathit{adjacent\_seg}_{e,t} \in \{0, 1\} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 ```math
-\mathit{weight}_{g,t} \le \mathit{adjacent\_seg}_{g,t} + \mathit{adjacent\_seg}_{g \boxminus_{0} 1,t} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T}
+\mathit{weight}_{e,t} \le \mathit{adjacent\_seg}_{e,t} + \mathit{adjacent\_seg}_{e \boxminus_{0} 1,t} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T}
 ```
 
 ```math
-\sum_{g \in \mathcal{G}} \mathit{adjacent\_seg}_{g,t} \le 1 \qquad \forall\, t \in \mathcal{T}
+\sum_{e \in \mathcal{E}} \mathit{adjacent\_seg}_{e,t} \le 1 \qquad \forall\, t \in \mathcal{T}
 ```
 
 ### Assumptions
@@ -1430,7 +1453,7 @@ assumptions:
 ```
 
 ```math
-\mathrm{p}^{\mathrm{min}}_{g} \le \mathrm{p}^{\mathrm{max}}_{g} \qquad \forall\, g \in \mathcal{G}
+\mathrm{p}^{\mathrm{min}}_{e} \le \mathrm{p}^{\mathrm{max}}_{e} \qquad \forall\, e \in \mathcal{E}
 ```
 
 #### Connective in an assumption
@@ -1443,7 +1466,7 @@ assumptions:
 ```
 
 ```math
-\mathrm{eta}_{g} > 0 \wedge \mathrm{eta}_{g} \le 1 \qquad \forall\, g \in \mathcal{G}
+\mathrm{eta}_{e} > 0 \wedge \mathrm{eta}_{e} \le 1 \qquad \forall\, e \in \mathcal{E}
 ```
 
 #### Parameter compared to a literal
@@ -1456,7 +1479,7 @@ assumptions:
 ```
 
 ```math
-\mathrm{lead}_{g} \le 3 \qquad \forall\, g \in \mathcal{G}
+\mathrm{lead}_{e} \le 3 \qquad \forall\, e \in \mathcal{E}
 ```
 
 #### Two mappings compared
@@ -1482,7 +1505,7 @@ assumptions:
 ```
 
 ```math
-\sum_{g \in \mathcal{G}} \mathrm{p}^{\mathrm{max}}_{g} \ge \mathrm{budget}
+\sum_{e \in \mathcal{E}} \mathrm{p}^{\mathrm{max}}_{e} \ge \mathrm{budget}
 ```
 
 #### Shift in an assumption
@@ -1512,7 +1535,7 @@ assumptions:
 ```
 
 ```math
-\mathrm{p}^{\mathrm{min}}_{g} < \mathrm{p}^{\mathrm{max}}_{g} \qquad \forall\, g \in \mathcal{G} \,:\, \mathrm{is\_flexible}_{g}
+\mathrm{p}^{\mathrm{min}}_{e} < \mathrm{p}^{\mathrm{max}}_{e} \qquad \forall\, e \in \mathcal{E} \,:\, \mathrm{is\_flexible}_{e}
 ```
 
 #### Assumption with a mapping condition
@@ -1545,7 +1568,7 @@ constraints:
 ```
 
 ```math
-\mathit{units}_{g} \le \mathrm{budget} \qquad \forall\, g \in \mathcal{G} \,:\, \mathrm{cost}_{g} \text{ is defined}
+\mathit{units}_{e} \le \mathrm{budget} \qquad \forall\, e \in \mathcal{E} \,:\, \mathrm{cost}_{e} \text{ is defined}
 ```
 
 #### Variable and label conditions
@@ -1577,7 +1600,7 @@ constraints:
 ```
 
 ```math
-\mathit{on}_{g,t} = 1 \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T} \,:\, \mathrm{pos}(t) = 0 \vee \mathrm{pos}_{\mathrm{season}(t)}(t) = 0
+\mathit{on}_{e,t} = 1 \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T} \,:\, \mathrm{pos}(t) = 0 \vee \mathrm{pos}_{\mathrm{season}(t)}(t) = 0
 ```
 
 #### Position counted from the end
@@ -1593,7 +1616,7 @@ constraints:
 ```
 
 ```math
-\mathit{on}_{g,t} = 0 \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T} \,:\, \mathrm{pos}(t) = \lvert \mathcal{T} \rvert - 1 \vee \mathrm{pos}_{\mathrm{season}(t)}(t) = \lvert \mathcal{T}_{\mathrm{season}(t)} \rvert - 1
+\mathit{on}_{e,t} = 0 \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T} \,:\, \mathrm{pos}(t) = \lvert \mathcal{T} \rvert - 1 \vee \mathrm{pos}_{\mathrm{season}(t)}(t) = \lvert \mathcal{T}_{\mathrm{season}(t)} \rvert - 1
 ```
 
 #### Mapping compared to a label
@@ -1673,7 +1696,7 @@ constraints:
 ```
 
 ```math
-p_{g,t} \le \mathrm{p}^{\mathrm{max}}_{g} \qquad \forall\, g \in \mathcal{G},\ t \in \mathcal{T} \,:\, \mathrm{p}^{\mathrm{max}}_{g} - \mathrm{p}^{\mathrm{min}}_{g} > \frac{\mathrm{cost}_{g}}{2}
+p_{e,t} \le \mathrm{p}^{\mathrm{max}}_{e} \qquad \forall\, e \in \mathcal{E},\ t \in \mathcal{T} \,:\, \mathrm{p}^{\mathrm{max}}_{e} - \mathrm{p}^{\mathrm{min}}_{e} > \frac{\mathrm{cost}_{e}}{2}
 ```
 
 #### Shift and lookup in a condition
@@ -1705,7 +1728,7 @@ constraints:
 ```
 
 ```math
-\sum_{g \in \mathcal{G},\ t \in \mathcal{T}} p_{g,t} \le \mathrm{budget} \qquad \text{where } \sum_{g \in \mathcal{G}} \mathrm{p}^{\mathrm{max}}_{g} \ge \mathrm{budget}
+\sum_{e \in \mathcal{E},\ t \in \mathcal{T}} p_{e,t} \le \mathrm{budget} \qquad \text{where } \sum_{e \in \mathcal{E}} \mathrm{p}^{\mathrm{max}}_{e} \ge \mathrm{budget}
 ```
 
 #### Count over a dimension
@@ -1721,7 +1744,7 @@ constraints:
 ```
 
 ```math
-\theta_{u} \le \mathrm{budget} \qquad \forall\, u \in \mathcal{U} \,:\, \lvert \{ e \in \mathcal{E} \,:\, \mathrm{tech\_cap}_{u,e} > 0 \} \rvert \ge 2
+\theta_{u} \le \mathrm{budget} \qquad \forall\, u \in \mathcal{U} \,:\, \lvert \{ h \in \mathcal{H} \,:\, \mathrm{tech\_cap}_{u,h} > 0 \} \rvert \ge 2
 ```
 
 #### Count along a dimension of the frame
@@ -1737,7 +1760,7 @@ constraints:
 ```
 
 ```math
-\theta_{u} \le \mathrm{tech\_cap}_{u,e} \qquad \forall\, u \in \mathcal{U},\ e \in \mathcal{E} \,:\, \lvert \{ e' \in \mathcal{E} \,:\, \mathrm{tech\_cap}_{u,e'} > 0 \} \rvert \ge 2
+\theta_{u} \le \mathrm{tech\_cap}_{u,h} \qquad \forall\, u \in \mathcal{U},\ h \in \mathcal{H} \,:\, \lvert \{ h' \in \mathcal{H} \,:\, \mathrm{tech\_cap}_{u,h'} > 0 \} \rvert \ge 2
 ```
 
 #### Condition at the previous coordinate

@@ -47,7 +47,7 @@ PIECEWISE = {
 }
 BEGIN, END = '<!-- notation:begin -->', '<!-- notation:end -->'
 
-#: The sections of the fixture that declare math. ``dimensions``, ``relations``,
+#: The sections of the fixture that declare math. ``dimensions``,
 #: ``mappings`` and ``parameters`` are absent on purpose: they declare no equation, and what
 #: they print is the legend, which the page shows once rather than a row at a
 #: time.
@@ -65,6 +65,7 @@ FAMILIES: dict[str, dict[str, str]] = {
         'p': 'Lower and upper bounds',
         'spill': 'Lower bound only',
         'slack': 'Upper bound only',
+        'site_out': 'Variable over a dimension with members',
         'theta': 'Unbounded variable',
         'on': 'Binary domain',
         'units': 'Bounded integer domain',
@@ -80,22 +81,22 @@ FAMILIES: dict[str, dict[str, str]] = {
     'Objective': {
         'objective': 'Products and powers in the objective',
     },
-    'Relations and mappings': {
+    'Mappings and tuples': {
         'balance': 'Sum through a mapping',
         'total': 'Sum over every dimension',
         'lookup': '`at` through a mapping',
         'grouped_once': 'Sum into two mappings',
         'looked_up_once': '`at` through two mappings',
         'within_bus': 'Shift within one mapping',
-        'relational': 'Sum through a relation',
-        'connected': 'Relation as a condition',
+        'relational': 'Sum over a tuple',
+        'connected': 'Tuple as a condition',
         'representative': 'Mapping into its own dimension',
         'flow_angle': 'Alias of a dimension',
         'exchanged': 'Sum under an alias of its dimension',
-        'zonal': 'Sum through a mapping of a relation',
-        'zonal_history': 'Sum over the other column of a relation',
-        'zonal_membership': 'Sum between the two columns of a relation',
-        'zonal_lookup': '`at` through a mapping of a relation',
+        'zonal': 'Sum through a mapping of a tuple',
+        'zonal_history': 'Sum keeping the other member of a tuple',
+        'zonal_membership': 'Sum grouped by one member of a tuple',
+        'zonal_lookup': '`at` through a mapping of a tuple',
     },
     'Arithmetic and literals': {
         'arithmetic': 'Signs, division and number literals',
@@ -297,11 +298,11 @@ def legend() -> str:
 
 #: What the legend is made of. No equation comes from these, so they are shown
 #: once, together, above the tables they turn into.
-DECLARED = ('dimensions', 'relations', 'mappings', 'parameters')
+DECLARED = ('dimensions', 'mappings', 'parameters')
 
 
 def preamble(text: str) -> str:
-    """The fixture's ``dimensions``/``relations``/``mappings``/``parameters`` sections, verbatim."""
+    """The fixture's ``dimensions``/``mappings``/``parameters`` sections, verbatim."""
     sections = []
     for name in DECLARED:
         body = text[text.index(f'\n{name}:') + 1 :]
@@ -315,8 +316,7 @@ def block() -> str:
     rendered = to_markdown(MODEL, numbered=False)
     parts = [
         '### Legend',
-        'A dimension, a relation, a mapping and a parameter declare no equation; what they '
-        'print is the legend every spec opens with.',
+        'A dimension, a mapping and a parameter declare no equation; what they print is the legend every spec opens with.',
         f'```yaml\n{preamble(MODEL.read_text())}\n```',
         legend(),
     ]
