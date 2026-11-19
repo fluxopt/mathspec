@@ -8,7 +8,8 @@ SPDX-License-Identifier: CC-BY-4.0
 A **dimension** is a set of labels that entries are indexed over, such as the
 hours in `snapshot` or the units in `generator`.
 This page lists the keys a dimension accepts, the closed label lists of
-`one_of`, and the rule for the order of a dimension.
+`one_of`, the rule for the order of a dimension, and the members that a
+dimension lists under `over`.
 
 ## `dimensions`
 
@@ -38,13 +39,15 @@ change nothing. mathspec sorts both by name at load, and an entry is indexed
 over its dimensions in that order. So `dispatch` above prints as
 $`\mathit{dispatch}_{g,t}`$, and the legend lists `generator` first.
 
-| Key           | What it sets                                                                | Default |
-| ------------- | --------------------------------------------------------------------------- | ------- |
-| `dtype`       | the type of a label: `float`, `int`, `str` or `datetime`                    | `str`   |
-| `one_of`      | [the labels a `str` dimension allows](#one_of)                              | `null`  |
-| `ordered`     | whether the order of the labels is part of the spec ([`ordered`](#ordered)) | `false` |
-| `alias`       | [the dimension whose labels this one has](#alias)                           | `null`  |
-| `description` | free text, which the typeset legend lists                                   | `null`  |
+| Key           | What it sets                                                                | Default  |
+| ------------- | --------------------------------------------------------------------------- | -------- |
+| `dtype`       | the type of a label: `float`, `int`, `str` or `datetime`                    | `str`    |
+| `one_of`      | [the labels a `str` dimension allows](#one_of)                              | `null`   |
+| `ordered`     | whether the order of the labels is part of the spec ([`ordered`](#ordered)) | `false`  |
+| `over`        | [the dimensions whose labels a label combines](#over)                       | `null`   |
+| `missing`     | [whether every combination of the members needs a label](#missing)          | `absent` |
+| `alias`       | [the dimension whose labels this one has](#alias)                           | `null`   |
+| `description` | free text, which the typeset legend lists                                   | `null`   |
 
 The file does not list the labels themselves. They arrive with the data, in
 the order that the data table lists them. With data attached, a piece of
@@ -154,9 +157,216 @@ An `int` dimension is not ordered unless it declares `ordered: true`.
 
 An `sos` entry of `type: 1` uses no order, so it needs no `ordered: true`.
 
+A dimension with [`over:`](#over) takes `ordered: true` too, and steps from
+one listed tuple to the next
+([an ordered dimension with members](#an-ordered-dimension-with-members)).
+
 [`edge='wrap'`](operators.md#shift) makes one `shift` cyclic, so that the first
 label steps back to the last. `edge='wrap'` does not change the dimension, and
 the dimension still needs `ordered: true`.
+
+## `over`
+
+`over` lists the dimensions (the **members**) whose labels a label of the
+dimension combines. A label is then one tuple of member labels, such as the
+unit `u1` with the port `out`.
+
+```yaml
+dimensions:
+  unit: { dtype: str }
+  port: { dtype: str }
+  bus: { dtype: str }
+  snapshot: { dtype: int, ordered: true }
+  connection: { over: [unit, port] }
+mappings:
+  connection:
+    bus: { dim: bus }
+parameters:
+  capacity: { dims: [unit] }
+  load: { dims: [bus, snapshot] }
+variables:
+  flow: { dims: [connection, snapshot], bounds: { lower: 0 } }
+constraints:
+  limit:
+    dims: [connection, snapshot]
+    expression: flow <= at(capacity, by=connection[unit])
+  balance:
+    dims: [bus, snapshot]
+    expression: sum(flow, over=connection, by=connection[bus]) == load
+```
+
+`flow` has one column per listed connection and snapshot, and none for a unit
+and a port that the data does not list together. `limit` reads the capacity of
+the unit of each connection, and `balance` adds each flow to the bus of its
+connection. The legend prints the dimension as
+$`\mathcal{C} \subseteq \mathcal{P} \times \mathcal{U}`$, and `limit` prints as:
+
+```math
+\mathit{flow}_{c,t} \le \mathrm{capacity}_{\mathrm{unit}(c)} \qquad \forall\, c \in \mathcal{C},\ t \in \mathcal{T}
+```
+
+`over` takes a list of dimensions, each once. Where a tuple holds two labels of
+one dimension, such as the two regions of a trade link, one member is an
+[alias](#alias) of that dimension:
+
+```yaml
+dimensions:
+  region: { dtype: str }
+  from_region: { alias: region }
+  trade: { over: [from_region, region] }
+```
+
+A member has the name of its dimension. The order of the
+members changes nothing, because mathspec sorts them by name at load.
+
+### The mappings of the dimension
+
+Each member is also a [mapping](relations.md#mappings) of the dimension, named after
+the member, with `dim:` the dimension of the member and `missing: refused`. So
+`connection` above has the mappings `unit` and `port` beside the mapping `bus` that
+the file declares, and a call reads a member as it reads any mapping:
+
+| Written                                           | Result                                                      |
+| ------------------------------------------------- | ----------------------------------------------------------- |
+| `at(capacity, by=connection[unit])`               | the capacity of the unit of each connection                 |
+| `at(rating, by=connection[unit, port])`           | `rating`, a parameter over `unit` and `port`, at each tuple |
+| `sum(flow, over=connection, by=connection[port])` | the flows of each port, added over its connections          |
+| `where: "connection[unit] == 'u1'"`               | the connections of the unit `u1`                            |
+| `where: "at(active, by=connection[unit])"`        | the connections whose unit is in the condition `active`     |
+
+A fact about a tuple that is not a member, such as the bus of a connection,
+is a mapping that the file declares under `mappings: connection:`, as `bus` is above.
+mathspec refuses a declared mapping with the name of a member. With
+`mappings: { connection: { unit: { dim: unit } } }`, mathspec prints:
+
+```text
+mappings: 'connection': mapping 'unit' has the name of a member of 'connection', which already gives each tuple its label of 'unit'. Read the member as connection[unit], or rename the mapping.
+```
+
+### One dimension in every operator
+
+A dimension with members is one dimension wherever a `dims:` list or an
+operator names it. mathspec does not align an entry over a member with an
+entry over the dimension. With `flow <= capacity` in `limit` above, mathspec
+prints:
+
+```text
+Constraint 'limit': an operand over ['unit'] meets one over 'connection'. 'unit' is a member of 'connection', which is one dimension here. Read the operand at each tuple: at(capacity, by=connection[unit]), or sum flow to the member: sum(flow, over=connection, by=connection[unit]).
+```
+
+mathspec suggests the lookup through the mapping of the member, or the sum
+of `flow` to the member. The same refusal applies wherever the two operands
+meet: in a product, in a sum, and in the objective, as in
+`sum(flow * capacity)`, in an [assumption](assumptions.md), and in the
+`where:` of a `piecewise:` entry.
+
+### Each member once in `dims:`
+
+A tool may store a dimension with members as the columns of its members. So a
+`dims:` list reaches each member once. mathspec refuses two dimensions in one
+`dims:` that share a member, and a dimension beside one of its own members.
+With `site: { over: [unit, bus] }` and `dims: [connection, site, snapshot]`,
+mathspec prints:
+
+```text
+Variable 'flow': 'connection' and 'site' in dims: share the member 'unit', so the entry would be indexed by 'unit' twice. Keep 'connection' in dims:, list ['bus'] beside it, and confine the entry with where: "at(<relation>, by=connection[unit])", where <relation> is a relation over ['bus', 'unit'] that lists the tuples of 'site'. Or declare an alias of 'unit', such as from_unit: {alias: unit}, and list it in 'site' in place of 'unit', so the members differ.
+```
+
+With `dims: [connection, unit, snapshot]`, mathspec prints:
+
+```text
+Variable 'flow': 'connection' and 'unit' in dims: share the member 'unit', so the entry would be indexed by 'unit' twice. Delete 'unit' from dims: and read it as connection[unit], or declare an alias of 'unit', such as from_unit: {alias: unit}, and list it in place of 'unit'.
+```
+
+The refusal applies to every `dims:` list: a parameter, a variable, a
+constraint, a named expression, a given entry and a `piecewise:` entry. A
+different unit at each connection is an alias of `unit`, which is a member of
+its own.
+
+A sum over a member is refused the same way. With `sum(flow, over=unit)`,
+mathspec prints:
+
+```text
+Constraint 'balance': sum(over=unit) but the expression has only the dims ['connection', 'snapshot']. 'unit' is a member of 'connection', which is one dimension here. Write sum(..., over=connection, by=connection[port]).
+```
+
+mathspec suggests the sum over the dimension, grouped by the other member.
+
+A `dims:` list is the domain of an entry, so a tool refuses a data row at a
+tuple that the dimension does not list. A
+[`where:`](absence.md#where) condition then removes rows of that domain.
+
+At load, mathspec also refuses each of these, and prints the rewrite:
+
+| Refused                                                                                 | What you write instead                                                       |
+| --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| a member that has members of its own                                                    | the members themselves, in one list                                          |
+| a dimension twice, as in `over: [region, region]`                                       | an [alias](#alias) of the dimension as one of the members                    |
+| `dtype:` or `one_of:` beside `over:`                                                    | the key on a member                                                          |
+| a step along one member, as `shift(soc, along=period)` on an entry over `snapshot`      | a step along the dimension, grouped by the member: `within=snapshot[period]` |
+| a comparison of the dimension with a label, as in `connection == 'a'`                   | a comparison of a member, as in `connection[unit] == 'u1'`                   |
+| two dimensions in one `dims:` that share a member, or a dimension beside its own member | [one of the two, and a `where:`, or an alias](#each-member-once-in-dims)     |
+
+A set of tuples that an entry steps through along one member, such as the
+periods in which each unit is active, stays a [bare relation](relations.md) over `unit` and
+`period`. An entry over `unit` and `period` uses it as `where: active`, and an
+entry over `connection` and `period` reads it as
+`where: "at(active, by=connection[unit])"`.
+
+### An ordered dimension with members
+
+`ordered: true` on a dimension with members makes the order of its tuples part
+of the spec, as it does for any dimension: the order is the row order of the
+data. `shift`, `sum_back`, `position`, `piecewise:` and `sos:` of `type: 2`
+step from one listed tuple to the next. A multi-period snapshot is the pair of
+its period and its timestep:
+
+```yaml
+dimensions:
+  period: { dtype: int, ordered: true }
+  timestep: { dtype: int }
+  snapshot: { over: [period, timestep], ordered: true }
+```
+
+`within=snapshot[period]` groups the steps by a member, so that a store cycles
+inside each period:
+
+```yaml
+shift(soc, along=snapshot, offset=1, edge='wrap', within=snapshot[period])
+```
+
+A period with fewer timesteps lists fewer tuples, and a step goes on to the
+next listed tuple. mathspec refuses a step along one member, as
+`shift(soc, along=period)` on an entry over `snapshot`, because `period` is no
+dimension of the entry.
+
+### `missing`
+
+`missing:` on a dimension with members sets whether every combination of
+member labels needs a label.
+
+| `missing:`           | Result                                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------ |
+| `absent`, by default | the data lists the tuples that exist, and a combination that it leaves out is not in the dimension     |
+| `refused`            | a tool refuses data that leaves a combination out, so the dimension is the full product of its members |
+
+With `missing: refused`, the legend prints the dimension with $`=`$ in place of
+$`\subseteq`$. mathspec refuses `missing:` on a dimension without `over:`.
+
+### The data contract
+
+With data attached, the labels of `connection` are one column whose values
+have one field per member, named after the member: `{unit: u1, port: out}`.
+The [mappings of the members](#the-mappings-of-the-dimension) take their labels from
+these fields, so a tool reads no column of the table of the dimension for
+them. A tool requires three things of the column:
+
+- Each tuple appears once.
+- Every field is a label of its dimension.
+- Under `missing: refused`, every combination of member labels appears.
+
+mathspec declares no type for the tuple, so a tool may store the label in any
+form that keeps the fields.
 
 ## `alias`
 
@@ -197,6 +407,8 @@ An alias names a declared dimension that is no alias itself. A second alias of
 `region` prints with two primes.
 
 !!! info "See also"
+
+    - [Relations and mappings](relations.md#mappings), for the calls that read a member.
 
     - [choose between a dimension, a relation, a mapping and a parameter](../../howto/declare-a-column.md)
       for a column of data.

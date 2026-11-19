@@ -87,6 +87,11 @@ mappings:
 A mapping always writes `dim:`, and has no shorter form. A condition or an operator
 reads a mapping as `subject[mapping]`, so `generator[bus]` is the bus of a generator.
 
+A dimension that lists its members under [`over:`](dimensions.md#over) already
+has a mapping per member, named after the member and under `missing: refused`. So
+`connection[unit]` is the unit of a connection, and every call on this page
+reads a member as it reads a mapping under `mappings:`.
+
 | Key           | What it sets                                                                      | Default   |
 | ------------- | --------------------------------------------------------------------------------- | --------- |
 | `dim`         | required. The dimension whose labels the mapping gives                            |           |
@@ -96,12 +101,13 @@ reads a mapping as `subject[mapping]`, so `generator[bus]` is the bus of a gener
 A mapping is named after the dimension it refers to, or after no dimension. The
 typesetter prints a mapping as a function from its subject into that dimension, so
 `generator[bus]` prints as $`\mathrm{bus}: \mathcal{G} \to \mathcal{B}`$.
-mathspec refuses a mapping at load in four cases:
+mathspec refuses a mapping at load in five cases:
 
 - The subject is neither a dimension nor a relation.
 - `dim:` names a relation, or names no dimension.
 - The mapping is named after a dimension that it does not refer to.
 - The mapping has the name of a column of its subject.
+- The mapping has the name of a member of its subject.
 
 With `generator: { period: { dim: zone } }`, mathspec prints:
 

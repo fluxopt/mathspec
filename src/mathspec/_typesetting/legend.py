@@ -265,7 +265,8 @@ class Legend:
         A relation prints as ``connection ⊆ P x U`` under each of its
         dimensions. A mapping prints as ``carrier: U → C`` under its subject's
         dimensions and the one it refers to, its subject a set symbol for a
-        dimension and the relation's name for a relation.
+        dimension and the relation's name for a relation. A member is no
+        declared mapping, and prints as the product its dimension is a subset of.
         """
         own = {lk.dim(r) for r in lk.key}
         dimension = name in self.program.dimensions and lk.key == (name,)
@@ -278,7 +279,7 @@ class Legend:
         signatures.extend(
             f'{self.format.upright(role)}: {subject} {self._op("maps_to")} {self.symbols.set[lk.dim(role)]}'
             for role in lk.values
-            if (dim in own or lk.dim(role) == dim) and role != alias
+            if role not in lk.members and role != alias and (dim in own or lk.dim(role) == dim)
         )
         return signatures
 
@@ -288,20 +289,24 @@ class Legend:
         return '' if alias is None else f', an alias of {self.format.mono(alias)}'
 
     def _coords(self, dim: str, noticed: Noticed) -> str:
-        """The dimension's carried structure: the labels its ``one_of`` allows, each relation over it and mapping from or into it, and each that may leave a row out.
+        """The dimension's carried structure: the labels its ``one_of`` allows, the product of its members, each relation over it and mapping from or into it, and each that may leave a row out.
 
         The dtype is named only where an equation compared the index against a
         number, the one place "position 3" and "the coordinate 3" are both
         readings of a line.
         """
+        dimensions = self.program.dimensions
         carried = self.program.relations_of(dim)
         clauses = []
         if dim in noticed.numeric_coordinates:
             clauses.append(f' ({self.format.mono(self.program.dimensions[dim].dtype)} coordinates)')
         if (labels := self.program.dimensions[dim].one_of) is not None:
             clauses.append(f' (labels {", ".join(self.format.mono(m) for m in labels)})')
-        signatures = [part for c, lk in carried.items() for part in self._signatures(c, lk, dim)]
-        if signatures:
+        if members := dimensions[dim].over:
+            product = self.format.joined([self.symbols.set[d] for _, d in members], self._op('times'))
+            holds = self._op('subset_of' if dimensions[dim].missing == 'absent' else 'equal')
+            clauses.append(f', {self.format.math(f"{self.symbols.set[dim]} {holds} {product}")}')
+        if signatures := [part for c, lk in carried.items() for part in self._signatures(c, lk, dim)]:
             clauses.append(f' with {self.format.math(self.format.joined(signatures, ""))}')
         if carried:
             own = {c: {lk.dim(r) for r in lk.key} for c, lk in carried.items()}

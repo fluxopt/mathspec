@@ -116,3 +116,33 @@ def test_a_sum_inside_an_entry_over_the_alias_takes_an_index_of_its_own():
         )
     )
     assert "w_{g',g''}" in typeset(spec, 'markdown'), 'the inner sum takes g, primed past the alias'
+
+
+def test_ire_flo_is_over_a_dimension_of_links_whose_members_are_aliases():
+    """TIMES' IRE_FLO(REG,COM,R,C): the link's members name each set once, an alias standing for the second."""
+    spec = to_spec(
+        {
+            'dimensions': {
+                'region': {},
+                'commodity': {},
+                'from_region': {'alias': 'region'},
+                'from_commodity': {'alias': 'commodity'},
+                'top_ire': {'over': ['from_region', 'from_commodity', 'region', 'commodity']},
+            },
+            'parameters': {'ire_flo': {'dims': ['top_ire']}},
+            'variables': {'export': {'dims': ['top_ire']}, 'supply': {'dims': ['commodity', 'region']}},
+            'constraints': {
+                'balance': {
+                    'dims': ['commodity', 'region'],
+                    'expression': 'supply + sum(ire_flo * export, over=top_ire, by=top_ire[commodity, region]) >= 0',
+                }
+            },
+            'objective': {'expression': 'sum(supply)'},
+        }
+    )
+    assert spec.program.dimensions['top_ire'].over == (
+        ('commodity', 'commodity'),
+        ('from_commodity', 'from_commodity'),
+        ('from_region', 'from_region'),
+        ('region', 'region'),
+    ), 'each member is a dimension once, two of them aliases'

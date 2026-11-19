@@ -35,6 +35,8 @@ dimensions:
   season: { dtype: str }
   technology: { dtype: str }
   bp: { dtype: int, ordered: true } # the breakpoints every curve below runs through
+  site: { over: [generator, bus] } # a dimension that lists its members: the legend prints it as a subset of their product
+  corridor: { over: [from_bus, bus], missing: refused } # a member and its alias, and every combination required: the product itself
 
 relations:
   gen_zone: { dims: [generator, snapshot] } # a relation over two dimensions, with a mapping: a call sums one away and joins on the other
@@ -57,6 +59,7 @@ parameters:
   load: { dims: [snapshot, bus] }
   is_flexible: { dims: [generator], dtype: bool, missing: false }
   zone_cap: { dims: [zone] }
+  corridor_cap: { dims: [corridor] } # over a dimension whose two members are over one dimension
   tech_cap: { dims: [bus, technology], missing: absent }
   link_eff: { dims: [generator, bus], where: connection, missing: 1 }
   susceptance: { dims: [from_bus, bus], missing: 0 } # over one set twice, through its alias
@@ -78,9 +81,11 @@ parameters:
 |---|---|
 | $`\mathcal{B}`$ | index $`b`$ — `bp` |
 | $`\mathcal{U}`$ | index $`u`$ — `bus` with $`\mathrm{area}: \mathcal{U} \to \mathcal{Z},\ \mathrm{zone}: \mathcal{U} \to \mathcal{Z},\ \mathrm{connection} \subseteq \mathcal{U} \times \mathcal{G},\ \mathrm{bus}: \mathcal{G} \to \mathcal{U}`$, `connection` is `absent` where the data has no row, `bus[area]` is `absent` where the data gives no label |
+| $`\mathcal{C}`$ | index $`c`$ — `corridor`, $`\mathcal{C} = \mathcal{U} \times \mathcal{U}`$ |
 | $`\mathcal{U}`$ | index $`u'`$ — `from_bus`, an alias of `bus` |
 | $`\mathcal{G}`$ | index $`g`$ — `generator` with $`\mathrm{connection} \subseteq \mathcal{U} \times \mathcal{G},\ \mathrm{gen\_zone} \subseteq \mathcal{G} \times \mathcal{T},\ \mathrm{zone}: \mathrm{gen\_zone} \to \mathcal{Z},\ \mathrm{bus}: \mathcal{G} \to \mathcal{U},\ \mathrm{technology}: \mathcal{G} \to \mathcal{E}`$, `connection` is `absent` where the data has no row |
 | $`\mathcal{S}`$ | index $`s`$ — `season` with $`\mathrm{season}: \mathcal{T} \to \mathcal{S}`$ |
+| $`\mathcal{I}`$ | index $`i`$ — `site`, $`\mathcal{I} \subseteq \mathcal{U} \times \mathcal{G}`$ |
 | $`\mathcal{T}`$ | index $`t`$ — `snapshot` (`int` coordinates) with $`\mathrm{gen\_zone} \subseteq \mathcal{G} \times \mathcal{T},\ \mathrm{zone}: \mathrm{gen\_zone} \to \mathcal{Z},\ \mathrm{rep}: \mathcal{T} \to \mathcal{T},\ \mathrm{season}: \mathcal{T} \to \mathcal{S}`$ |
 | $`\mathcal{E}`$ | index $`e`$ — `technology` with $`\mathrm{technology}: \mathcal{G} \to \mathcal{E}`$ |
 | $`\mathcal{Z}`$ | index $`z`$ — `zone` (labels `north`, `south`) with $`\mathrm{area}: \mathcal{U} \to \mathcal{Z},\ \mathrm{zone}: \mathcal{U} \to \mathcal{Z},\ \mathrm{zone}: \mathrm{gen\_zone} \to \mathcal{Z}`$, `bus[area]` is `absent` where the data gives no label |
@@ -95,6 +100,7 @@ parameters:
 | $`\mathrm{bp\_x}`$ | `bp_x` over $`\mathcal{B} \times \mathcal{G}`$, $`0`$ where the data has no row |
 | $`\mathrm{bp\_y}`$ | `bp_y` over $`\mathcal{B} \times \mathcal{G}`$, $`0`$ where the data has no row |
 | $`\mathrm{budget}`$ | `budget` (scalar) |
+| $`\mathrm{corridor\_cap}`$ | `corridor_cap` over $`\mathcal{C}`$ |
 | $`\mathrm{cost}`$ | `cost` over $`\mathcal{G}`$, $`0`$ where the data has no row |
 | $`\mathrm{eta}`$ | `eta` over $`\mathcal{G}`$ |
 | $`\mathrm{growth}`$ | `growth` (scalar) |
@@ -127,6 +133,7 @@ parameters:
 | $`\mathit{op\_cost}`$ | `op_cost` over $`\mathcal{G} \times \mathcal{T}`$ |
 | $`p`$ | `p` over $`\mathcal{G} \times \mathcal{T}`$ |
 | $`\mathit{reserve}`$ | `reserve` (scalar) |
+| $`\mathit{site\_out}`$ | `site_out` over $`\mathcal{I} \times \mathcal{T}`$ |
 | $`\mathit{slack}`$ | `slack` over $`\mathcal{T}`$ |
 | $`\mathit{spare}`$ | `spare` over $`\mathcal{G}`$ |
 | $`\mathit{spill}`$ | `spill` over $`\mathcal{T}`$ |
@@ -200,6 +207,22 @@ variables:
 
 ```math
 \mathit{slack}_{t} \le 100 \qquad \forall\, t \in \mathcal{T}
+```
+
+#### Variable over a dimension with members
+
+over a dimension with members, where a parameter of one member holds
+
+```yaml
+variables:
+  site_out:
+    dims: [snapshot, site]
+    where: "at(is_flexible, by=site[generator])"
+    bounds: { lower: 0 }
+```
+
+```math
+\mathit{site\_out}_{i,t} \ge 0 \qquad \forall\, i \in \mathcal{I},\ t \in \mathcal{T} \,:\, \mathrm{is\_flexible}_{\mathrm{generator}(i)}
 ```
 
 #### Unbounded variable

@@ -368,11 +368,62 @@ class DimensionSpec(_StrictSpec):
     """Whether the order in which the data gives the labels is part of the spec. An operator may step or count only along
     an ordered dimension. On any other dimension, the order of the rows has no meaning.
     """
+    over: Dims | None = None
+    """The members of the dimension, each a dimension listed once. A label of the dimension is then one tuple of member
+    labels, and each member is a mapping of the dimension, read as ``dimension[member]``. Where a tuple holds two labels of
+    one dimension, one member is an alias of it. The order of the members has no meaning.
+    """
+    missing: RelationMissing = 'absent'
+    """Whether every combination of member labels needs a tuple. Under ``absent``, the data lists the tuples that exist.
+    Under ``refused``, a tool refuses data that leaves a combination out.
+    """
     alias: str | None = None
     """The dimension whose labels this one has, under a second name, so an entry can be over the same labels twice. It
     takes that dimension's dtype, labels and order, and has the mapping ``<this>[<that>]`` from each label to itself.
     """
     description: str | None = None
+
+    @property
+    def members(self) -> tuple[tuple[str, str], ...]:
+        """``(member, dimension)`` per member, sorted by name, each a mapping named after its dimension; empty without ``over:``."""
+        return () if self.over is None else tuple((d, d) for d in sorted(self.over))
+
+    @field_validator('over', mode='after')
+    @classmethod
+    def _lists_a_member(cls, v: object) -> object:
+        if v is not None and not v:
+            raise ValueError('lists no member. List at least one dimension, or leave `over:` out.')
+        return v
+
+    @field_validator('missing', mode='before')
+    @classmethod
+    def _absent_or_refused(cls, v: object) -> object:
+        """A tuple is a label, so no value fills a combination the data leaves out."""
+        if v not in get_args(RelationMissing):
+            msg = (
+                f'missing: {_as_yaml(v)} on a dimension, which takes absent or refused. A combination of member '
+                f'labels with no tuple is not in the dimension, or is refused.'
+            )
+            raise ValueError(msg)
+        return v
+
+    @model_validator(mode='after')
+    def _members_or_labels(self) -> Self:
+        """A label of a dimension with members is a tuple, so the keys that describe one plain label do not apply."""
+        if self.over is None:
+            if 'missing' in self.model_fields_set:
+                raise ValueError(
+                    '`missing:` is on a dimension without `over:`, and it states whether every combination of the '
+                    'members needs a tuple. Delete `missing:`, or list the members under `over:`.'
+                )
+            return self
+        for key in ('dtype', 'one_of'):
+            if key in self.model_fields_set and getattr(self, key) is not None:
+                raise ValueError(
+                    f'`{key}:` is on a dimension with `over:`, where the label is the tuple of its members. Delete '
+                    f'`{key}:` here, and write the {key}: of a member on that member.'
+                )
+        return self
 
     @model_validator(mode='after')
     def _alias_takes_the_rest(self) -> DimensionSpec:
@@ -1418,11 +1469,15 @@ def subject_tables(spec: Spec) -> dict[str, Relation]:
     dimension, and an alias has the mapping to the dimension it aliases. Each mapping is
     a column of its subject's table, and a mapping under
     ``missing: absent`` is listed as [`partial`][mathspec.program.Relation.partial].
+    A dimension with members has a table whether or not the file declares mappings
+    of it: each member is a mapping that every label has, listed as
+    [`members`][mathspec.program.Relation.members].
     A subject the file does not declare is left out, which the load refuses.
     """
     tables: dict[str, Relation] = {}
+    tuples = {d: dd.members for d, dd in spec.dimensions.items() if dd.over}
     aliases = {name: d.alias for name, d in spec.dimensions.items() if d.alias in spec.dimensions}
-    for name in sorted({*spec.relations, *spec.mappings, *aliases}):
+    for name in sorted({*spec.relations, *spec.mappings, *tuples, *aliases}):
         mappings = spec.mappings.get(name, Frozen({}))
         if name in aliases:
             mappings = {aliases[name]: MappingSpec(dim=aliases[name]), **mappings}
@@ -1432,9 +1487,13 @@ def subject_tables(spec: Spec) -> dict[str, Relation]:
             key, missing, description = ((name, name),), cast('RelationMissing', 'refused'), None
         else:
             continue
-        values = tuple((role, m.dim) for role, m in mappings.items())
+        members = tuples.get(name, ()) if relation is None else ()
+        values = tuple(sorted((*members, *((role, m.dim) for role, m in mappings.items()))))
         partial = tuple(role for role, m in mappings.items() if m.missing == 'absent')
-        tables[name] = Relation((*key, *values), tuple(r for r, _ in key), missing, description, partial)
+        key_roles = tuple(r for r, _ in key)
+        tables[name] = Relation(
+            (*key, *values), key_roles, missing, description, partial, tuple(role for role, _ in members)
+        )
     return tables
 
 

@@ -511,6 +511,10 @@ class Relation:
     description: str | None = None
     partial: tuple[str, ...] = ()
     """The value roles a row may leave empty: the mappings under ``missing: absent``, sorted by role."""
+    members: tuple[str, ...] = ()
+    """The value roles a dimension's members are, sorted by role. A tool reads each off the fields of a label of the
+    dimension, and the file declares no mapping of that name.
+    """
 
     @property
     def roles(self) -> tuple[str, ...]:
@@ -678,10 +682,19 @@ class Dimension:
     """
     alias: str | None = None
     """The dimension whose labels this one has, or ``None``. A tool reads no labels for an alias: it has the labels,
-    dtype and order of that dimension, which ``dtype``, ``one_of`` and ``ordered`` repeat, and its map to that
+    dtype and order of that dimension, which ``dtype``, ``one_of`` and ``ordered`` repeat, and its mapping to that
     dimension sends each label to itself.
     """
     description: str | None = None
+    over: tuple[tuple[str, str], ...] = ()
+    """The members of the dimension as ``(role, dimension)``, sorted by role, or empty when the file lists none. A label
+    is then one tuple of member labels, which ``dtype`` does not describe. The table of the dimension in
+    [`Program.relations`][mathspec.program.Program.relations] has a mapping per member.
+    """
+    missing: RelationMissing = 'absent'
+    """Whether every combination of member labels needs a tuple: ``absent`` or ``refused``. It has no meaning for a
+    dimension without members.
+    """
 
 
 @dataclass(frozen=True)
@@ -1148,7 +1161,9 @@ class Program:
     dimensions: Mapping[str, Dimension] = Frozen({})
     relations: Mapping[str, Relation] = Frozen({})
     """Each table the data supplies, by its subject's name: every relation the file declares, and every dimension it
-    declares mappings of, each with its mappings as value columns.
+    declares mappings of or lists members of, each with its mappings as value columns. A member is a mapping of its dimension, listed
+    in [`Relation.members`][mathspec.program.Relation.members]: a tool reads it off the labels of the dimension, one field
+    per member, and not off a table.
     """
     sos: Mapping[str, Sos] = Frozen({})
     piecewise: Mapping[str, Piecewise] = Frozen({})

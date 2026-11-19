@@ -109,6 +109,7 @@ def reference_errors(spec: Spec) -> list[str]:
     return [
         *_name_collisions(spec),
         *_frame_dimensions(spec),
+        *_members(spec),
         *_relation_targets(spec),
         *_mapping_targets(spec),
         *_aliases(spec),
@@ -197,6 +198,58 @@ def _frame_dimensions(spec: Spec) -> Iterator[str]:
             for d, count in Counter(dims).items()
             if count > 1
         )
+        yield from _shared_members(kind, name, dims, spec)
+
+
+def _shared_members(kind: str, name: str, dims: Iterable[str], spec: Spec) -> Iterator[str]:
+    """A frame reaches each member once, so a later reading of a tuple dimension by its members means the same.
+
+    A plain dimension counts as its own member.
+    """
+    carriers: dict[str, list[str]] = {}
+    for d in dict.fromkeys(dims):
+        if d in spec.dimensions:
+            for member in [dim for _, dim in spec.dimensions[d].members] or [d]:
+                carriers.setdefault(member, []).append(d)
+    for member, (one, other, *_) in ((m, c) for m, c in carriers.items() if len(c) > 1):
+        head = f"{kind} '{name}': '{one}' and '{other}' in dims: share the member '{member}'"
+        alias = f'declare an alias of {member!r}, such as from_{member}: {{alias: {member}}}'
+        if member in (one, other):
+            tup = other if member == one else one
+            yield (
+                f"{head}, so the entry would be indexed by '{member}' twice. Delete '{member}' from dims: and "
+                f'read it as {tup}[{member}], or {alias}, and list it in place of {member!r}.'
+            )
+            continue
+        rest = sorted({dim for _, dim in spec.dimensions[other].members} - {member})
+        yield (
+            f"{head}, so the entry would be indexed by '{member}' twice. Keep '{one}' in dims:, list {rest} "
+            f'beside it, and confine the entry with where: "at(<relation>, by={one}[{member}])", where '
+            f"<relation> is a relation over {sorted({member, *rest})} that lists the tuples of '{other}'. Or "
+            f"{alias}, and list it in '{other}' in place of {member!r}, so the members differ."
+        )
+
+
+def _members(spec: Spec) -> Iterator[str]:
+    """A dimension lists plain, declared dimensions as its members, each once."""
+    for name, entry in spec.dimensions.items():
+        dims = [dim for _, dim in entry.members]
+        yield from (
+            undeclared_dimension('Dimension', name, d, spec) for d in dict.fromkeys(dims) if d not in spec.dimensions
+        )
+        for d in dict.fromkeys(dims):
+            if d in spec.dimensions and (inner := spec.dimensions[d].members):
+                flat = sorted({*dims, *(dim for _, dim in inner)} - {d, name})
+                yield (
+                    f"Dimension '{name}' lists '{d}' under 'over:', and '{d}' has members of its own. A member is "
+                    f'a dimension without `over:`. List the members themselves: over: {flat}.'
+                )
+        yield from (
+            f"Dimension '{name}' lists '{d}' twice under 'over:'. Declare an alias of '{d}' under dimensions:, "
+            f"such as from_{d}: {{alias: {d}}}, and list it in place of one '{d}'."
+            for d, count in Counter(dims).items()
+            if count > 1
+        )
 
 
 def _relation_targets(spec: Spec) -> Iterator[str]:
@@ -237,6 +290,7 @@ def _mapping_targets(spec: Spec) -> Iterator[str]:
     """
     for subject, mappings in spec.mappings.items():
         head = f"mappings: '{subject}'"
+        members = dict(spec.dimensions[subject].members if subject in spec.dimensions else ())
         if subject in spec.relations:
             pairs = spec.relations[subject].pairs
             if twice := [d for d, count in Counter(d for _, d in pairs).items() if count > 1]:
@@ -259,7 +313,12 @@ def _mapping_targets(spec: Spec) -> Iterator[str]:
                     f'{head}: {role!r} is not a name. Start it with a letter or an underscore, then use only '
                     f'letters, digits or underscores.'
                 )
-            if role in dict(pairs):
+            if role in members:
+                yield (
+                    f"{head}: mapping '{role}' has the name of a member of '{subject}', which already gives each tuple "
+                    f"its label of '{members[role]}'. Read the member as {subject}[{role}], or rename the mapping."
+                )
+            elif role in dict(pairs):
                 yield (
                     f"{head}: mapping '{role}' has the name of a column of '{subject}', which holds the row, not a "
                     f'label of it. Rename the mapping after what it holds.'
@@ -356,10 +415,10 @@ def _sos_shapes(spec: Spec) -> Iterator[str]:
 
 
 def _sos_bounds(spec: Spec) -> Iterator[str]:
-    """A set states what the binaries it expands to state: each side of a member carries a coefficient.
+    """A set states what the binaries it expands to state: each side of an element carries a coefficient.
 
-    The rewrite holds an unpicked member at zero from both sides, so a side
-    the spec leaves open leaves the member free of it. Either coefficient
+    The rewrite holds an unpicked element at zero from both sides, so a side
+    the spec leaves open leaves the element free of it. Either coefficient
     may be a parameter, because a row multiplies by it rather than reading
     it. Decided here rather than where the rewrite runs, so a set the
     language cannot state twice is refused before any data exists.
@@ -372,13 +431,13 @@ def _sos_bounds(spec: Spec) -> Iterator[str]:
         if below is None:
             yield (
                 f"{context}: variable '{entry.variable}' has no lower bound, and the set expands to rows "
-                f'that hold an unpicked member at zero from below as well as above. Declare bounds.lower, '
+                f'that hold an unpicked element at zero from below as well as above. Declare bounds.lower, '
                 f'as a number or a parameter.'
             )
         if above is None:
             yield (
                 f"{context}: variable '{entry.variable}' has no upper bound, and the set expands to rows "
-                f'that hold an unpicked member at zero from above as well as below. Declare bounds.upper, '
+                f'that hold an unpicked element at zero from above as well as below. Declare bounds.upper, '
                 f'as a number or a parameter.'
             )
 
@@ -409,6 +468,7 @@ def _piecewise_references(spec: Spec) -> Iterator[str]:
                 )
         if len(set(pw.dims)) != len(pw.dims):
             yield f'{context}: dims repeats a dimension: {list(pw.dims)}. Write each dimension once.'
+        yield from _shared_members('piecewise', name, pw.dims, spec)
         for key, link in pw.links.items():
             yield from _piecewise_link_shape(spec, name, pw, key, link)
         if pw.activity is None:
