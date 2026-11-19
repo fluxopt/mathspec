@@ -95,7 +95,7 @@ def _never_an_axis(program: Program) -> list[Advice]:
     that column is checked against, and a ``where`` selects on them, so it is
     in use even where nothing is indexed by it. A dimension only a given entry
     indexes is reached too: the column exists, in another file. A member of a
-    dimension is a map the file does not declare, so it is no use of its own;
+    dimension is a mapping the file does not declare, so it is no use of its own;
     a reached dimension reaches its members.
     """
     reached: set[str] = set()
@@ -121,7 +121,7 @@ def _never_an_axis(program: Program) -> list[Advice]:
             'never-an-axis',
             name,
             f"dimension '{name}' is never used: nothing is indexed by it, nothing "
-            f'sums into it, and no relation or map is over it. Remove it, or keep it '
+            f'sums into it, and no relation or mapping is over it. Remove it, or keep it '
             f'if the entries that use it are still to be written.',
         )
         for name in program.dimensions
