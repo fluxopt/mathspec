@@ -711,9 +711,6 @@ class ExpressionResolver:
         name, within_roles = columns.relation, columns.columns
         shape = self.ns.relations[name]
         call = f'{operator}(within={columns})'
-        if shape.members:
-            self.errors.append(self.ns.unordered_refusal(context, call, name))
-            return None
         if not shape.values:
             self.errors.append(
                 f"{context}: {call}: '{name}' has no mapping, so it makes no groups. Declare the group as a mapping of "

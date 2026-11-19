@@ -221,6 +221,56 @@ def test_an_alias_opts_two_dimensions_into_their_cross_product():
     assert spec.program.variables['x'].dims == ('demand', 'supply')
 
 
+#: A multi-period snapshot: the tuple of its period and its timestep, ordered by the row order of the data.
+SNAPSHOTS: dict[str, Any] = {
+    'dimensions': {
+        'period': {'dtype': 'int', 'ordered': True},
+        'timestep': {'dtype': 'int'},
+        'unit': {},
+        'snapshot': {'over': ['period', 'timestep'], 'ordered': True},
+    },
+    'parameters': {'ramp': {'dims': ['unit']}, 'p_nom': {'dims': ['period', 'unit']}},
+    'variables': {'soc': {'dims': ['snapshot', 'unit']}, 'p': {'dims': ['snapshot', 'unit']}},
+}
+
+
+@pytest.mark.parametrize(
+    'patch',
+    [
+        pytest.param(
+            _constraint('soc - shift(soc, along=snapshot, offset=1) <= ramp', ['snapshot', 'unit']), id='shift'
+        ),
+        pytest.param(
+            _constraint(
+                "soc - shift(soc, along=snapshot, offset=1, edge='wrap', within=snapshot[period]) <= ramp",
+                ['snapshot', 'unit'],
+            ),
+            id='shift-within-a-member',
+        ),
+        pytest.param(_constraint('sum_back(p, along=snapshot, window=3) <= ramp', ['snapshot', 'unit']), id='sum-back'),
+        pytest.param({'variables.soc.where': 'position(snapshot, within=snapshot[period]) > 0'}, id='position'),
+        pytest.param(
+            {
+                'variables.p.bounds': {'lower': 0, 'upper': 1},
+                'sos.pick': {'variable': 'p', 'along': 'snapshot', 'type': 2},
+            },
+            id='sos-of-type-2',
+        ),
+    ],
+)
+def test_an_ordered_dimension_with_members_takes_the_order_operators(patch):
+    """The snapshot case of #1011: the order is the data's, and `within=` groups by a member."""
+    to_spec(varied(SNAPSHOTS, **patch))
+
+
+def test_a_step_along_one_member_is_refused():
+    """A step along `period` on an entry over `snapshot` would read inside the tuple."""
+    with pytest.raises(LanguageError, match=r'shift\(along=period\) but the expression has only the dims'):
+        to_spec(
+            varied(SNAPSHOTS, **_constraint('soc - shift(soc, along=period, offset=1) <= ramp', ['snapshot', 'unit']))
+        )
+
+
 def test_a_condition_compares_a_member_label():
     spec = to_spec(varied(MODEL, **{'variables.flow.where': "connection[unit] == 'gas'"}))
     (atom,) = spec.program.variables['flow'].where.atoms
@@ -251,11 +301,6 @@ def test_a_sparse_set_with_an_ordered_member_is_read_at_a_tuple():
             {'dimensions.pair': {'over': ['unit', 'nope']}},
             ("Dimension 'pair' references undeclared dimension 'nope'",),
             id='an-undeclared-member',
-        ),
-        pytest.param(
-            {'dimensions.connection.ordered': True},
-            ('dimensions.connection', '`ordered: true`', 'no order', "over ['port', 'unit']", 'where:'),
-            id='ordered',
         ),
         pytest.param(
             {'dimensions.connection.one_of': ['a']},
@@ -299,17 +344,17 @@ def test_a_sparse_set_with_an_ordered_member_is_read_at_a_tuple():
         ),
         pytest.param(
             _constraint("shift(flow, along=connection, offset=1, edge='wrap') >= 0", ['connection', 'snapshot']),
-            ("shift(along=connection) reads the order of 'connection'", 'no order', "over ['port', 'unit']"),
+            ("shift(along=connection) reads the order of 'connection'", 'not declared ordered'),
             id='shift',
         ),
         pytest.param(
             _constraint('sum_back(flow, along=connection, window=2) >= 0', ['connection', 'snapshot']),
-            ("sum_back(along=connection) reads the order of 'connection'", 'no order'),
+            ("sum_back(along=connection) reads the order of 'connection'", 'not declared ordered'),
             id='sum-back',
         ),
         pytest.param(
             {'variables.flow.where': 'position(connection) == 0'},
-            ("position(connection) reads the order of 'connection'", 'no order'),
+            ("position(connection) reads the order of 'connection'", 'not declared ordered'),
             id='position',
         ),
         pytest.param(
@@ -320,7 +365,7 @@ def test_a_sparse_set_with_an_ordered_member_is_read_at_a_tuple():
                 'variables.y': {'dims': []},
                 'piecewise.curve': {'dims': [], 'along': 'connection', 'links': {'x': ['x', 'xs'], 'y': ['y', 'ys']}},
             },
-            ("piecewise 'curve': along: connection reads the order of 'connection'", 'no order'),
+            ("piecewise 'curve': along: connection reads the order of 'connection'", 'not declared ordered'),
             id='piecewise',
         ),
         pytest.param(
@@ -328,7 +373,7 @@ def test_a_sparse_set_with_an_ordered_member_is_read_at_a_tuple():
                 'variables.flow.bounds.upper': 1,
                 'sos.pick': {'variable': 'flow', 'along': 'connection', 'type': 2},
             },
-            ("Sos 'pick': type: 2 along connection reads the order of 'connection'", "over ['port', 'unit']"),
+            ("Sos 'pick': type: 2 along connection reads the order of 'connection'", 'not declared ordered'),
             id='sos-of-type-2',
         ),
         pytest.param(

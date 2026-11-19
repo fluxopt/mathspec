@@ -157,8 +157,9 @@ An `int` dimension is not ordered unless it declares `ordered: true`.
 
 An `sos` entry of `type: 1` uses no order, so it needs no `ordered: true`.
 
-A dimension with [`over:`](#over) has no order, so mathspec refuses
-`ordered: true` on it.
+A dimension with [`over:`](#over) takes `ordered: true` too, and steps from
+one listed tuple to the next
+([an ordered dimension with members](#an-ordered-dimension-with-members)).
 
 [`edge='wrap'`](operators.md#shift) makes one `shift` cyclic, so that the first
 label steps back to the last. `edge='wrap'` does not change the dimension, and
@@ -297,20 +298,47 @@ tuple that the dimension does not list. A
 
 At load, mathspec also refuses each of these, and prints the rewrite:
 
-| Refused                                                                                  | What you write instead                                                    |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| a member that has members of its own                                                     | the members themselves, in one list                                       |
-| a dimension twice, as in `over: [region, region]`                                        | an [alias](#alias) of the dimension as one of the members                 |
-| `ordered: true`, `dtype:` or `one_of:` beside `over:`                                    | the key on a member                                                       |
-| `shift`, `sum_back`, `position`, `piecewise:` or `sos:` of `type: 2` along the dimension | an entry over the members, with `where:` a relation that lists the tuples |
-| a comparison of the dimension with a label, as in `connection == 'a'`                    | a comparison of a member, as in `connection[unit] == 'u1'`                |
-| two dimensions in one `dims:` that share a member, or a dimension beside its own member  | [one of the two, and a `where:`, or an alias](#each-member-once-in-dims)  |
+| Refused                                                                                 | What you write instead                                                       |
+| --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| a member that has members of its own                                                    | the members themselves, in one list                                          |
+| a dimension twice, as in `over: [region, region]`                                       | an [alias](#alias) of the dimension as one of the members                    |
+| `dtype:` or `one_of:` beside `over:`                                                    | the key on a member                                                          |
+| a step along one member, as `shift(soc, along=period)` on an entry over `snapshot`      | a step along the dimension, grouped by the member: `within=snapshot[period]` |
+| a comparison of the dimension with a label, as in `connection == 'a'`                   | a comparison of a member, as in `connection[unit] == 'u1'`                   |
+| two dimensions in one `dims:` that share a member, or a dimension beside its own member | [one of the two, and a `where:`, or an alias](#each-member-once-in-dims)     |
 
-A set of tuples with an ordered member, such as the periods in which each unit
-is active, therefore stays a [bare relation](relations.md) over `unit` and
+A set of tuples that an entry steps through along one member, such as the
+periods in which each unit is active, stays a [bare relation](relations.md) over `unit` and
 `period`. An entry over `unit` and `period` uses it as `where: active`, and an
 entry over `connection` and `period` reads it as
 `where: "at(active, by=connection[unit])"`.
+
+### An ordered dimension with members
+
+`ordered: true` on a dimension with members makes the order of its tuples part
+of the spec, as it does for any dimension: the order is the row order of the
+data. `shift`, `sum_back`, `position`, `piecewise:` and `sos:` of `type: 2`
+step from one listed tuple to the next. A multi-period snapshot is the pair of
+its period and its timestep:
+
+```yaml
+dimensions:
+  period: { dtype: int, ordered: true }
+  timestep: { dtype: int }
+  snapshot: { over: [period, timestep], ordered: true }
+```
+
+`within=snapshot[period]` groups the steps by a member, so that a store cycles
+inside each period:
+
+```yaml
+shift(soc, along=snapshot, offset=1, edge='wrap', within=snapshot[period])
+```
+
+A period with fewer timesteps lists fewer tuples, and a step goes on to the
+next listed tuple. mathspec refuses a step along one member, as
+`shift(soc, along=period)` on an entry over `snapshot`, because `period` is no
+dimension of the entry.
 
 ### `missing`
 

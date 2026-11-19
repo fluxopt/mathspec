@@ -403,7 +403,7 @@ def _sos_shapes(spec: Spec) -> Iterator[str]:
                 f'to one of these dims.'
             )
         elif entry.type == 2 and not labels_of(spec, entry.along).ordered:
-            yield unordered(context, f'type: 2 along {entry.along}', entry.along, spec.dimensions[entry.along].members)
+            yield unordered(context, f'type: 2 along {entry.along}', entry.along)
         elif entry.variable in claimed:
             yield (
                 f"{context}: variable '{entry.variable}' already carries the set declared by "
@@ -457,7 +457,7 @@ def _piecewise_references(spec: Spec) -> Iterator[str]:
             yield undeclared_dimension('piecewise', name, pw.along, spec, along=True)
             continue
         if not labels_of(spec, pw.along).ordered:
-            yield unordered(context, f'along: {pw.along}', pw.along, spec.dimensions[pw.along].members)
+            yield unordered(context, f'along: {pw.along}', pw.along)
         for d in pw.dims:
             if d not in spec.dimensions:
                 yield undeclared_dimension('piecewise', name, d, spec)
